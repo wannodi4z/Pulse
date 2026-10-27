@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v1.3.1 · 26 de octubre de 2026
+
+- Distribución de diálogos a zoom nativo 100%, sin escalado artificial: controles de 15 px, etiquetas de 14 px y espaciado reducido.
+- Reglas de Guardia organizadas por selector de día, manteniendo la semana completa al guardar.
+- Cabecera y acciones siempre visibles; sólo el contenido puede desplazarse en casos extensos.
+- Baja de Manager con transferencias a la izquierda, reemplazo y motivo a la derecha; botón de crear separado de Confirmar/Cancelar.
+- Acciones de Organización ordenadas en una fila propia, con tamaños de clic y separación consistentes.
+
+
 ## v1.3.0 · 26 de octubre de 2026
 
 - Un Lead por Manager entre todos sus Grupos; delegación independiente, conflictos de transferencias rechazados y advertencia para datos heredados.

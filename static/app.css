@@ -959,3 +959,78 @@ dialog.access-wide{max-width:1000px}
  .access-body{padding-top:20px;padding-bottom:20px}.access-header{padding-top:24px;padding-bottom:20px}
 }
 @media(max-width:759px){dialog,dialog.access-modal{width:calc(100% - 20px);max-height:calc(100dvh - 20px)} }
+
+/* Native 100% layout: readable controls, bounded body, permanent action row. */
+dialog{max-width:1040px;max-height:calc(100dvh - 24px);overflow:hidden}
+dialog.wide{max-width:1240px}
+dialog[open]{display:flex;flex-direction:column}
+dialog>header,dialog>footer{flex:none}
+dialog>form{min-height:0;display:flex;flex-direction:column}
+dialog>form>.form-body,dialog>form>.access-body,dialog>.form-body,dialog>.about-project{min-height:0;overflow:auto;overscroll-behavior:contain}
+.dialog-header{padding:16px 24px}.dialog-header h2{font-size:22px}
+.dialog-header+form>.form-body,dialog>.form-body{padding:18px 24px;gap:12px 20px}
+.dialog-footer{position:static;flex:none;padding:12px 24px;min-height:68px;align-items:center;flex-wrap:wrap}
+.dialog-footer button{min-height:42px;font-size:14px;padding:10px 18px}
+dialog .field>span,dialog .checkbox,dialog legend,dialog .muted,dialog .callout,dialog .form-instructions{font-size:14px;line-height:1.45}
+dialog input,dialog textarea,dialog select{font-size:15px;min-height:42px;padding:9px 12px}
+dialog input[type=checkbox]{min-height:0;width:18px;height:18px}
+dialog textarea{min-height:68px}
+dialog .form-instructions{padding:10px 14px}
+dialog .form-instructions strong{margin-bottom:2px}
+dialog .callout{padding:10px 14px}
+dialog .field{gap:6px}
+dialog .form-body>fieldset{padding:10px 14px}
+.offboard-transfers{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.offboard-transfers>fieldset:only-child{grid-column:1/-1}
+.offboard-replacement{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:20px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#f8fbfe}
+.offboard-replacement strong{font-size:14px}.offboard-replacement p{font-size:14px;line-height:1.45;margin-top:4px}
+.offboard-replacement button{flex:none;min-height:42px;font-size:14px;padding:10px 16px}
+dialog [data-form=offboard] .form-body>.field{grid-column:1/-1}
+dialog .offboard-review-note{font-size:13px}
+.entity-actions,.row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.entity-actions button,.row-actions button{min-height:36px;line-height:1.3}
+.technician .identity{min-width:130px;flex:1}.technician .entity-actions{width:100%;justify-content:flex-end;padding-top:8px;border-top:1px solid #e4edf5}
+.manager-header .entity-actions{justify-content:flex-end}
+dialog.access-modal{max-width:900px;max-height:calc(100dvh - 24px);overflow:hidden}
+dialog.access-wide{max-width:1120px}
+.access-header{padding:16px 24px}.access-topline{margin-bottom:12px}
+.access-intro h2{font-size:25px}.access-hero-icon{width:44px;height:44px}
+.access-subtitle{font-size:14px;line-height:1.45;margin-top:10px;max-width:none}
+.access-body{gap:14px;padding:16px 24px}.access-section+.access-section{padding-top:14px}
+.access-section-title{margin-bottom:12px}.access-section-title h3{font-size:15px}.access-section-title p{font-size:13px}
+.access-field>span:first-child{font-size:14px}.access-field input{font-size:15px}.access-field input::placeholder{font-size:14px}
+.access-hint,.password-checks>span{font-size:12px}.password-checks{margin-top:8px}
+.access-footer{padding:12px 24px;flex:none}.access-submit,.access-back{font-size:14px}.access-footnote{padding:7px;font-size:11px;flex:none}
+@media(max-height:800px) and (min-width:760px){
+ dialog .form-instructions strong{display:inline;margin-right:8px}
+ .dialog-header{padding-top:12px;padding-bottom:12px}
+ .access-body{gap:12px}.access-header{padding-top:12px;padding-bottom:12px}
+ .access-topline{margin-bottom:8px}.access-steps{margin-bottom:0}
+}
+@media(max-width:759px){
+ dialog,dialog.access-modal{width:calc(100% - 16px);max-height:calc(100dvh - 16px)}
+ .offboard-transfers{grid-template-columns:1fr}.offboard-replacement{flex-wrap:wrap;gap:10px}
+ .offboard-replacement button{width:100%}.dialog-header+form>.form-body,dialog>.form-body{padding:14px 16px}
+ .dialog-footer{padding:10px 16px;gap:8px}.dialog-footer button{flex:1}
+ .access-header,.access-body,.access-footer{padding-left:16px;padding-right:16px}
+}
+@media(min-width:1000px){
+ dialog [data-form=offboard]>.form-body{grid-template-areas:'guide guide' 'summary summary' 'transfers replacement' 'transfers reason' 'timer timer' 'confirm confirm' 'note note';align-items:start}
+ dialog [data-form=offboard] .form-instructions{grid-area:guide}
+ dialog [data-form=offboard] .callout{grid-area:summary}
+ dialog [data-form=offboard] .offboard-transfers{grid-area:transfers;grid-template-columns:1fr}
+ dialog [data-form=offboard] .offboard-replacement{grid-area:replacement;align-items:flex-start;gap:12px;padding:10px 12px}
+ dialog [data-form=offboard] .offboard-replacement button{padding:8px 12px;min-height:38px}
+ dialog [data-form=offboard] .form-body>.field{grid-area:reason}
+ dialog [data-form=offboard] .checkbox:has([name=confirm]){grid-area:confirm}
+ dialog [data-form=offboard] .checkbox:has([name=stop_timers]){grid-area:timer}
+ dialog [data-form=offboard] .offboard-review-note{grid-area:note}
+ dialog [data-form=offboard]:has([data-offboard-document])>.form-body{grid-template-areas:none}
+ dialog [data-form=offboard]:has([data-offboard-document]) .form-body>*{grid-area:auto}
+}
+.rule-day-tabs{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.rule-day-tabs button{flex:1;min-width:85px;border:1px solid #d7e5f2;border-radius:8px;padding:10px;font-size:14px;color:#365678;min-height:42px}
+.rule-day-tabs button[aria-pressed=true]{background:#e4f5f7;border-color:#2397a8;color:#155e6d;font-weight:600}
+dialog .weekly-rule-intro,dialog .weekly-rule-days{grid-column:1/-1}
+.rule-day[hidden]{display:none}
+dialog .rule-day>header .checkbox,dialog .rule-full-day,dialog .rule-interval>label>span,dialog .rule-interval>small,dialog .rule-add,dialog .weekly-rule-intro p{font-size:14px!important}

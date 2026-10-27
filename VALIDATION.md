@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.3.0
+# Validación ejecutada · Operational Pulse 1.3.1
 
 Fecha: 26 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -46,3 +46,10 @@ Diseño comprobado a 1440 × 1000 y 390 × 844: sin desbordamiento horizontal de
 ## Entrega
 
 ZIP completo con código, HTML, CSS, JavaScript, requisitos, README, especificación, validación, configuración VS Code y pruebas. Excluye entornos virtuales, bases SQLite, claves, sesiones y datos de prueba. Se descomprime e importa el servidor del ZIP con una base temporal nueva para comprobar versión, dos administradores iniciales y operación vacía.
+
+
+## Ajuste de escala v1.3.1
+
+Prueba adicional sin zoom CSS ni transformaciones: el diálogo de baja con un Grupo, destino, instrucciones, reemplazo, motivo, confirmación y acciones mide aproximadamente 601 px de alto. En viewports de 1440×760, 1366×700 y 1280×650 se verificó que cabe completo y que `scrollHeight` del contenido coincide con `clientHeight`: no requiere desplazamiento en ese caso. El navegador usa su escala nativa 100%. Cabecera y botones quedan fuera de la zona desplazable para casos con muchos pendientes. Las reglas de Guardia muestran un día por vez, conservando todos los intervalos de la semana al guardar. La suite recorrió los siete días y verificó los 13 intervalos persistidos.
+
+Se conservaron pruebas móviles. No se ejecutó Safari ni una Mac física; las alturas de viewport representan el área de contenido disponible después de las barras del navegador.

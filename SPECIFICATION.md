@@ -1,4 +1,4 @@
-# Operational Pulse 1.3.0 · especificación de la implementación nueva
+# Operational Pulse 1.3.1 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -66,7 +66,7 @@ La asignación de backup se captura dentro de Mi equipo y mantiene vigencia, alc
 
 Las tarjetas del Manager son botones con navegación contextual. El estado «En curso» y el periodo «Todos los periodos» permiten localizar timers aunque se esté consultando otro mes. Los filtros de tipo, Técnico y Grupo se conservan en la pantalla de revisión hasta que se cambian o se navega a otra sección. El Excel sigue correspondiendo a tiempo aprobado del mes seleccionado, tal como indica la pantalla. Las solicitudes concretas del Panel reutilizan el detalle y los endpoints de aprobación existentes.
 
-## Analítica y separación de responsabilidades v1.3.0
+## Analítica y separación de responsabilidades v1.3.1
 
 `GET /api/analytics` y `/api/analytics.xlsx` requieren Manager o Lead con delegación efectiva. El conjunto de usuarios se obtiene exclusivamente de los Grupos bajo su alcance; no se añade la identidad propia del Lead si su Grupo no está delegado. Admin y Técnicos sin delegación reciben 403.
 
@@ -81,7 +81,7 @@ Las recuperaciones de Técnicos se asignan a su Manager activo; las de Managers/
 El código conserva su hash verificador y se agrega un valor cifrado con Fernet en una tabla separada. La clave local se crea con permisos 0600, permanece fuera de SQLite y no se entrega en el ZIP ni Git. Sólo se revela el valor a su responsable autorizado por un endpoint POST auditado. Ver no renueva vigencia; regenerar invalida el anterior; consumir elimina el valor cifrado e invalida sesiones anteriores. Las solicitudes abiertas duplicadas se evitan y los códigos de otras solicitudes del mismo usuario se invalidan al emitir/consumir. Los códigos de versiones previas sin valor cifrado requieren regeneración para consulta.
 
 
-## Administración del ciclo de vida · v1.3.0
+## Administración del ciclo de vida · v1.3.1
 
 Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferir y dar de baja son acciones independientes.** Manager gestiona tiempo y recuperaciones, sin editar la estructura.
 
