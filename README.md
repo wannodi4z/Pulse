@@ -1,4 +1,4 @@
-# Operational Pulse · 1.2.3
+# Operational Pulse · 1.2.4
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.2.3`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.2.4`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.2.3/
+Operational_Pulse_v1.2.4/
   index.html
   server.py
   requirements.txt

@@ -1,5 +1,10 @@
 # Historial de versiones
 
+## v1.2.4 · 27 de octubre de 2026
+
+- Menús de acciones más amplios y con mayor espacio interior; etiquetas largas se ajustan sin tocar el borde y el menú respeta el ancho de pantallas pequeñas.
+
+
 ## v1.2.3 · 27 de octubre de 2026
 
 - Separación de 14 px entre las tarjetas de Grupos y su barra de paginación.

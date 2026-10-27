@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.2.3
+# Validación ejecutada · Operational Pulse 1.2.4
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -111,3 +111,9 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 
 - `tests/layout_smoke.py` ejecutado en Chromium: PASS, 54 combinaciones de pantalla, cero errores JavaScript. Incluye arrastre, cancelación, alternativa por teclado y bloqueo de Timer activo.
 - Sintaxis de app.js y compilación de server.py correctas. Cambio visual de separación entre Grupos y paginación; Mac/Safari pendientes.
+
+## Menús v1.2.4
+
+- Prueba funcional completa `tests/browser_smoke.py` en Chromium PASS, cero errores JavaScript.
+- Medición visual de la opción Generar código de activación con CSS real a 1440, 1280, 390 y 320 px: sin desbordamiento, con espacio interior derecho.
+- Sintaxis de app.js y compilación de server.py correctas. Mac/Safari pendientes.
