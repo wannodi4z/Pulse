@@ -1,5 +1,10 @@
 # Historial de versiones
 
+## v1.2.3 · 27 de octubre de 2026
+
+- Separación de 14 px entre las tarjetas de Grupos y su barra de paginación.
+
+
 ## v1.2.2 · 27 de octubre de 2026
 
 - Retirada la programación de actividades del panel del responsable y bloqueada su creación en API. Cada Técnico solicita su propia OT programada; el responsable revisa y autoriza. Se conservan las publicaciones y participaciones anteriores.

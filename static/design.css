@@ -216,3 +216,6 @@ dialog.transfer-dialog{max-width:850px}
 .user-button-copy small{font-size:10px;color:#64768d;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .user-chevron{color:#617792;margin-left:5px;transition:transform .15s}.user-menu[open] .user-chevron{transform:rotate(180deg)}
 @media(max-width:700px){.topbar .user-menu>summary{padding:4px 6px;gap:6px}.user-button-copy strong,.user-button-copy small{max-width:110px}.user-button-copy strong{font-size:10px}.user-button-copy small{font-size:9px}}
+
+/* Keep Group cards visually separate from their navigation. */
+.viewport-stage .organization-board + .viewport-pagination{margin-top:14px;border-radius:8px}
