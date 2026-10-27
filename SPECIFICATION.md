@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.0 · especificación de la implementación nueva
+# Operational Pulse 1.0.1 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -24,7 +24,7 @@ La lectura común se hace mediante `GET /api/state`. Las escrituras son transacc
 - Roles: ADMIN, MANAGER y USER. `is_lead` no es un rol adicional.
 - Nuevas personas: pendientes de activación con código mostrado una sola vez. Activación define contraseña de al menos diez caracteres.
 - ADMIN es el único que crea y edita estructura y personas; gestiona recuperaciones de Managers, otros administradores y Técnicos sin Manager activo. Las aprobaciones operativas las realizan Manager y Lead delegado.
-- MANAGER consulta a su equipo y gestiona tiempo, backup y recuperaciones de sus Técnicos; no modifica personas. Lead delegado sólo recibe los Grupos especificados y durante la vigencia; permanece Técnico para Mi tiempo, Claim y ADP.
+- MANAGER consulta a su equipo y gestiona tiempo, backup y recuperaciones de sus Técnicos; no modifica personas. Lead delegado cubre todos los Grupos actuales del Manager hasta revocación manual; permanece Técnico para Mi tiempo, Claim y ADP.
 - Sesiones de ocho horas, almacenadas en SQLite, con cookie HttpOnly y SameSite estricto; Secure cuando se sirve por HTTPS. Cambio de contraseña o deshabilitación invalida sesiones. Limitación de intentos de login por identidad.
 - Contraseñas y códigos nunca se devuelven en `/api/state`. Almacenamiento PBKDF2-HMAC-SHA256, salt aleatorio, 260 000 iteraciones.
 - Recuperación: solicitud, validación por responsable distinto del solicitante, código emitido de quince minutos, uso único y anulación de sesiones.
@@ -68,7 +68,7 @@ Las tarjetas del Manager son botones con navegación contextual. El estado «En 
 
 ## Analítica y separación de responsabilidades v1.0.0
 
-`GET /api/analytics` y `/api/analytics.xlsx` requieren Manager o Lead con delegación efectiva. El conjunto de usuarios se obtiene exclusivamente de los Grupos bajo su alcance; no se añade la identidad propia del Lead si su Grupo no está delegado. Admin y Técnicos sin delegación reciben 403.
+`GET /api/analytics` y `/api/analytics.xlsx` requieren Manager o Lead con delegación efectiva. El conjunto de usuarios se obtiene exclusivamente de los Grupos bajo su alcance; la delegación cubre todos los Grupos actuales del Manager y nunca Grupos de otros Managers. Admin y Técnicos sin delegación reciben 403.
 
 `GET /api/my-analytics` y `/api/my-analytics.xlsx` sólo admiten personas con rol USER, fijan el propietario desde la sesión y rechazan filtros de usuario o Grupo. Manager y Admin no usan esta ruta. Tanto JSON como Excel verifican autorización en cada solicitud.
 
@@ -87,7 +87,7 @@ Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferi
 
 - **Transferir Técnico activo:** en Organización, pulsa Transferir junto a la persona, elige un Grupo con Manager activo y explica el motivo. Conserva identidad, estado e historial. No se permite mover un Técnico con Timer en curso: primero debe detenerlo. Su sesión se invalida para aplicar el acceso nuevo; vuelve a entrar con su contraseña. La capacidad Lead se conserva si no genera un segundo backup para el Manager de destino; para cambiar al backup, Admin debe retirar primero la designación correspondiente.
 - **Transferir Grupo activo:** pulsa Transferir en el Grupo. Elige otro Manager activo de la misma Cuenta. Conserva todos los integrantes, registros y timers de los Técnicos en ejecución. Revoca las delegaciones afectadas, sin desactivar a nadie. Si coinciden dos Leads bajo el destino, se rechaza toda la operación; Admin decide antes qué designación retirar.
-- **Un Lead por Manager:** el técnico designado es el backup de ese Manager, incluso si administra varios Grupos. Designarlo no otorga aprobación. El Manager define por separado la vigencia y los Grupos de la delegación temporal, y puede revocarla. Las bases anteriores con varios Leads no se borran ni corrigen silenciosamente: Organización muestra una advertencia y Admin debe retirar las designaciones adicionales. Las nuevas escrituras impiden crear el conflicto.
+- **Un Lead por Manager:** el técnico designado es el backup de ese Manager, incluso si administra varios Grupos. Designarlo no otorga aprobación. El Manager activa la delegación para todos sus Grupos y puede revocarla manualmente. Las bases anteriores con varios Leads no se borran ni corrigen silenciosamente: Organización muestra una advertencia y Admin debe retirar las designaciones adicionales. Las nuevas escrituras impiden crear el conflicto.
 - **Baja de Manager:** revisa el impacto y asigna cada Grupo a otro Manager activo de la misma Cuenta. Si el reemplazo es nuevo, créalo y activa su acceso primero; el titular permanece activo hasta confirmar el traspaso. Se puede repartir el equipo entre varios Managers. Los Grupos y Técnicos conservan sus IDs e historial y los Técnicos continúan activos; sus timers siguen en ejecución. La operación completa ocurre en una sola transacción.
 - **Baja de Técnico:** revisa los pendientes. Si tiene Timer activo, Admin debe autorizar su cierre en ese momento y completar la documentación de cualquier OT de emergencia pendiente. El tiempo ya realizado queda enviado a aprobación del responsable del Grupo. Las OT programadas individuales sin ejecutar se cancelan. Las Guardias aún no iniciadas se cancelan; las que ya iniciaron conservan cobertura hasta la hora de la baja, incluyendo cruces de medianoche. Claim, ADP, Excel y analítica usan ese mismo límite. No se elimina el historial.
 - **Seguridad de la baja:** retira acceso, sesiones, activación y capacidad Lead, revoca delegaciones y cancela las recuperaciones propias. No permite la baja del Admin que ejecuta la acción ni del último Admin activo. Los códigos emitidos por el responsable saliente y los de Técnicos que cambian de Manager se invalidan y las solicitudes quedan pendientes para el nuevo responsable. Los códigos no se transfieren.

@@ -95,6 +95,26 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(len([g for g in state['groups'] if g['manager_id']==m['id']]),2)
         self.assertEqual(mc.post('/api/accounts',json={'name':'Bad','code':'BAD'}).status_code,403)
 
+    def test_delegated_backup_covers_all_current_manager_groups(self):
+        a,g1,m,mc,_,_=self.organization()
+        g2=self.group(a,'SECOND',m['id'])
+        lead,lc,_=self.person('USER','BACKUP',group=g1,lead=True)
+        _,tc,_=self.person('USER','SECONDTECH',group=g2)
+        d=self.post('/api/delegations',{'lead_id':lead['id'],'group_ids':[g1]},mc)['id']
+        self.assertEqual(set(lc.get('/api/state').json()['scope']),{g1,g2})
+        self.approve(lc,'ot',self.ot(tc))
+        rejected=self.ot(tc,'2026-01-07T23:00:00-06:00','2026-01-08T01:00:00-06:00')
+        self.assertEqual(lc.post('/api/approvals/ot/'+rejected,json={'decision':'REJECTED','reason':'Corregir documentación'}).status_code,200)
+        g3=self.group(a,'NEWGROUP',m['id'])
+        self.assertEqual(set(lc.get('/api/state').json()['scope']),{g1,g2,g3})
+        foreign=self.account('OTHER');fg=self.group(foreign,'FG')
+        _,fc,_=self.person('MANAGER','OTHER_MANAGER',account=foreign,groups=[fg])
+        _,ft,_=self.person('USER','FOREIGN_TECH',group=fg)
+        foreign_ot=self.ot(ft)
+        self.assertEqual(lc.post('/api/approvals/ot/'+foreign_ot,json={'decision':'APPROVED'}).status_code,403)
+        self.assertEqual(mc.delete('/api/delegations/'+d).status_code,200)
+        self.assertFalse(lc.get('/api/state').json()['can_approve'])
+
     def test_delegation_has_no_expiry_and_requires_manual_revocation(self):
         _,gid,_,mc,_,_=self.organization()
         lead,lc,_=self.person('USER','BACKUP',group=gid,lead=True)
@@ -133,7 +153,7 @@ class PulseTests(unittest.TestCase):
         target=self.ot(tc)
         self.approve(lc,'ot',target)
         denied=self.ot(oc)
-        self.assertEqual(lc.post('/api/approvals/ot/'+denied,json={'decision':'APPROVED'}).status_code,403)
+        self.approve(lc,'ot',denied)
         self.assertEqual(mc.delete('/api/delegations/'+d['id']).status_code,200)
         s=lc.get('/api/state').json();self.assertFalse(s['can_approve']);self.assertTrue(s['user']['is_lead'])
         self.assertEqual(self.client.put('/api/people/'+lead['id'],json={**d1,'is_lead':False}).status_code,200)
@@ -349,9 +369,9 @@ class PulseTests(unittest.TestCase):
         current=self.server.datetime.now(self.server.timezone.utc)
         d=self.post('/api/delegations',{'lead_id':lead['id'],'group_ids':[g2],'start_at':(current-self.server.timedelta(minutes=1)).isoformat(),'end_at':(current+self.server.timedelta(hours=2)).isoformat()},mc)['id']
         report=lc.get('/api/analytics?month=2026-01').json()
-        self.assertEqual([g['id'] for g in report['groups']],[g2]);self.assertEqual([u['id'] for u in report['users']],[u2['id']])
-        self.assertEqual(lc.get('/api/analytics?month=2026-01&group_id='+g1).status_code,403)
-        self.assertEqual(lc.get('/api/analytics?month=2026-01&user_id='+lead['id']).status_code,403)
+        self.assertEqual({g['id'] for g in report['groups']},{g1,g2});self.assertIn(u2['id'],[u['id'] for u in report['users']])
+        self.assertEqual(lc.get('/api/analytics?month=2026-01&group_id='+g1).status_code,200)
+        self.assertEqual(lc.get('/api/analytics?month=2026-01&user_id='+lead['id']).status_code,200)
         self.assertEqual(lc.get('/api/my-analytics?month=2026-01').status_code,200)
         with patch.object(self.server,'now',return_value=(current+self.server.timedelta(hours=3)).isoformat()):
             self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,200)

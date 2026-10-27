@@ -22,7 +22,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -180,7 +180,7 @@ def scope(c, user):
             allowed = {r[0] for r in c.execute('SELECT id FROM groups WHERE manager_id=?', (d['manager_id'],))}
             own = c.execute('SELECT manager_id FROM groups WHERE id=?', (user['group_id'],)).fetchone()
             if own and own[0] == d['manager_id']:
-                ids.update(set(json.loads(d['group_ids'])) & allowed)
+                ids.update(allowed)
     return ids
 
 
@@ -336,7 +336,7 @@ def state(user=Depends(current_user)):
                   'timers': [r for r in rows(c, 'timers') if r['user_id'] in visible and not r['end_at']],
                   'windows': [r for r in rows(c, 'windows') if user['role'] == 'ADMIN' or r['group_id'] in own_ids],
                   'rules': [dict(r, segments=json.loads(r['segments'])) for r in rows(c, 'rules') if user['role'] == 'ADMIN' or r['manager_id'] == user['id'] or any(g['manager_id'] == r['manager_id'] for g in shown_groups)],
-                  'delegations': [dict(d, group_ids=json.loads(d['group_ids'])) for d in rows(c, 'delegations') if user['role'] == 'ADMIN' or d['manager_id'] == user['id'] or d['lead_id'] == user['id']],
+                  'delegations': [dict(d, group_ids=[g['id'] for g in rows(c, 'groups') if g['manager_id']==d['manager_id']] if not d['revoked_at'] else json.loads(d['group_ids'])) for d in rows(c, 'delegations') if user['role'] == 'ADMIN' or d['manager_id'] == user['id'] or d['lead_id'] == user['id']],
                   'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
                   'audit': [a for a in rows(c, 'audit') if user['role'] == 'ADMIN' or a['actor_id'] in visible or a['entity_id'] in visible_entities][-300:]}
         actor_ids={event['actor_id'] for event in result['audit']}
@@ -837,12 +837,12 @@ def delegate(data: dict = Body(...), actor=Depends(current_user)):
     if actor['role'] != 'MANAGER':
         fail('Sólo el Manager puede delegar su autoridad.', 403)
     start, end = now(), ''
-    ids = list(dict.fromkeys(data.get('group_ids', [])))
     with connection(True) as c:
         lead = get(c, 'users', text(data, 'lead_id'))
         allowed = scope(c, actor)
-        if not lead['is_lead'] or lead['status'] != 'ACTIVE' or lead['group_id'] not in allowed or not ids or not set(ids).issubset(allowed):
-            fail('Selecciona un Lead activo de tu equipo y Grupos bajo tu autoridad.')
+        ids = sorted(allowed)
+        if not lead['is_lead'] or lead['status'] != 'ACTIVE' or lead['group_id'] not in allowed or not ids:
+            fail('Selecciona un Lead activo de tu equipo. La delegación cubre todos tus Grupos.')
         # The write transaction serializes concurrent assignments. Changing backup
         # explicitly revokes the existing active/scheduled assignment atomically.
         outstanding = c.execute("SELECT * FROM delegations WHERE manager_id=? AND revoked_at IS NULL AND (end_at='' OR end_at>?)", (actor['id'], now())).fetchall()

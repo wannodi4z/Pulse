@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.0
+# Validación ejecutada · Operational Pulse 1.0.1
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -124,3 +124,9 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 - Prueba funcional completa en Chromium PASS y 54 combinaciones de pantalla PASS; formulario sin campos de fecha.
 - Migración de delegaciones comprobada en SQLite aislado: vigente pasa a manual, vencida/revocada no se reactiva; reinicio no duplica auditoría.
 - Sintaxis JavaScript y compilación Python correctas. Mac/Safari pendientes.
+
+## Backup completo v1.0.1
+
+- Chromium: prueba funcional completa PASS, cero errores JavaScript; formulario sin fechas ni selección de Grupos y analítica de todos los Grupos del Manager.
+- API: aprobación y rechazo de OT de otro Grupo del mismo Manager; inclusión automática de Grupo nuevo; bloqueo de registros de otro Manager, autoaprobación y revocación.
+- Sintaxis JavaScript y compilación Python correctas. Mac/Safari no ejecutados.

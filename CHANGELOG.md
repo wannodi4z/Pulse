@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## v1.0.1 · 27 de octubre de 2026
+
+- El Lead delegado cubre automáticamente todos los Grupos actuales de su Manager, no sólo su Grupo. Se elimina la selección de alcance.
+- Autoriza y rechaza OT del equipo, sin autoaprobación ni autoridad sobre otros Managers. La delegación continúa hasta revocación manual.
+- Correcciones incrementan v1.0.x; el salto a v1.1.x requiere indicación del usuario.
+
+
 ## v1.0.0 · estabilización · 27 de octubre de 2026
 
 - Versión fijada en v1.0.0 por solicitud del usuario hasta autorización expresa para pasar a v1.1.x.

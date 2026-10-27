@@ -1,4 +1,4 @@
-# Operational Pulse · 1.0.0
+# Operational Pulse · 1.0.1
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.0`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.1`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.0/
+Operational_Pulse_v1.0.1/
   index.html
   server.py
   requirements.txt
@@ -177,7 +177,7 @@ Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders,
 ## Novedades de v1.1.0
 
 - **Guardias por intervalos:** cada día admite varios horarios. Usa «Agregar intervalo» o «24 horas»; el Manager define su semana sin horarios operativos precargados. Un fin como 00:00 después de 20:00 corresponde al día siguiente. Los intervalos se muestran agrupados por día al guardar.
-- **Delegación junto al equipo:** elige «Delegar» en la fila de un Lead activo. El formulario aparece dentro de Mi equipo, sin modal. Permite elegir el alcance, sustituir al backup y revocar. Inicia al guardar y no vence automáticamente. Sólo hay una asignación vigente por Manager.
+- **Delegación junto al equipo:** elige «Delegar» en la fila de un Lead activo. El formulario aparece dentro de Mi equipo, sin modal. Cubre todos los Grupos del Manager y permite sustituir al backup o revocar. Inicia al guardar y no vence automáticamente. Sólo hay una asignación vigente por Manager.
 - **Panel que lleva a la acción:** las tarjetas del Manager abren Tiempo del equipo con tipo y estado ya seleccionados. Pendientes y timers usan «Todos los periodos» para incluir eventos anteriores al mes visible. «Ver actividad» abre el detalle del Timer con contador en vivo.
 - **Solicitudes concretas:** el bloque lateral del Panel presenta hasta tres solicitudes para revisar, en lugar de repetir el contador de pendientes. El detalle permite aprobar o rechazar usando las mismas validaciones del servidor.
 - **Compatibilidad:** se conserva la base existente. No se agregan datos de ejemplo ni se borran registros. Si una base antigua contiene varios backups simultáneos, sólo la última asignación activa otorga autoridad; al reasignar o revocar se consolidan conservando el historial.
@@ -232,7 +232,7 @@ Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferi
 
 - **Transferir Técnico activo:** en Organización, pulsa Transferir junto a la persona, elige un Grupo con Manager activo y explica el motivo. Conserva identidad, estado e historial. No se permite mover un Técnico con Timer en curso: primero debe detenerlo. Su sesión se invalida para aplicar el acceso nuevo; vuelve a entrar con su contraseña. La capacidad Lead se conserva si no genera un segundo backup para el Manager de destino; para cambiar al backup, Admin debe retirar primero la designación correspondiente.
 - **Transferir Grupo activo:** pulsa Transferir en el Grupo. Elige otro Manager activo de la misma Cuenta. Conserva todos los integrantes, registros y timers de los Técnicos en ejecución. Revoca las delegaciones afectadas, sin desactivar a nadie. Si coinciden dos Leads bajo el destino, se rechaza toda la operación; Admin decide antes qué designación retirar.
-- **Un Lead por Manager:** el técnico designado es el backup de ese Manager, incluso si administra varios Grupos. Designarlo no otorga aprobación. El Manager elige los Grupos y activa o revoca la delegación manualmente. Las bases anteriores con varios Leads no se borran ni corrigen silenciosamente: Organización muestra una advertencia y Admin debe retirar las designaciones adicionales. Las nuevas escrituras impiden crear el conflicto.
+- **Un Lead por Manager:** el técnico designado es el backup de ese Manager, incluso si administra varios Grupos. Designarlo no otorga aprobación. La delegación cubre todos los Grupos del Manager; él la activa o revoca manualmente. Las bases anteriores con varios Leads no se borran ni corrigen silenciosamente: Organización muestra una advertencia y Admin debe retirar las designaciones adicionales. Las nuevas escrituras impiden crear el conflicto.
 - **Baja de Manager:** revisa el impacto y asigna cada Grupo a otro Manager activo de la misma Cuenta. Si el reemplazo es nuevo, créalo y activa su acceso primero; el titular permanece activo hasta confirmar el traspaso. Se puede repartir el equipo entre varios Managers. Los Grupos y Técnicos conservan sus IDs e historial y los Técnicos continúan activos; sus timers siguen en ejecución. La operación completa ocurre en una sola transacción.
 - **Baja de Técnico:** revisa los pendientes. Si tiene Timer activo, Admin debe autorizar su cierre en ese momento y completar la documentación de cualquier OT de emergencia pendiente. El tiempo ya realizado queda enviado a aprobación del responsable del Grupo. Las OT programadas individuales sin ejecutar se cancelan. Las Guardias aún no iniciadas se cancelan; las que ya iniciaron conservan cobertura hasta la hora de la baja, incluyendo cruces de medianoche. Claim, ADP, Excel y analítica usan ese mismo límite. No se elimina el historial.
 - **Seguridad de la baja:** retira acceso, sesiones, activación y capacidad Lead, revoca delegaciones y cancela las recuperaciones propias. No permite la baja del Admin que ejecuta la acción ni del último Admin activo. Los códigos emitidos por el responsable saliente y los de Técnicos que cambian de Manager se invalidan y las solicitudes quedan pendientes para el nuevo responsable. Los códigos no se transfieren.
@@ -306,4 +306,8 @@ El servidor comprueba el Grupo original dentro de la transacción. Si alguien ya
 
 ## Política de versión
 
-La versión permanece en **v1.0.0** durante la estabilización. Sólo se cambiará a **v1.1.x** cuando el usuario lo indique explícitamente.
+Durante la estabilización se incrementan correcciones dentro de **v1.0.x**. Sólo se cambiará a **v1.1.x** cuando el usuario lo indique explícitamente.
+
+## Backup del Manager · v1.0.1
+
+Delegar cubre automáticamente **todos los Grupos actuales del Manager**. No se seleccionan Grupos y no hay vencimiento automático. El Lead puede aprobar y rechazar OT del equipo, con bloqueo de autoaprobación; nunca recibe autoridad sobre otros Managers. Los Grupos nuevos del Manager se incluyen automáticamente. El Manager puede revocar desde Mi equipo.
