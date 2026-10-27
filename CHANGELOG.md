@@ -1,5 +1,11 @@
 # Historial de versiones
 
+## v1.0.2 · 26 de octubre de 2026
+
+- Se oscurecen textos secundarios, etiquetas, ayudas, placeholders y mensajes de los modales para mejorar su lectura.
+- Se conserva la paleta azul, blanco y turquesa, así como los textos claros del menú y las superficies oscuras.
+- Sin cambios de distribución, tamaños, flujos ni datos.
+
 ## v1.0.1 · 26 de octubre de 2026
 
 - Rediseño de los modales de activación, solicitud de recuperación y restablecimiento de contraseña, con encabezados propios, iconografía y secciones de información.

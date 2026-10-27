@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.1
+# Validación ejecutada · Operational Pulse 1.0.2
 
 Fecha: 26 de octubre de 2026. Implementación nueva desde cero; no se declara equivalencia binaria ni preservación del código del ZIP antiguo.
 
@@ -84,3 +84,10 @@ Recorrido ejecutado desde la interfaz:
 - Se solicita recuperación de admin2 desde el login, admin1 emite un código en la interfaz y se restablece la contraseña desde el modal público. Se comprueba error por contraseñas distintas, error por código inválido y éxito con un código real; finalmente se inicia sesión con la nueva contraseña.
 - Las activaciones de Manager, Técnico y Lead continúan probándose con sus códigos reales y la nueva pantalla de confirmación. Después se ejecutan los flujos operativos existentes.
 - La validación continúa siendo en Linux/Chromium; macOS y Safari no se ejecutaron aquí.
+
+## Ajuste de contraste v1.0.2
+
+- Se oscurecieron únicamente colores de primer plano para textos, etiquetas, ayudas, placeholders y estados. La distribución y los tamaños no cambiaron.
+- Las ayudas y textos secundarios de los modales se ajustaron a un contraste calculado de al menos 4.8:1 respecto al fondo de referencia claro `#f5f9ff`. Se conservaron los textos claros sobre superficies oscuras. Esta comprobación no equivale a una auditoría completa de accesibilidad de todas las combinaciones.
+- Se inspeccionó la captura actualizada de activación y se repitió el recorrido funcional existente en Chromium, sin errores JavaScript.
+- Sintaxis JavaScript y Python: correctas. El backend sólo cambia la versión; sus ocho tests de lógica pasaron en la entrega anterior y no se repitieron para este ajuste de color.

@@ -74,10 +74,10 @@ def run():
                     assert page.locator('#modal').evaluate('(el)=>el.getBoundingClientRect().height<=innerHeight'),'Access dialog vertical overflow'
                 page.set_viewport_size({'width':1440,'height':1000})
                 if os.environ.get('PULSE_SCREENSHOT_DIR'):
-                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.0.1.png'))
+                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.0.2.png'))
                 page.keyboard.press('Escape');expect(page.locator('#modal')).not_to_be_visible()
                 action('recovery-request');fill('identity','admin2')
-                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.0.1.png'))
+                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.0.2.png'))
                 save();expect(page.locator('.access-result-body')).to_contain_text('Si tu cuenta está activa')
                 expect(page.locator('#modal h2')).to_have_text('Solicitud recibida')
                 action('recovery-complete');expect(page.locator('#modal [name=identity]')).to_have_value('admin2')
@@ -85,7 +85,7 @@ def run():
                 action('close')
                 # Branding and credits work before and after authentication.
                 action('about');expect(page.locator('.about-project')).to_contain_text('Francisco Cervantes Marquez')
-                expect(page.locator('.about-project')).to_contain_text('Versión 1.0.1')
+                expect(page.locator('.about-project')).to_contain_text('Versión 1.0.2')
                 expect(page.locator('.author-list')).to_contain_text('Samuel Alejandro Díaz Chávez')
                 expect(page.locator('.author-list article')).to_have_count(2)
                 page.set_viewport_size({'width':390,'height':844})
@@ -95,7 +95,7 @@ def run():
                 assert page.locator('.about-project img.kyndryl-logo').evaluate('(img)=>img.complete&&img.naturalWidth>0')
                 action('close')
                 login('admin1','admin12026')
-                expect(page.locator('.workspace-tag')).to_contain_text('v1.0.1')
+                expect(page.locator('.workspace-tag')).to_contain_text('v1.0.2')
                 action('about');expect(page.locator('.author-list')).to_contain_text('Francisco Cervantes Marquez');action('close')
                 page.locator('.sidebar [data-page=recoveries]').click();action('recovery-issue')
                 expect(page.locator('.secret-code')).to_be_visible();recovery_code=page.locator('.secret-code').inner_text();action('close');action('logout')
@@ -178,7 +178,7 @@ def run():
                 expect(page.locator('.sidebar [data-page=time]')).to_have_count(1);expect(page.locator('.sidebar [data-page=teamTime]')).to_have_count(0)
                 page.locator('.sidebar [data-page=time]').click();expect(page.locator('h1')).to_have_text('Mi tiempo')
                 assert errors==[],errors
-                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.0.1','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','Claim/ADP rows','Lead has no implicit approval authority'],'javascript_errors':errors},ensure_ascii=False,indent=2))
+                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.0.2','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','Claim/ADP rows','Lead has no implicit approval authority'],'javascript_errors':errors},ensure_ascii=False,indent=2))
                 browser.close()
         except Exception:
             log.flush();log.seek(0);print(log.read()[-7000:]);raise
