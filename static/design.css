@@ -205,3 +205,14 @@ dialog.transfer-dialog{max-width:850px}
 .manager-open .identity{min-width:0}.manager-open:hover .identity strong{color:#2b60b5}
 [data-form=transfer] .transfer-target-selector{grid-column:1/-1}
 .transfer-route>div{position:relative}.transfer-change{position:absolute;right:11px;top:10px;font-size:10px;color:#7c9fc7;padding:0;background:none;border:0}.transfer-change:hover{color:#2f64b0;text-decoration:underline}
+
+/* A single, clearly interactive identity control across the entire header. */
+.topbar .user-menu>summary{padding:7px 10px;border:1px solid #dfe7f1;border-radius:12px;background:#fff;gap:10px;transition:background .15s,border-color .15s}
+.topbar .user-menu>summary::-webkit-details-marker{display:none}
+.topbar .user-menu>summary:hover,.topbar .user-menu[open]>summary{background:#f1f6ff;border-color:#b7ccee}
+.topbar .user-menu>summary:focus-visible{outline:3px solid #36b9b3;outline-offset:3px}
+.user-button-copy{display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left}
+.user-button-copy strong{font-size:12px;color:#253f60;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-button-copy small{font-size:10px;color:#64768d;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-chevron{color:#617792;margin-left:5px;transition:transform .15s}.user-menu[open] .user-chevron{transform:rotate(180deg)}
+@media(max-width:700px){.topbar .user-menu>summary{padding:4px 6px;gap:6px}.user-button-copy strong,.user-button-copy small{max-width:110px}.user-button-copy strong{font-size:10px}.user-button-copy small{font-size:9px}}

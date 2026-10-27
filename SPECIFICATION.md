@@ -1,4 +1,4 @@
-# Operational Pulse 1.2.0 · especificación de la implementación nueva
+# Operational Pulse 1.2.1 · especificación de la implementación nueva
 
 ## Alcance actual
 

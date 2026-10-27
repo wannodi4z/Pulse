@@ -1,5 +1,11 @@
 # Historial de versiones
 
+## v1.2.1 · 27 de octubre de 2026
+
+- Cabecera con avatar, nombre, rol e identificador dentro de un único botón de usuario.
+- “Programar actividad” sustituye “OT compartida”: el responsable publica la actividad del Grupo; cada Técnico conserva su participación y Timer, con revisión del tiempo real. No se reclasifica como emergente.
+
+
 ## v1.2.0 · 27 de octubre de 2026
 
 - Organización interactiva: Grupos lado a lado y Técnicos que se pueden arrastrar a otro Grupo. Destinos alternativos disponibles durante el arrastre y mediante Mover.

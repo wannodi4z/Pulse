@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.2.0
+# Validación ejecutada · Operational Pulse 1.2.1
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -94,3 +94,9 @@ Se inspeccionaron capturas de la Cuenta vacía, su menú y la estructura poblada
 `tests/layout_smoke.py` ejecutó arrastrar y soltar reales con `drag_to` de Playwright: abrir edición con Enter, soltar un Técnico sobre otro Grupo, verificar que aún no se guardó, cancelar con Escape, repetir y confirmar con un motivo frecuente, y regresar mediante Mover por teclado. Se comprobó un Técnico con Timer activo: atributo draggable=false y traslado bloqueado en la interfaz. Se conservaron las 54 combinaciones de rol/ruta/viewport y se comprobaron los controles del modal de traslado a 1440×760, 1366×700 y 1280×650.
 
 La suite general de navegador volvió a recorrer activaciones, navegación, reglas, OT, timers, aprobaciones, analítica, recuperaciones, Excel, Claim/ADP, traspasos de Grupos, baja y reactivación. Cero errores JavaScript capturados. Sintaxis JS y compilación Python verificadas. Pruebas realizadas en Chromium/Linux, no en una Mac física ni Safari.
+
+## Ajuste v1.2.1
+
+- Ejecutados nuevamente `tests/browser_smoke.py` y `tests/layout_smoke.py` en Chromium: ambos PASS, 54 combinaciones de pantalla y cero errores JavaScript.
+- Validadas sintaxis de app.js/layout.js y compilación de server.py.
+- Cambios limitados a presentación, terminología y versión; conserva la participación individual en actividades programadas. Mac/Safari no ejecutados.
