@@ -65,7 +65,7 @@ window.PulseLayout=(()=>{
       index=Math.max(0,Math.min(items.length-1,next));memory.set('section:'+key,index);
       items.forEach((n,i)=>n.classList.toggle('viewport-off',i!==index));q('select',bar).value=String(index);q('.viewport-location',bar).textContent=`${index+1} / ${items.length}`;
       q('[data-section-prev]',bar).disabled=index===0;q('[data-section-next]',bar).disabled=index===items.length-1;
-      fitCollection(items[index],stage.clientHeight,key+':'+index);
+      fitCollection(items[index],stage.clientHeight,key+':'+index);useAvailableSpace(items[index],stage.clientHeight,key+':'+index);
     }
     q('select',bar).onchange=e=>show(Number(e.target.value));q('[data-section-prev]',bar).onclick=()=>show(index-1);q('[data-section-next]',bar).onclick=()=>show(index+1);
     stage._show=target=>{const i=items.findIndex(n=>n===target||n.contains(target));if(i>=0)show(i);};show(index);
@@ -97,6 +97,27 @@ window.PulseLayout=(()=>{
       const nodes=[...list.children];if(nodes.length<2)return;
       const id=key+':panels:'+i,control=pager(nodes.length,memory.get(id)||0,id,'Panel',value=>nodes.forEach((n,j)=>n.classList.toggle('viewport-off',j!==value)));
       list.classList.add('viewport-single-column');list.after(control);list._viewport={children:nodes,control};
+    });
+  }
+  function useAvailableSpace(root,budget,key){
+    // Once parent pagination has selected an entity, fill the remaining space with its members.
+    all('.technicians',root).forEach((list,i)=>{
+      const holder=list._viewport;if(!holder||!list.getClientRects().length)return;
+      const {children}=holder,select=q('select',holder.control),first=Number(select.value)*holder.size;
+      let size=holder.size;
+      for(let candidate=size+1;candidate<=children.length;candidate++){
+        const pageIndex=Math.floor(first/candidate),count=Math.ceil(children.length/candidate);
+        children.forEach((node,j)=>node.classList.toggle('viewport-off',Math.floor(j/candidate)!==pageIndex));
+        holder.control.hidden=count===1;
+        if(root.getBoundingClientRect().height>budget-4)break;
+        size=candidate;
+      }
+      const pageIndex=Math.floor(first/size),count=Math.ceil(children.length/size);
+      children.forEach((node,j)=>node.classList.toggle('viewport-off',Math.floor(j/size)!==pageIndex));holder.control.hidden=false;
+      if(size===holder.size)return;
+      if(count===1){holder.control.remove();delete list._viewport;return;}
+      const id=key+':members:'+i,control=pager(count,pageIndex,id,'Técnicos',value=>children.forEach((node,j)=>node.classList.toggle('viewport-off',Math.floor(j/size)!==value)));
+      holder.control.replaceWith(control);list._viewport={children,size,control};
     });
   }
   function reveal(target){
@@ -158,6 +179,6 @@ window.PulseLayout=(()=>{
     reveal(invalid);invalid.reportValidity();return false;
   }
   document.addEventListener('close',()=>{dialogState=null;},true);
-  window.addEventListener('resize',()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{dialog();const stage=q('.viewport-stage');if(stage){all('*',stage).forEach(list=>{if(list._viewport){list._viewport.children.forEach(n=>n.classList.remove('viewport-off'));list._viewport.control.remove();delete list._viewport;list.classList.remove('viewport-single-column');}});const active=[...stage.children].find(n=>!n.classList.contains('viewport-off'));if(active)fitCollection(active,stage.clientHeight,'resize');}});});
+  window.addEventListener('resize',()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{dialog();const stage=q('.viewport-stage');if(stage){all('*',stage).forEach(list=>{if(list._viewport){list._viewport.children.forEach(n=>n.classList.remove('viewport-off'));list._viewport.control.remove();delete list._viewport;list.classList.remove('viewport-single-column');}});const active=[...stage.children].find(n=>!n.classList.contains('viewport-off'));if(active){fitCollection(active,stage.clientHeight,'resize');useAvailableSpace(active,stage.clientHeight,'resize');}}});});
   return {page,dialog,reveal,validate,filterSearch};
 })();

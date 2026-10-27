@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.0 · especificación de la implementación nueva
+# Operational Pulse 1.0.1 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -118,3 +118,8 @@ El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los for
 ### Composición de la interfaz v1.0.0
 
 `PulseLayout.compose` agrupa elementos relacionados por ruta: resumen/estructura de Organización, filtros/registros de Tiempo del equipo, acciones/totales de Mi tiempo, resúmenes/semanas de captura y métricas/gráficas/criterios de analítica. La barra de contenido se oculta cuando sólo hay una tarea o Cuenta. La paginación de tablas calcula el espacio real ocupado por títulos, cabeceras y controles; no asigna una pantalla individual a cada bloque informativo. El contador se reinicia a v1.0.0 sin migraciones de borrado ni cambios del esquema de datos.
+
+
+### Presentación y acciones v1.0.1
+
+Los menús de entidades conservan los identificadores data-action y los controladores existentes. Se montan sobre el documento con posicionamiento fijo, ajustado a los límites del viewport, para evitar recortes por los contenedores de tarjetas. Se cierran al navegar, volver a renderizar, redimensionar, pulsar Escape o hacer clic fuera. La navegación de teclado recorre los botones y Escape devuelve foco al disparador. Las acciones finales pasan por las mismas validaciones y confirmaciones de la aplicación. El servidor sólo cambia su constante de versión en esta entrega.

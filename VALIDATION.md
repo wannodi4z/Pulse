@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.0
+# Validación ejecutada · Operational Pulse 1.0.1
 
 Fecha: 26 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -67,3 +67,12 @@ Se validó sintaxis tanto de app.js como de layout.js. No se ejecutó la aplicac
 ## Limpieza de composición y versión v1.0.0
 
 Se volvió a ejecutar `layout_smoke.py` con sus 54 combinaciones de rol/ruta/viewport y datos poblados. Ahora comprueba explícitamente que resumen y Cuenta están visibles juntos y que una sola Cuenta no tiene una pantalla de resumen separada. También comprueba filtros visibles en Tiempo del equipo y analítica. La suite de navegador verifica la firma Kyndryl integrada, el símbolo exclusivo `#settings`, el Panel de Admin sin bienvenida decorativa, el acceso directo de una Cuenta desde ese Panel y la versión v1.0.0. El backend conserva su lógica operativa; el cambio de servidor de esta entrega se limita a la constante de versión.
+
+
+## Acabados v1.0.1
+
+Se ejecutaron nuevamente las 23 pruebas de backend, la suite general de Chromium y las 54 combinaciones de rol/ruta/viewport de layout_smoke. Los recorridos administrativos ahora abren los menús reales para agregar Managers, transferir Técnicos/Grupos, revisar bajas y reactivar; no se sustituyen esas acciones por escrituras directas al estado.
+
+Prueba adicional de menú: apertura desde la Cuenta, primer botón enfocado, ArrowDown hacia Editar Cuenta, límites dentro de viewport, Escape con devolución de foco y cierre al pulsar fuera. Se mantiene la comprobación de Organización combinada, acceso desde Panel, reglas de Guardia editables, OT, timers, guardias, aprobaciones, Claim/ADP, Excel, analítica y recuperaciones. Sintaxis de ambos módulos JS y compilación Python verificadas. Inspección visual de captura real de Organización, con jerarquía y acciones reagrupadas.
+
+Las pruebas siguen realizándose en Chromium/Linux; no se ejecutaron en una Mac física o Safari. El ZIP excluye bases y claves; importar el servidor extraído con una SQLite nueva verifica la versión v1.0.1 y los dos administradores iniciales.

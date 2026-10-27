@@ -1,4 +1,4 @@
-# Operational Pulse · 1.0.0
+# Operational Pulse · 1.0.1
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.0`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.1`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.0/
+Operational_Pulse_v1.0.1/
   index.html
   server.py
   requirements.txt
@@ -263,3 +263,17 @@ El sidebar contiene la operación diaria; Configuración agrupa las opciones sec
 Esta entrega se identifica como **v1.0.0** por solicitud del autor. El reinicio es del contador; conserva el modelo SQLite y los datos existentes. El historial de entregas previas permanece en CHANGELOG.
 
 Organización abre el resumen y la estructura juntos. Si existe una sola Cuenta, no se muestra un selector de pantallas; cuando hay varias, se elige la Cuenta desde el mismo espacio. Tiempo del equipo conserva sus filtros junto a los registros; Mi tiempo conserva acciones y totales con OT/Guardias; Claim y ADP presentan el resumen sobre las semanas. Analítica combina totales, gráficas y criterios y mantiene los filtros al cambiar entre desglose por Grupo, Técnico y detalle. El Panel de Admin presenta Cuentas con acceso directo a su estructura y tareas de accesos/asignación. La firma Kyndryl acompaña a la identidad del producto en la parte superior del sidebar; Configuración tiene un engranaje propio y Organización su jerarquía.
+
+
+## Acabados y acciones · v1.0.1
+
+La versión actual continúa desde la base v1.0.0, manteniendo datos, modelo y flujos. Cuenta, Manager y Grupo tienen niveles visuales diferenciados; se conserva la tipografía legible y el ajuste al 100%.
+
+La acción habitual permanece visible en cada bloque. El botón de tres puntos abre las acciones secundarias:
+
+- Cuenta: Agregar Manager, Editar Cuenta y Eliminar Cuenta.
+- Manager: editar datos cuando tiene activación pendiente, o revisar Baja/Reactivar según su estado. La activación o edición habitual permanece en la tarjeta.
+- Grupo: Editar Grupo, Transferir Grupo y Eliminar Grupo; Agregar Técnico queda visible.
+- Técnico: Transferir Técnico, generar activación cuando corresponda y Baja/Reactivar. Editar queda visible.
+
+Las operaciones de eliminación y baja conservan sus revisiones y confirmaciones. Los menús se cierran con Escape o al hacer clic fuera, permiten navegar con flechas y no se recortan dentro de las tarjetas. No se han movido al menú acciones operativas como detener un Timer o aprobar tiempo.

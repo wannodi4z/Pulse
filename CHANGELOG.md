@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v1.0.1 · 26 de octubre de 2026
+
+- Acabados de interfaz: niveles de Cuenta, Manager y Grupo con superficies, contraste, tipografía, bordes y acentos diferenciados; tablas, formularios, navegación y botones con el mismo lenguaje visual.
+- Acciones principales visibles; transferencias, bajas y eliminación en menús contextuales. Menús anclados al elemento, dentro del viewport, con foco, flechas, Escape y cierre exterior.
+- Se conservan las mismas acciones y permisos, la composición de información útil y el trabajo al 100% de zoom.
+- La lista de Técnicos aprovecha el espacio que queda disponible tras seleccionar un Manager, reduciendo paginaciones innecesarias.
+- Movimiento reducido respetado mediante prefers-reduced-motion.
+
+
 ## v1.0.0 · nueva base de versiones · 26 de octubre de 2026
 
 Por solicitud de Samuel, el contador vuelve a v1.0.0. Este reinicio identifica la nueva entrega; conserva los datos, accesos y funciones existentes. Las entradas anteriores quedan como historial de trabajo.
