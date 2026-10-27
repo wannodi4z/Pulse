@@ -1,4 +1,4 @@
-# Operational Pulse · 1.0.1
+# Operational Pulse · 1.0.2
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.1`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.2`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.1/
+Operational_Pulse_v1.0.2/
   index.html
   server.py
   requirements.txt
@@ -311,3 +311,9 @@ Durante la estabilización se incrementan correcciones dentro de **v1.0.x**. Só
 ## Backup del Manager · v1.0.1
 
 Delegar cubre automáticamente **todos los Grupos actuales del Manager**. No se seleccionan Grupos y no hay vencimiento automático. El Lead puede aprobar y rechazar OT del equipo, con bloqueo de autoaprobación; nunca recibe autoridad sobre otros Managers. Los Grupos nuevos del Manager se incluyen automáticamente. El Manager puede revocar desde Mi equipo.
+
+## Reglas de Guardia · v1.0.2
+
+Cada día indica cuántos intervalos tiene configurados. Agregar o eliminar intervalos actualiza la paginación del editor sin descartar los valores de otras páginas o días. Las tarjetas resumen la semana; al editar se recuperan todos los intervalos guardados.
+
+Regresión de navegador: `PULSE_CHROMIUM_EXECUTABLE=/usr/bin/chromium .venv/bin/python tests/rules_browser.py` (usa una SQLite temporal, no modifica la base de trabajo).

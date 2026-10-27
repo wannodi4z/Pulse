@@ -78,6 +78,7 @@ window.PulseLayout=(()=>{
     if(root.matches(selectors))lists.push(root);
     lists.forEach((list,li)=>{
       if(list._viewport)return;
+      if(list.matches('.rule-segments')&&root.getBoundingClientRect().height<=budget)return;
       const children=[...list.children].filter(n=>!n.classList.contains('viewport-pagination'));
       if(children.length<2)return;
       const table=list.tagName==='TBODY';const height=children.reduce((total,n)=>total+n.getBoundingClientRect().height,0);

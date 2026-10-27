@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.1
+# Validación ejecutada · Operational Pulse 1.0.2
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -130,3 +130,11 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 - Chromium: prueba funcional completa PASS, cero errores JavaScript; formulario sin fechas ni selección de Grupos y analítica de todos los Grupos del Manager.
 - API: aprobación y rechazo de OT de otro Grupo del mismo Manager; inclusión automática de Grupo nuevo; bloqueo de registros de otro Manager, autoaprobación y revocación.
 - Sintaxis JavaScript y compilación Python correctas. Mac/Safari no ejecutados.
+
+## Intervalos de Guardia v1.0.2
+
+- `tests/rules_browser.py`: PASS en Chromium a 1280×650, zoom nativo. Crear cinco intervalos, guardar mediante botón, recargar, reabrir, modificar, agregar, eliminar y guardar nuevamente; comparación exacta de todos los valores almacenados y recuperados. Cuerpo del modal sin desbordamiento.
+- `tests/browser_smoke.py`: PASS, cero errores JavaScript; incluye semana con 13 intervalos, cruce de medianoche, domingo 24 horas, edición/eliminación y conservación de solicitudes previas.
+- `tests/layout_smoke.py`: PASS, 54 combinaciones de pantalla y roles.
+- 27 pruebas API PASS; sintaxis JavaScript y compilación Python correctas. Mac/Safari no ejecutados.
+- En el diagnóstico no se reprodujo pérdida de persistencia: sí se reprodujo contenido fuera del área visible al añadir intervalos. Se corrigió la actualización de paginación y se comprobó el ciclo completo de guardado/reapertura.

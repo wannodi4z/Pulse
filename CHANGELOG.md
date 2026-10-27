@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## v1.0.2 · 27 de octubre de 2026
+
+- Editor de Guardia: reconstruye la paginación al agregar, quitar o habilitar intervalos; mantiene accesible la configuración sin ocultar filas nuevas.
+- Guardado explícito de todos los días habilitados y sus intervalos, incluidos los que están en otra página del editor.
+- Indicadores de cobertura por día y resumen semanal en tarjetas; respeta los valores al reabrir la regla.
+
+
 ## v1.0.1 · 27 de octubre de 2026
 
 - El Lead delegado cubre automáticamente todos los Grupos actuales de su Manager, no sólo su Grupo. Se elimina la selección de alcance.
