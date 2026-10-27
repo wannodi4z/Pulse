@@ -22,7 +22,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.1.0'
+VERSION = '1.2.0'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -582,6 +582,13 @@ def delete_group(identity: str, actor=Depends(admin)):
 def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)):
     with connection(True) as c:
         old = get(c, 'users', identity) if identity else None
+        if data.get('_transfer_only'):
+            if not old or old['role']!='USER' or old['status']=='DISABLED':
+                fail('Sólo se transfieren Técnicos activos o pendientes de activación.')
+            if text(data,'expected_group_id')!=old['group_id']:
+                fail('El Técnico cambió de Grupo desde que abriste el traslado. Actualiza la organización.',409)
+            # Read editable identity fields under the same write lock; moving never replays a stale profile.
+            data={**old,'group_id':text(data,'group_id'),'transfer_reason':text(data,'transfer_reason')}
         role = old['role'] if old else text(data, 'role')
         if role not in ('ADMIN', 'MANAGER', 'USER'):
             fail('Rol no válido.')
@@ -666,6 +673,11 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
             validate_manager_leads(c,[identity])
         audit(c, actor, 'SAVE_PERSON', identity)
     return {'id': identity, 'activation_code': code}
+
+
+@app.post('/api/admin/people/{identity}/transfer')
+def transfer_technician(identity: str, data: dict=Body(...), actor=Depends(admin)):
+    return save_person({**data,'_transfer_only':True},identity,actor)
 
 
 @app.post('/api/people/{identity}/activation')

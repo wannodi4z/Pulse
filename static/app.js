@@ -13,6 +13,7 @@ const analyticsColors = {EMERGENCY:'#2469cf',PLANNED:'#24a8ca',HISTORICAL:'#758c
 let filters = {group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};
 let delegationDraftLead = '';
 let busy = false;
+let draggedTechnician = null;
 let refreshSequence = 0;
 let toastTimer;
 let serverOffset = 0;
@@ -60,9 +61,10 @@ function toast(message,error=false){
   const el=$('#toast');el.textContent=message;el.className=`visible ${error?'error':''}`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='',5000);
 }
 function showModal(title,body,wide=false){
-  const modal=$('#modal');modal.innerHTML=`<header class="dialog-header"><div><p class="eyebrow">OPERATIONAL PULSE</p><h2 id="dialog-title">${title}</h2></div><button class="icon-btn" data-action="close" aria-label="Cerrar">×</button></header>${body}`;modal.className=wide?'wide':'';modal.setAttribute('aria-labelledby','dialog-title');if(!modal.open)modal.showModal();queueMicrotask(()=>PulseLayout.dialog());
+  const symbol=/Mover|Transferir/i.test(title)?'arrow':/persona|Técnico|Manager|administrador/i.test(title)?'team':/Guardia/i.test(title)?'timeRules':/OT|tiempo/i.test(title)?'time':/Cuenta|Grupo/i.test(title)?'organization':/baja|acceso|contraseña|Reactivar/i.test(title)?'lock':'info';
+  const modal=$('#modal');modal.innerHTML=`<header class="dialog-header"><span class="dialog-emblem">${icon(symbol)}</span><div><p class="eyebrow">OPERATIONAL PULSE</p><h2 id="dialog-title">${title}</h2></div><button class="icon-btn" data-action="close" aria-label="Cerrar">×</button></header>${body}`;modal.className=wide?'wide':'';modal.setAttribute('aria-labelledby','dialog-title');if(!modal.open)modal.showModal();queueMicrotask(()=>PulseLayout.dialog());
 }
-const formGuidance={account:'Define un código único y un nombre para identificar la Cuenta.',group:'Selecciona la Cuenta y su Manager. Los cambios de responsable requieren un motivo y conservan el equipo.',person:'Completa la identidad y la asignación. Sólo Admin administra personas; los nuevos accesos requieren activación.',ot:'Indica el periodo y documenta la actividad. Revisa los datos antes de enviarlos a aprobación.',guard:'Selecciona las fechas y la regla de cobertura. La OT aprobada se descontará de la Guardia.',rule:'Configura uno o varios intervalos por día. Usa 24 horas para cobertura continua.',window:'Define el Grupo, el periodo y la actividad compartida. Cada Técnico registrará su participación.',reject:'Explica qué debe corregirse. El registro conservará el motivo en su historial.',transfer:'Elige el Grupo de destino y explica el movimiento. La persona permanece activa; su sesión se cerrará para actualizar el acceso.', 'group-transfer':'Elige un Manager activo de la misma Cuenta. El equipo y sus registros permanecen; la delegación anterior se revoca.',offboard:'Resuelve los destinos y pendientes antes de retirar el acceso.',reactivate:'Explica el motivo. Comparte el código nuevo por un canal corporativo para que la persona active su acceso.'};
+const formGuidance={account:'Define un código único y un nombre para identificar la Cuenta.',group:'Selecciona la Cuenta y su Manager. Los cambios de responsable requieren un motivo y conservan el equipo.',person:'Completa la identidad y la asignación. Sólo Admin administra personas; los nuevos accesos requieren activación.',ot:'Indica el periodo y documenta la actividad. Revisa los datos antes de enviarlos a aprobación.',guard:'Selecciona las fechas y la regla de cobertura. La OT aprobada se descontará de la Guardia.',rule:'Configura uno o varios intervalos por día. Usa 24 horas para cobertura continua.',window:'Define el Grupo, el periodo y la actividad compartida. Cada Técnico registrará su participación.',reject:'Explica qué debe corregirse. El registro conservará el motivo en su historial.',transfer:'Revisa el destino y el motivo. El Técnico conserva su estado y su historial; el acceso se actualizará.', 'group-transfer':'Elige un Manager activo de la misma Cuenta. El equipo y sus registros permanecen; la delegación anterior se revoca.',offboard:'Resuelve los destinos y pendientes antes de retirar el acceso.',reactivate:'Explica el motivo. Comparte el código nuevo por un canal corporativo para que la persona active su acceso.'};
 function form(name,body,id='',submit='Guardar'){
   return `<form data-form="${name}" data-id="${esc(id)}"><div class="form-body">${formGuidance[name]?`<p class="form-instructions"><strong>Cómo completar este paso</strong>${formGuidance[name]}</p>`:''}${body}</div><p class="form-error" role="alert"></p><footer class="dialog-footer"><button type="button" class="secondary" data-action="close">Cancelar</button><button class="primary" type="submit">${submit}</button></footer></form>`;
 }
@@ -70,7 +72,7 @@ function credentials(code,username,title='Datos de activación'){
   showModal(title,`<div class="form-body"><p>Entrega este código por un canal corporativo. La persona definirá su contraseña desde «Activar cuenta».</p>${username?`<p>Usuario: <strong>${esc(username)}</strong></p>`:''}<div class="secret-code">${esc(code)}</div><p class="muted">El código se muestra sólo al generar o regenerar el acceso.</p></div><footer class="dialog-footer">${btn('Listo','close','','primary')}</footer>`);
 }
 function login(){
-  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">CONTROL DE TIEMPO EXTRA</p><h1>Planea.<br>Trabaja. Controla.</h1><p>Registra tiempo extra, gestiona guardias<br>y consulta tus horas aprobadas.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.1.0</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">ACCESO A OPERATIONAL PULSE</p><h2>Control de OT y guardias</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}<label class="field" for="login-password"><span>Contraseña</span><span class="login-password-input"><input id="login-password" name="password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" data-action="password-visibility" data-id="login-password" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button></span></label><p class="form-error" role="alert"></p><button type="submit" class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Control de OT, guardias y aprobaciones.</small></p></div></div><footer>Operational Pulse · OT y guardias <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
+  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">CONTROL DE TIEMPO EXTRA</p><h1>Planea.<br>Trabaja. Controla.</h1><p>Registra tiempo extra, gestiona guardias<br>y consulta tus horas aprobadas.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.2.0</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">ACCESO A OPERATIONAL PULSE</p><h2>Control de OT y guardias</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}<label class="field" for="login-password"><span>Contraseña</span><span class="login-password-input"><input id="login-password" name="password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" data-action="password-visibility" data-id="login-password" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button></span></label><p class="form-error" role="alert"></p><button type="submit" class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Control de OT, guardias y aprobaciones.</small></p></div></div><footer>Operational Pulse · OT y guardias <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
 }
 function nav(){
   const work=isAdmin()?['dashboard','organization']:isManager()?['dashboard','team','teamTime','analytics']:['dashboard','time','myAnalytics','claim','adp',...(state.can_approve?['team','teamTime','analytics']:[])];
@@ -101,6 +103,7 @@ function app(){
   return `<div class="shell">${nav()}<div class="workspace"><header class="topbar"><div class="topbar-context"><div class="product-signature corporate-signature">${kyndrylBrand()}</div><div class="breadcrumb"><span class="breadcrumb-home">${icon("dashboard")}</span> Espacio de trabajo <span>/</span> <strong>${pageNames[page]||'Panel'}</strong></div></div><div class="topbar-right"><div class="clock-block"><small>HORA LOCAL · MX</small><span class="local-time" data-local-clock></span></div><div class="topbar-person">${userMenu()}</div></div></header><main id="main" tabindex="-1">${content()}<footer class="main-footer"><span>Operational Pulse <b class="footer-version">v${esc(state.version)}</b></span><span class="footer-credit">Diseñado para una operación más clara.</span></footer></main></div></div>`;
 }
 function render(){
+  if(draggedTechnician)endTechnicianDrag();
   closeEntityMenu();
   $('#app').innerHTML=state?app():login();if(state)PulseLayout.page($('#main'),page);tick();
 }
@@ -128,7 +131,7 @@ async function loadLedger(){
 async function refresh(silent=false){
   const sequence=++refreshSequence;
   try{
-    const fresh=await api('/api/state');if(sequence!==refreshSequence)return;
+    const fresh=await api('/api/state');if(sequence!==refreshSequence||silent&&draggedTechnician)return;
     serverOffset=new Date(fresh.server_time).getTime()-Date.now();
     const previous=state?JSON.stringify({...state,server_time:''}):'';
     state=fresh;
@@ -136,7 +139,7 @@ async function refresh(silent=false){
     if(lostAnalytics){page=isTech()?'myAnalytics':'dashboard';analyticsReport=null;analyticsDetailType=null;filters={group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};}
     await loadLedger();if(sequence!==refreshSequence)return;
     if(!silent||lostAnalytics||previous!==JSON.stringify({...state,server_time:''})){
-      if(!silent||lostAnalytics||!$('#modal').open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))render();
+      if(!silent||lostAnalytics||!draggedTechnician&&!$('#modal').open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))render();
     }
   }catch(error){if(!silent)throw error;}
 }
@@ -226,21 +229,21 @@ function analyticsDetailTable(rows){
 }
 
 function organizationPage(){
-  return heading('PERSONAS Y ESTRUCTURA','Organización','Administra Cuentas, Managers, Grupos y Técnicos.',btn('＋ Nueva cuenta','account-new','','primary'))+
+  return heading('PERSONAS Y ESTRUCTURA','Organización','Organiza tu equipo. Arrastra Técnicos entre Grupos o abre su tarjeta para editar.',btn('＋ Nueva cuenta','account-new','','primary'))+
   `<div class="organization-summary"><span><b>${state.accounts.length}</b> ${state.accounts.length===1?'Cuenta':'Cuentas'}</span><span><b>${state.people.filter(p=>p.role==='MANAGER').length}</b> Managers</span><span><b>${state.groups.length}</b> Grupos</span><span><b>${state.people.filter(p=>p.role==='USER').length}</b> Técnicos</span><span class="muted">Un Lead por Manager · backup con delegación independiente.</span></div>`+
   (state.accounts.length?state.accounts.map(a=>{
     const groups=state.groups.filter(g=>g.account_id===a.id),managers=state.people.filter(p=>p.role==='MANAGER'&&p.account_id===a.id),techs=state.people.filter(p=>groups.some(g=>g.id===p.group_id)),unassigned=groups.filter(g=>!g.manager_id);
-    return `<section class="account-block" data-account="${esc(a.id)}"><header class="account-header"><span class="account-code">${esc(a.code)}</span><div class="grow"><p class="eyebrow">CUENTA OPERATIVA</p><h2>${esc(a.name)}</h2><p>${managers.length} Managers <span>·</span> ${groups.length} Grupos <span>·</span> ${techs.length} Técnicos</p></div><div class="entity-actions">${managers.length?btn('＋ Agregar Grupo','group-new',a.id,'primary'):btn('＋ Agregar Manager','manager-new',a.id,'primary')}${moreActions('account',a.id,'Cuenta '+a.name)}</div></header><div class="account-body">${managers.map(m=>managerBlock(m,groups.filter(g=>g.manager_id===m.id))).join('')}${unassigned.length?`<section class="unassigned"><div class="section-heading"><h3>Grupos sin Manager</h3><span class="pill">Pendientes de asignación</span></div><div class="group-grid">${unassigned.map(groupCard).join('')}</div></section>`:''}${!groups.length&&!managers.length?`<div class="account-onboarding"><span class="onboarding-icon">${icon('organization')}</span><div><h3>Construye tu equipo en ${esc(a.name)}</h3><p>Comienza con un Manager; después asigna sus Grupos e incorpora a los Técnicos.</p><div class="onboarding-steps"><span><b>1</b> Manager</span><i></i><span><b>2</b> Grupos</span><i></i><span><b>3</b> Técnicos</span></div></div></div>` : ''}</div></section>`;
+    return `<section class="account-block" data-account="${esc(a.id)}"><header class="account-header"><span class="account-code">${esc(a.code)}</span><div class="grow"><p class="eyebrow">CUENTA OPERATIVA</p><h2><button type="button" class="entity-title" data-action="account-edit" data-id="${esc(a.id)}" aria-label="Editar Cuenta ${esc(a.name)}">${esc(a.name)}</button></h2><p>${managers.length} Managers <span>·</span> ${groups.length} Grupos <span>·</span> ${techs.length} Técnicos</p></div><div class="entity-actions">${managers.length?btn('＋ Agregar Grupo','group-new',a.id,'primary'):btn('＋ Agregar Manager','manager-new',a.id,'primary')}${moreActions('account',a.id,'Cuenta '+a.name)}</div></header><div class="account-body">${managers.map(m=>managerBlock(m,groups.filter(g=>g.manager_id===m.id))).join('')}${unassigned.length?`<section class="unassigned"><div class="section-heading"><h3>Grupos sin Manager</h3><span class="pill">Pendientes de asignación</span></div><div class="group-grid organization-board">${unassigned.map(groupCard).join('')}</div></section>`:''}${!groups.length&&!managers.length?`<div class="account-onboarding"><span class="onboarding-icon">${icon('organization')}</span><div><h3>Construye tu equipo en ${esc(a.name)}</h3><p>Comienza con un Manager; después asigna sus Grupos e incorpora a los Técnicos.</p><div class="onboarding-steps"><span><b>1</b> Manager</span><i></i><span><b>2</b> Grupos</span><i></i><span><b>3</b> Técnicos</span></div></div></div>` : ''}</div></section>`;
   }).join(''):empty('Dale forma a tu operación','Crea tu primera Cuenta. Después podrás agregar Managers, Grupos y Técnicos.'));
 }
 function managerBlock(m,groups){
   const leads=state.people.filter(p=>p.is_lead&&p.status!=='DISABLED'&&groups.some(g=>g.id===p.group_id));
   const summary=groups.length>1?`Multigrupo · ${groups.length} grupos`:groups.length?'1 grupo':'Sin grupos asignados';
-  return `<section class="manager-block" data-manager="${esc(m.id)}"><header class="manager-header">${identity(m)}<div class="manager-meta"><span class="small-label">MANAGER</span><span>${summary}</span>${badge(m.status)}</div><div class="entity-actions">${m.status==='PENDING_ACTIVATION'?btn('Activar acceso','activation-code',m.id,'secondary'):btn('Editar','person-edit',m.id,'secondary')}${moreActions('manager',m.id,full(m))}</div></header><p class="manager-backup">${leads.length>1?'⚠ Hay varias designaciones heredadas. Admin debe retirar las adicionales y conservar un solo Lead.':leads.length?`Backup Lead: ${esc(full(leads[0]))} · ${esc(leads[0].employee_id)}`:'Backup Lead: sin designar'}</p><div class="group-grid">${groups.map(groupCard).join('')||empty('Sin Grupos asignados','Edita al Manager para asignar Grupos de esta Cuenta.')}</div></section>`;
+  return `<section class="manager-block" data-manager="${esc(m.id)}"><header class="manager-header"><button type="button" class="manager-open" data-action="person-edit" data-id="${esc(m.id)}" aria-label="Editar Manager ${esc(full(m))}">${identity(m)}</button><div class="manager-meta"><span class="small-label">MANAGER</span><span>${summary}</span>${badge(m.status)}</div><div class="entity-actions">${m.status==='PENDING_ACTIVATION'?btn('Activar acceso','activation-code',m.id,'secondary'):btn('Editar','person-edit',m.id,'secondary')}${moreActions('manager',m.id,full(m))}</div></header><p class="manager-backup">${leads.length>1?'⚠ Hay varias designaciones heredadas. Admin debe retirar las adicionales y conservar un solo Lead.':leads.length?`Backup Lead: ${esc(full(leads[0]))} · ${esc(leads[0].employee_id)}`:'Backup Lead: sin designar'}</p><div class="group-grid organization-board">${groups.map(groupCard).join('')||empty('Sin Grupos asignados','Edita al Manager para asignar Grupos de esta Cuenta.')}</div></section>`;
 }
 function groupCard(g){
   const people=state.people.filter(p=>p.role==='USER'&&p.group_id===g.id);
-  return `<article class="group-card" data-group="${esc(g.id)}"><header><div><span class="entity-overline">GRUPO · ${esc(g.code)}</span><div class="group-title-line"><h3>${esc(g.name)}</h3><small>${people.length} ${people.length===1?'Técnico':'Técnicos'}</small></div></div><div class="entity-actions">${moreActions('group',g.id,'Grupo '+g.name)}</div></header><div class="technicians">${people.map(u=>`<div class="technician" data-person="${esc(u.id)}">${identity(u)}${u.is_lead?'<span class="lead-pill">Lead</span>':''}${badge(u.status)}<div class="entity-actions">${btn('Editar','person-edit',u.id,'secondary small')}${moreActions('person',u.id,full(u))}</div></div>`).join('')||'<p class="quiet-empty">Aún no hay Técnicos en este Grupo.</p>'}</div><footer>${btn('＋ Agregar Técnico','tech-new',g.id,'secondary')}</footer></article>`;
+  return `<article class="group-card" data-group="${esc(g.id)}" data-drop-group="${esc(g.id)}"><header><div><span class="entity-overline">GRUPO · ${esc(g.code)}</span><div class="group-title-line"><h3><button type="button" class="entity-title" data-action="group-edit" data-id="${esc(g.id)}" aria-label="Editar Grupo ${esc(g.name)}">${esc(g.name)}</button></h3><small>${people.length} ${people.length===1?'Técnico':'Técnicos'}</small></div></div><div class="entity-actions">${moreActions('group',g.id,'Grupo '+g.name)}</div></header><div class="technicians">${people.map(u=>`<div class="technician" data-person="${esc(u.id)}" draggable="${u.status!=='DISABLED'&&!state.timers.some(t=>t.user_id===u.id)}"><span class="drag-handle" title="Arrastrar Técnico" aria-hidden="true">${icon('drag')}</span><button type="button" class="technician-open" data-action="person-edit" data-id="${esc(u.id)}" aria-label="Editar ${esc(full(u))}"><span class="avatar">${esc(initials(u))}</span><span class="identity"><strong>${esc(full(u))}${u.is_lead?'<span class="lead-pill">Lead</span>':''}</strong><small>${esc(u.employee_id)} <i>·</i> ${esc(statuses[u.status])}</small></span></button><div class="entity-actions"><button type="button" class="move-person" data-action="person-transfer" data-id="${esc(u.id)}" aria-label="Mover a ${esc(full(u))} de Grupo" title="Mover a otro Grupo">${icon('move')}</button>${moreActions('person',u.id,full(u))}</div></div>`).join('')||'<p class="quiet-empty">Aún no hay Técnicos en este Grupo.</p>'}</div><footer>${btn('＋ Agregar Técnico','tech-new',g.id,'secondary')}</footer></article>`;
 }
 function adminsPage(){return heading('GOBERNANZA','Administradores','Accesos con autoridad para administrar la estructura y las cuentas.',btn('＋ Administrador','admin-new','','primary'))+peopleTable(state.people.filter(p=>p.role==='ADMIN'));}
 function peopleTable(people,search=false){
@@ -370,7 +373,7 @@ function openEntityMenu(key,trigger){
   let actions='',title='';
   if(kind==='account'){const a=state.accounts.find(a=>a.id===id);if(!a)return;title=a.name;actions=(state.people.some(p=>p.role==='MANAGER'&&p.account_id===id)?btn('Agregar Manager','manager-new',id):btn('Agregar Grupo','group-new',id))+btn('Editar Cuenta','account-edit',id)+btn('Eliminar Cuenta','account-delete',id,'text-danger');}
   else if(kind==='group'){const g=group(id);if(!g)return;title=g.name;actions=btn('Editar Grupo','group-edit',id)+btn('Transferir Grupo','group-transfer',id)+btn('Eliminar Grupo','group-delete',id,'text-danger');}
-  else{const p=person(id);if(!p)return;title=full(p);actions=(p.status==='PENDING_ACTIVATION'?btn('Editar datos','person-edit',id):'')+(p.role==='USER'?btn('Transferir Técnico','person-transfer',id):'')+(p.status==='PENDING_ACTIVATION'&&kind!=='manager'?btn('Generar código de activación','activation-code',id):'')+lifecycleActions(p);}
+  else{const p=person(id);if(!p)return;title=full(p);actions=(p.status==='PENDING_ACTIVATION'&&p.role!=='USER'?btn('Editar datos','person-edit',id):'')+(p.status==='PENDING_ACTIVATION'&&kind!=='manager'?btn('Generar código de activación','activation-code',id):'')+lifecycleActions(p);}
   entityPopup=document.createElement('div');entityPopup.className='entity-popup';entityPopup.id='entity-actions-popup';entityPopup.setAttribute('role','group');entityPopup.setAttribute('aria-label','Acciones de '+title);
   entityPopup.innerHTML=`<p>${esc(title)}</p>${actions}`;const actionIcons={'manager-new':'team','group-new':'plus','account-edit':'organization','account-delete':'close','group-edit':'organization','group-transfer':'arrow','group-delete':'close','person-edit':'profile','person-transfer':'arrow','activation-code':'key','person-offboard':'lock','person-reactivate':'key'};$$('button',entityPopup).forEach(item=>item.insertAdjacentHTML('afterbegin',icon(actionIcons[item.dataset.action]||'info')));document.body.append(entityPopup);entityPopupTrigger=trigger;trigger.setAttribute('aria-expanded','true');
   const anchor=trigger.getBoundingClientRect(),rect=entityPopup.getBoundingClientRect();
@@ -383,10 +386,38 @@ function lifecycleActions(p){
   if(p.status==='DISABLED'&&p.role==='MANAGER'&&state.groups.some(g=>g.manager_id===p.id))return btn('Regularizar baja','person-offboard',p.id,'text-danger');
   return p.status==='DISABLED'?btn('Reactivar','person-reactivate',p.id,'link'):btn('Dar de baja','person-offboard',p.id,'text-danger');
 }
-function transferModal(id,wholeGroup=false){
+function transferProblem(source,destination){
+  if(!source||source.role!=='USER'||source.status==='DISABLED')return 'Este Técnico no tiene un acceso activo para transferir.';
+  if(state.timers.some(t=>t.user_id===source.id))return 'Detén el Timer del Técnico antes de cambiarlo de Grupo.';
+  if(!destination||person(destination.manager_id)?.status!=='ACTIVE')return 'El Grupo de destino necesita un Manager activo.';
+  if(source.group_id===destination.id)return 'El Técnico ya pertenece a este Grupo.';
+  if(source.is_lead&&state.people.some(p=>p.id!==source.id&&p.is_lead&&p.status!=='DISABLED'&&group(p.group_id)?.manager_id===destination.manager_id))return 'El Manager de destino ya tiene un Lead. Retira una designación antes de trasladarlo.';
+  return '';
+}
+function transferDestinationCard(g){return g?`<span class="transfer-route-label">DESTINO</span><button type="button" class="transfer-change" data-action="transfer-change-target">Cambiar Grupo</button><strong>${esc(g.name)}</strong><small>${esc(full(person(g.manager_id)))} · ${esc(state.accounts.find(a=>a.id===g.account_id)?.name||'')}</small>`:'<span class="transfer-route-label">DESTINO</span><strong>Selecciona un Grupo</strong><small>Verás aquí a su Manager responsable.</small>';}
+function transferModal(id,wholeGroup=false,destinationId=''){
   const source=wholeGroup?group(id):person(id);
-  const choices=wholeGroup?state.people.filter(p=>p.role==='MANAGER'&&p.status==='ACTIVE'&&p.account_id===source.account_id&&p.id!==source.manager_id):state.groups.filter(g=>g.id!==source.group_id&&person(g.manager_id)?.status==='ACTIVE');
-  showModal(wholeGroup?'Transferir Grupo':'Transferir Técnico',form(wholeGroup?'group-transfer':'transfer',`<p class="callout">${esc(wholeGroup?source.name:full(source))} · El movimiento conserva su estado y su historial. Sólo puede quedar un Lead por Manager.</p>${select(wholeGroup?'manager_id':'group_id',wholeGroup?'Manager de destino *':'Grupo de destino *',options(choices,'',p=>wholeGroup?full(p):`${p.code} · ${p.name} — ${full(person(p.manager_id))}`,'Selecciona un destino'),'required')}${field('transfer_reason','Motivo del movimiento *','','text','required')}`,id,'Confirmar transferencia'));
+  if(!wholeGroup){
+    if(state.timers.some(t=>t.user_id===id))return toast('Detén el Timer del Técnico antes de cambiarlo de Grupo.',true);
+    if(source?.status==='DISABLED')return toast('Reactiva al Técnico antes de transferirlo.',true);
+    if(destinationId&&transferProblem(source,group(destinationId)))return toast(transferProblem(source,group(destinationId)),true);
+  }
+  const choices=wholeGroup?state.people.filter(p=>p.role==='MANAGER'&&p.status==='ACTIVE'&&p.account_id===source.account_id&&p.id!==source.manager_id):state.groups.filter(g=>!transferProblem(source,g));
+  if(!choices.length)return toast(wholeGroup?'Crea y activa un Manager de destino en esta Cuenta.':'No hay Grupos de destino disponibles. Revisa la asignación de Manager y Lead.',true);
+  if(wholeGroup){showModal('Transferir Grupo',form('group-transfer',`<p class="callout">${esc(source.name)} · El equipo conserva su historial y permanece activo.</p>${select('manager_id','Manager de destino *',options(choices,'',full,'Selecciona un destino'),'required')}${field('transfer_reason','Motivo del movimiento *','','text','required')}`,id,'Confirmar transferencia'));return;}
+  const origin=group(source.group_id);
+  showModal('Mover Técnico',form('transfer',`<input type="hidden" name="expected_group_id" value="${esc(source.group_id)}"><div class="transfer-person">${identity(source)}<span class="pill">${source.is_lead?'Técnico · Lead':'Técnico'}</span></div><div class="transfer-route"><div><span class="transfer-route-label">ORIGEN</span><strong>${esc(origin?.name)}</strong><small>${esc(full(person(origin?.manager_id)))}</small></div><span class="transfer-route-arrow">${icon('arrow')}</span><div id="transfer-destination">${transferDestinationCard(group(destinationId))}</div></div><div class="transfer-target-selector" ${destinationId?'hidden':''}>${select('group_id','Grupo de destino *',options(choices,destinationId,g=>`${g.code} · ${g.name} — ${full(person(g.manager_id))}`,'Selecciona un Grupo'),'required')}</div>${field('transfer_reason','Motivo del traslado *','','text','required placeholder="Describe brevemente el motivo"')}<div class="quick-reasons"><span>Motivos frecuentes</span><button type="button" data-action="transfer-reason" data-id="Reorganización del equipo">Reorganización</button><button type="button" data-action="transfer-reason" data-id="Cobertura operativa">Cobertura operativa</button></div><p class="transfer-footnote">Conserva identidad e historial. Las sesiones actuales se cerrarán para aplicar los permisos del nuevo Grupo.</p>`,id,'Confirmar traslado'));
+  $('#modal').classList.add('transfer-dialog');
+}
+function endTechnicianDrag(){draggedTechnician=null;document.body.classList.remove('is-dragging-technician');$('#drag-destinations')?.remove();$$('.drop-ready,.drop-invalid,.is-drag-source').forEach(node=>node.classList.remove('drop-ready','drop-invalid','is-drag-source'));}
+function startTechnicianDrag(event){
+  const card=event.target.closest('.technician[draggable=true]');if(!card||!isAdmin()||busy||$('#modal').open)return;
+  const source=person(card.dataset.person);draggedTechnician=source.id;closeEntityMenu();
+  event.dataTransfer.setData('application/x-pulse-technician',source.id);event.dataTransfer.setData('text/plain',source.employee_id);event.dataTransfer.effectAllowed='move';
+  card.classList.add('is-drag-source');document.body.classList.add('is-dragging-technician');
+  const accountId=group(source.group_id)?.account_id,targets=state.groups.filter(g=>g.account_id===accountId&&!transferProblem(source,g)).slice(0,4);
+  const tray=document.createElement('aside');tray.id='drag-destinations';tray.className='drag-destinations';tray.setAttribute('aria-label','Destinos para el Técnico');
+  tray.innerHTML=`<p><strong>Mover a ${esc(full(source))}</strong><span>Suelta en un Grupo o elige otro destino</span></p><div>${targets.map(g=>`<div class="drag-destination" data-drop-group="${esc(g.id)}"><strong>${esc(g.name)}</strong><small>${esc(full(person(g.manager_id)))}</small></div>`).join('')}<div class="drag-destination drag-destination-picker" data-drop-picker>Elegir otro Grupo ${icon('arrow')}</div></div>`;document.body.append(tray);
 }
 async function lifecycleModal(id){
   const impact=await api(`/api/admin/people/${id}/impact`),p=impact.person;
@@ -513,6 +544,8 @@ async function perform(action,id,button){
     case 'admin-new':personModal('','ADMIN');return;
     case 'person-edit':personModal(id);return;
     case 'person-transfer':transferModal(id);return;
+    case 'transfer-change-target':{const selector=$('.transfer-target-selector');selector.hidden=false;PulseLayout.dialog();PulseLayout.reveal($('[name=group_id]',selector));$('[name=group_id]',selector).focus();return;}
+    case 'transfer-reason':{const field=$('[data-form=transfer] [name=transfer_reason]');field.value=id;$$('.quick-reasons button').forEach(b=>b.classList.toggle('selected',b.dataset.id===id));return;}
     case 'group-transfer':transferModal(id,true);return;
     case 'person-offboard':await lifecycleModal(id);return;
     case 'person-reactivate':showModal('Reactivar acceso',form('reactivate',`<p class="callout">${esc(full(person(id)))} recibirá un código nuevo y definirá otra contraseña. No se restauran delegaciones, capacidad Lead ni asignaciones anteriores.</p>${field('reason','Motivo de reactivación *','','text','required')}`,id,'Generar activación'));return;
@@ -566,7 +599,7 @@ async function submitForm(f){
     case 'account':await api('/api/accounts'+(id?'/'+id:''),id?'PUT':'POST',data);break;
     case 'group':await api('/api/groups'+(id?'/'+id:''),id?'PUT':'POST',data);break;
     case 'person':data.group_ids=fd.getAll('group_ids');data.is_lead=fd.has('is_lead');response=await api('/api/people'+(id?'/'+id:''),id?'PUT':'POST',data);await refresh();if(response.activation_code){credentials(response.activation_code,data.username||data.employee_id);return;}break;
-    case 'transfer':{const source=person(id);await api('/api/people/'+id,'PUT',{...source,...data,is_lead:!!source.is_lead});break;}
+    case 'transfer':await api(`/api/admin/people/${id}/transfer`,'POST',data);break;
     case 'group-transfer':{const source=group(id);await api('/api/groups/'+id,'PUT',{...source,...data});break;}
     case 'reactivate':response=await api(`/api/admin/people/${id}/reactivate`,'POST',data);await refresh();credentials(response.activation_code,response.username);return;
     case 'offboard':{data.confirm=fd.has('confirm');data.stop_timers=fd.has('stop_timers');data.transfers=Object.fromEntries([...fd].filter(([k])=>k.startsWith('transfer:')).map(([k,v])=>[k.slice(9),v]));data.documents=$$('[data-offboard-document]',f).map(section=>({id:section.dataset.offboardDocument,...Object.fromEntries($$('input,textarea',section).map(input=>[input.dataset.key,input.value]))}));await api(`/api/admin/people/${id}/offboard`,'POST',data);break;}
@@ -583,9 +616,24 @@ async function submitForm(f){
   $('#modal').close();await refresh();toast('Cambios guardados.');
 }
 function bind(){
+  document.addEventListener('dragstart',startTechnicianDrag);
+  document.addEventListener('dragend',endTechnicianDrag);
+  document.addEventListener('dragover',event=>{
+    if(!draggedTechnician||!isAdmin())return;
+    const target=event.target.closest('[data-drop-group],[data-drop-picker]');if(!target)return;
+    event.preventDefault();$$('.drop-ready,.drop-invalid').forEach(n=>n.classList.remove('drop-ready','drop-invalid'));
+    const problem=target.hasAttribute('data-drop-picker')?'':transferProblem(person(draggedTechnician),group(target.dataset.dropGroup));
+    target.dataset.dropHint=problem||'Suelta para revisar el traslado';target.classList.add(problem?'drop-invalid':'drop-ready');event.dataTransfer.dropEffect=problem?'none':'move';
+  });
+  document.addEventListener('drop',event=>{
+    const target=event.target.closest('[data-drop-group],[data-drop-picker]');if(!draggedTechnician||!target||!isAdmin())return;
+    event.preventDefault();const id=draggedTechnician,destination=target.dataset.dropGroup;endTechnicianDrag();
+    transferModal(id,false,destination||'');
+  });
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&draggedTechnician)endTechnicianDrag();});
   document.addEventListener('keydown',event=>{if(!entityPopup)return;if(event.key==='Escape'){event.preventDefault();closeEntityMenu(true);}else if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();const buttons=$$('button',entityPopup),index=buttons.indexOf(document.activeElement);buttons[(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus();}});
   document.addEventListener('focusin',event=>{if(entityPopup&&!entityPopup.contains(event.target)&&event.target!==entityPopupTrigger)closeEntityMenu();});
-  window.addEventListener('resize',()=>closeEntityMenu());
+  window.addEventListener('resize',()=>{closeEntityMenu();if(draggedTechnician)endTechnicianDrag();});
   document.addEventListener('click',async event=>{
     if(!event.target.closest('.entity-popup,[data-action=entity-menu]'))closeEntityMenu();
     const target=event.target.closest('[data-page],[data-action]');if(!target||busy)return;
@@ -603,6 +651,7 @@ function bind(){
     if(f?.dataset.form==='group'&&target.name==='account_id')f.elements.manager_id.innerHTML=managerOptions(target.value,'');
     if(f?.dataset.form==='person'&&target.name==='account_id')$('#group-checks').innerHTML=groupCheckboxes(target.value,f.dataset.id);
     if(f?.dataset.form==='person'&&target.name==='group_id')syncLeadOption();
+    if(f?.dataset.form==='transfer'&&target.name==='group_id')$('#transfer-destination').innerHTML=transferDestinationCard(group(target.value));
     try{
       if(target.id==='month'){if(!target.value)return;month=target.value;await loadLedger();render();}
       if(target.name?.startsWith('filter-')){const key=target.name.slice(7);filters[key]=target.value;if(key==='group')filters.person='';await loadLedger();render();}
@@ -622,8 +671,8 @@ function bind(){
 bind();
 refresh().catch(error=>{if(!state)render();else toast(error.message,true);});
 setInterval(tick,1000);
-setInterval(()=>{if(state&&!busy&&!document.hidden&&!$('#modal').open&&!$('#delegation-editor')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))refresh(true);},5000);
+setInterval(()=>{if(state&&!busy&&!draggedTechnician&&!document.hidden&&!$('#modal').open&&!$('#delegation-editor')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))refresh(true);},5000);
 
 function aboutProject(){
-  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.1.0 · OT y guardias</span></div>${kyndrylBrand()}</div><p>Control de horas extra (OT) y guardias, con timers, aprobaciones, historial y reportes en un solo lugar.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
+  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.2.0 · OT y guardias</span></div>${kyndrylBrand()}</div><p>Control de horas extra (OT) y guardias, con timers, aprobaciones, historial y reportes en un solo lugar.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
 }

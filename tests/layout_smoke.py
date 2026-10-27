@@ -2,7 +2,7 @@
 import json,os,socket,subprocess,sys,tempfile,time,urllib.request
 from datetime import datetime
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 ROOT=Path(__file__).resolve().parents[1]
 
 def run():
@@ -36,6 +36,52 @@ def run():
                         overtime.append(post('/api/overtime',{'capture_type':'HISTORICAL','scheduled_start':f'{month}-{day:02}T20:00:00-06:00','scheduled_end':f'{month}-{day:02}T21:00:00-06:00','reference':'CHG123456','description':'Trabajo de prueba','justification':'Servicio','impact':'Operación','in_lieu':'Cobertura'})['id'])
                     login('M001')
                     for identity in overtime:post('/api/approvals/ot/'+identity,{'decision':'APPROVED'})
+                    # Actual HTML drag-and-drop: preview/cancel, confirm and keyboard fallback.
+                    login('admin1','admin12026');page.goto(base);page.locator('.sidebar [data-page=organization]').click()
+                    page.wait_for_function('()=>page==="organization" && document.querySelector(".account-block")')
+                    state=context.request.get(base+'/api/state').json();tech=next(n for n in state['people'] if n['employee_id']=='T1')
+                    card=page.locator('[data-person="'+tech['id']+'"]');target=page.locator('[data-group="'+groups[0]+'"] > header')
+                    card.evaluate('(el)=>PulseLayout.reveal(el)')
+                    card.locator('.technician-open').focus();page.keyboard.press('Enter')
+                    expect(page.locator('#modal [data-form=person]')).to_be_visible();page.locator('#modal [data-action=close]').first.click()
+                    if os.environ.get('PULSE_SCREENSHOT_DIR'):
+                        preview=Path(os.environ['PULSE_SCREENSHOT_DIR']);preview.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(preview/'organization-board.png'))
+                    card.locator('.drag-handle').drag_to(target)
+                    expect(page.locator('#modal [data-form=transfer]')).to_be_visible()
+                    expect(page.locator('#modal [name=group_id]')).to_have_value(groups[0])
+                    if os.environ.get('PULSE_SCREENSHOT_DIR'):
+                        destination=Path(os.environ['PULSE_SCREENSHOT_DIR']);destination.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(destination/'transfer-after-drag.png'))
+                    for modal_width,modal_height in [(1440,760),(1366,700),(1280,650)]:
+                        page.set_viewport_size({'width':modal_width,'height':modal_height})
+                        page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+                        assert page.locator('#modal').evaluate('(el)=>{const r=el.getBoundingClientRect();return r.height<=innerHeight&&r.width<=innerWidth}'),'Transfer modal exceeds viewport'
+                        assert page.locator('#modal').evaluate('(el)=>[...el.querySelectorAll("input,select,button")].filter(n=>n.getClientRects().length).every(n=>n.getBoundingClientRect().bottom<=el.getBoundingClientRect().bottom+1)'),'Transfer control is clipped'
+                    page.set_viewport_size({'width':1440,'height':780})
+                    page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+                    assert next(n for n in context.request.get(base+'/api/state').json()['people'] if n['id']==tech['id'])['group_id']==groups[1]
+                    page.keyboard.press('Escape');expect(page.locator('#modal')).not_to_be_visible()
+                    assert next(n for n in context.request.get(base+'/api/state').json()['people'] if n['id']==tech['id'])['group_id']==groups[1]
+                    card.locator('.drag-handle').drag_to(target)
+                    page.locator('[data-action=transfer-reason]').first.click()
+                    page.locator('#modal button[type=submit]').click();expect(page.locator('#modal')).not_to_be_visible()
+                    moved=next(n for n in context.request.get(base+'/api/state').json()['people'] if n['id']==tech['id'])
+                    assert moved['group_id']==groups[0] and moved['status']=='ACTIVE'
+                    card=page.locator('[data-person="'+tech['id']+'"]');card.evaluate('(el)=>PulseLayout.reveal(el)')
+                    card.locator('[data-action=person-transfer]').focus();page.keyboard.press('Enter')
+                    page.locator('#modal [name=group_id]').select_option(groups[1]);page.locator('[data-action=transfer-reason]').first.click()
+                    page.locator('#modal button[type=submit]').click();expect(page.locator('#modal')).not_to_be_visible()
+                    assert next(n for n in context.request.get(base+'/api/state').json()['people'] if n['id']==tech['id'])['group_id']==groups[1]
+                    timer_context=browser.new_context();timer_api=timer_context.request
+                    assert timer_api.post(base+'/api/login',data={'identity':'T2','password':'Password2026!'}).ok
+                    running=timer_api.post(base+'/api/timers/start',data={}).json()
+                    page.reload();page.locator('.sidebar [data-page=organization]').click()
+                    timer_user=next(n for n in context.request.get(base+'/api/state').json()['people'] if n['employee_id']=='T2')
+                    timer_card=page.locator('[data-person="'+timer_user['id']+'"]');timer_card.evaluate('(el)=>PulseLayout.reveal(el)')
+                    expect(timer_card).to_have_attribute('draggable','false')
+                    timer_card.locator('[data-action=person-transfer]').click()
+                    expect(page.locator('#modal')).not_to_be_visible();expect(page.locator('#toast')).to_contain_text('Detén el Timer')
+                    assert timer_api.post(base+'/api/timers/'+running['id']+'/stop',data={}).ok
+                    timer_context.close()
                     checked=[]
                     def bounds(label):
                         issues=page.evaluate('''()=>{
@@ -95,7 +141,7 @@ def run():
                     assert page.locator('.wizard-navigation').inner_text().find('Paso 1 de')>=0,'A new form must start on its first step'
                     page.locator('#modal [data-action=close]').first.click()
                     assert not errors,errors
-                    print(json.dumps({'result':'PASS','viewports':len(checked),'javascript_errors':errors},indent=2));browser.close()
+                    print(json.dumps({'result':'PASS','viewports':len(checked),'javascript_errors':errors,'native_drag_and_drop':'PASS','cancel_and_keyboard_fallback':'PASS','running_timer_drag_block':'PASS'},indent=2));browser.close()
             finally:
                 process.terminate();process.wait(timeout=10)
 if __name__=='__main__':run()

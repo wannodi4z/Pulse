@@ -83,7 +83,7 @@ window.PulseLayout=(()=>{
       const table=list.tagName==='TBODY';const height=children.reduce((total,n)=>total+n.getBoundingClientRect().height,0);
       if(height<Math.max(130,budget*.55)&&root.getBoundingClientRect().height<=budget)return;
       const overhead=Math.max(70,root.getBoundingClientRect().height-height)+42;
-      let size=table?Math.max(1,Math.floor((budget-overhead)/Math.max(45,height/children.length))):1;
+      let size=table?Math.max(1,Math.floor((budget-overhead)/Math.max(45,height/children.length))):list.matches('.organization-board')&&innerWidth>=1050?2:1;
       size=Math.min(size,children.length);if(size>=children.length)return;
       const count=Math.ceil(children.length/size),id=key+':list:'+li;
       const label=table?'Filas':list.matches('.technicians')?'Técnicos':list.matches('.group-grid')?'Grupos':list.matches('.account-body')?'Managers':list.matches('.rule-intervals')?'Intervalos':list.matches('.rule-segments')?'Días':list.matches('.rules-grid')?'Reglas':'Elementos';

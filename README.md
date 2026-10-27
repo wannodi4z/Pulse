@@ -1,4 +1,4 @@
-# Operational Pulse · 1.1.0
+# Operational Pulse · 1.2.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.0`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.2.0`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.1.0/
+Operational_Pulse_v1.2.0/
   index.html
   server.py
   requirements.txt
@@ -279,7 +279,7 @@ La acción habitual permanece visible en cada bloque. El botón de tres puntos a
 Las operaciones de eliminación y baja conservan sus revisiones y confirmaciones. Los menús se cierran con Escape o al hacer clic fuera, permiten navegar con flechas y no se recortan dentro de las tarjetas. No se han movido al menú acciones operativas como detener un Timer o aprobar tiempo.
 
 
-[Ver capturas de la nueva interfaz](docs/interface-v1.1.0.md)
+[Ver capturas del tablero y el traslado](docs/interface-v1.2.0.md)
 
 ## Enterprise luminosa · v1.1.0
 
@@ -290,3 +290,16 @@ La presentación visual se define en **static/design.css**; **static/app.css** c
 Las Cuentas nuevas ofrecen Agregar Manager como primera acción. Agregar Grupo sigue disponible en el menú de la Cuenta, incluso antes de asignar Manager. Las Cuentas con Managers mantienen Agregar Grupo visible. Los menús presentan opciones con iconos, sin apilar botones enmarcados. Los mismos permisos, validaciones y confirmaciones siguen aplicándose.
 
 Se conserva el ajuste al 100% de zoom, con paginación de listas y pasos para formularios extensos. Las capturas de documentación usan datos de pruebas aislados; la instalación nueva continúa únicamente con admin1 y admin2.
+
+
+## Organización directa · v1.2.0
+
+En Admin → Organización, los Grupos se muestran lado a lado cuando hay espacio. Arrastra un Técnico desde su asa de puntos y suéltalo sobre otro Grupo. También aparece una bandeja con destinos alternativos y Elegir otro Grupo. Los destinos inválidos se señalan; un Técnico con Timer activo no se puede arrastrar.
+
+Al soltar aparece una revisión con persona, origen y destino. Elige un motivo frecuente o escribe el tuyo y confirma. **Soltar no guarda cambios; cancelar conserva la asignación original.** Si ya soltaste sobre un Grupo, el destino viene seleccionado; Cambiar Grupo permite elegir otro. La acción Mover de la tarjeta ofrece el mismo flujo sin arrastrar, también con teclado.
+
+Abre la edición desde el nombre de la Cuenta, Manager o Grupo, o desde la tarjeta del Técnico. Los diálogos tienen cabecera contextual y mantienen las validaciones actuales.
+
+Sólo Admin puede trasladar personas. Se requiere un Manager de destino activo, se conserva la capacidad Lead y no se permite reunir dos Leads bajo un mismo Manager. Primero detén el Timer activo. El traslado conserva identidad e historial, revoca la delegación afectada y actualiza el acceso, solicitando nuevo inicio de sesión al Técnico.
+
+El servidor comprueba el Grupo original dentro de la transacción. Si alguien ya movió a la persona, rechaza con 409 y pide actualizar la vista. El traslado utiliza los datos vigentes de identidad, sin reescribirlos con una copia antigua del navegador.

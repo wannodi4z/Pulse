@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.1.0
+# Validación ejecutada · Operational Pulse 1.2.0
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -15,7 +15,7 @@ PULSE_CHROMIUM_EXECUTABLE=/tmp/chromium .venv/bin/python tests/browser_smoke.py
 
 ## Backend
 
-23 pruebas funcionales aprobadas, sin fallas ni omisiones. Se realizaron llamadas HTTP con FastAPI TestClient y se comprobaron datos persistidos y cálculos, además de sintaxis.
+25 pruebas funcionales aprobadas, sin fallas ni omisiones. Se realizaron llamadas HTTP con FastAPI TestClient y se comprobaron datos persistidos y cálculos, además de sintaxis.
 
 - Base nueva: sólo admin1 y admin2; catálogos y operación vacíos; reinicializar conserva datos manuales. Sin migraciones que creen datos demo.
 - Jerarquía: varios Managers por Cuenta, varios Grupos por Manager, varios Técnicos por Grupo, propiedad exclusiva del Grupo, mezcla de Cuentas rechazada y eliminación de Cuenta ocupada bloqueada.
@@ -85,3 +85,12 @@ Se volvieron a ejecutar las 23 pruebas de backend, la suite funcional Chromium y
 La suite verifica ahora explícitamente que el sidebar es blanco, el texto de navegación activa es azul profundo y Kyndryl aparece en la cabecera, sin marca flotante en el sidebar. También comprueba menús con teclado, recuperación, navegación entre roles, altas/traspasos/bajas/reactivación, reglas editables, OT, timers, guardias, aprobaciones, Excel, Claim, ADP y analítica. La creación de Grupos antes de crear Manager se ejecutó mediante el menú de la Cuenta; la incorporación del primer Manager sigue disponible como acción principal.
 
 Se inspeccionaron capturas de la Cuenta vacía, su menú y la estructura poblada. La instalación y el empaquetado no incluyen datos de esas pruebas; las imágenes de documentación son sólo vistas de referencia. Validación de sintaxis de ambos módulos JavaScript y compilación Python completadas. No se ejecutó una prueba física en MacBook Air M1 ni Safari: se utilizó Chromium/Linux con las dimensiones indicadas.
+
+
+## Organización interactiva v1.2.0
+
+25 pruebas API aprobadas: las dos nuevas verifican que la ruta dedicada de traslado conserva nombre/apellidos/correo actualizados aunque el navegador envíe valores antiguos, no acepta cambios de estado/Lead por esa vía, invalida la sesión del trasladado y rechaza un origen obsoleto con 409. También comprueban permisos Admin, motivo requerido, bloqueo por Timer y conflicto de Leads sin movimiento parcial.
+
+`tests/layout_smoke.py` ejecutó arrastrar y soltar reales con `drag_to` de Playwright: abrir edición con Enter, soltar un Técnico sobre otro Grupo, verificar que aún no se guardó, cancelar con Escape, repetir y confirmar con un motivo frecuente, y regresar mediante Mover por teclado. Se comprobó un Técnico con Timer activo: atributo draggable=false y traslado bloqueado en la interfaz. Se conservaron las 54 combinaciones de rol/ruta/viewport y se comprobaron los controles del modal de traslado a 1440×760, 1366×700 y 1280×650.
+
+La suite general de navegador volvió a recorrer activaciones, navegación, reglas, OT, timers, aprobaciones, analítica, recuperaciones, Excel, Claim/ADP, traspasos de Grupos, baja y reactivación. Cero errores JavaScript capturados. Sintaxis JS y compilación Python verificadas. Pruebas realizadas en Chromium/Linux, no en una Mac física ni Safari.

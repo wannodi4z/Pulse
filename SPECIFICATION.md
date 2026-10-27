@@ -1,4 +1,4 @@
-# Operational Pulse 1.1.0 · especificación de la implementación nueva
+# Operational Pulse 1.2.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -130,3 +130,10 @@ Los menús de entidades conservan los identificadores data-action y los controla
 La estructura de navegación se renueva en nav() y app(), conservando una única implementación por función y los mismos data-page/data-action. El sidebar blanco contiene marca de producto, funciones por rol, Configuración y Acerca del proyecto; Kyndryl pasa a la cabecera corporativa. static/design.css es la fuente visual de esta dirección y se carga después de los contratos de estructura de app.css. No se añaden frameworks, dependencias ni servicios externos.
 
 Las opciones de los menús usan los mismos controladores y un icono local. La acción principal de una Cuenta sin Manager es su incorporación; la creación de Grupos permanece disponible en el menú. Los formularios, tablas y acceso utilizan el mismo lenguaje visual. El backend sólo cambia la constante VERSION, sin cambios en el esquema o la lógica de negocio.
+
+
+### Transferencia interactiva v1.2.0
+
+`POST /api/admin/people/{id}/transfer` requiere Admin y recibe `expected_group_id`, `group_id` y `transfer_reason`. La operación reutiliza la validación transaccional de personas, leyendo la identidad vigente bajo el mismo bloqueo. Los campos de perfil enviados por el navegador no se usan en este endpoint. Origen obsoleto devuelve 409; Timer activo, ausencia de motivo, acceso en baja o conflicto Lead se rechazan sin escrituras parciales. Los permisos operativos de Manager y Lead no autorizan esta ruta.
+
+El arrastre HTML nativo se limita a Técnicos de Organización y no modifica el estado ni el DOM de asignación antes de confirmar. Durante la interacción se pausa la actualización silenciosa para mantener los elementos estables. Al cancelar, salir o redimensionar se limpian los indicadores de arrastre. Mover ofrece una alternativa de teclado. Los mismos data-action abren las ediciones directas de entidades desde sus nombres.

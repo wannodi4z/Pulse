@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v1.2.0 · 27 de octubre de 2026
+
+- Organización interactiva: Grupos lado a lado y Técnicos que se pueden arrastrar a otro Grupo. Destinos alternativos disponibles durante el arrastre y mediante Mover.
+- Acceso directo a edición desde el nombre de la Cuenta, Manager, Grupo y tarjeta del Técnico.
+- Traslado con modal contextual: identidad, origen, destino y motivo rápido. Soltar no guarda; confirmar realiza la transferencia. Cancelar conserva la asignación original.
+- Nueva operación Admin de traslado con lectura de perfil bajo bloqueo de escritura y comprobación del Grupo de origen; evita sobrescribir datos recientes o trasladar desde una asignación obsoleta.
+- Conserva validaciones de Timer activo, Manager activo, Lead único por Manager, permisos, sesiones y delegaciones.
+- Diálogos con cabecera contextual y controles consistentes; ajuste a 100% comprobado en ventanas de laptop.
+
+
 ## v1.1.0 · 27 de octubre de 2026
 
 - Nueva interfaz Enterprise luminosa: sidebar blanco y compacto, navegación azul profundo con acentos turquesa y marca Kyndryl en la cabecera corporativa.

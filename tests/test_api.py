@@ -601,5 +601,36 @@ class PulseTests(unittest.TestCase):
         self.assertTrue(any(r['action']=='EDIT_RULE' for r in audit));self.assertTrue(any(r['action']=='DELETE_RULE' for r in audit))
 
 
+    def test_dedicated_transfer_preserves_fresh_profile_and_rejects_stale_origin(self):
+        a,g,m,mc,u,uc=self.organization()
+        g2=self.group(a,'G2',m['id'])
+        self.assertEqual(uc.put('/api/profile',json={'first':'Nombre actualizado','last':'Apellido vigente','email':'fresh@example.test'}).status_code,200)
+        payload={'expected_group_id':g,'group_id':g2,'transfer_reason':'Reorganización','first':'Dato obsoleto','last':'Viejo','email':'old@test','status':'DISABLED','is_lead':True}
+        path='/api/admin/people/'+u['id']+'/transfer'
+        self.assertEqual(mc.post(path,json=payload).status_code,403)
+        self.assertEqual(uc.post(path,json=payload).status_code,403)
+        self.post(path,payload)
+        moved=next(p for p in self.client.get('/api/state').json()['people'] if p['id']==u['id'])
+        self.assertEqual((moved['first'],moved['last'],moved['email']),('Nombre actualizado','Apellido vigente','fresh@example.test'))
+        self.assertEqual((moved['group_id'],moved['status'],moved['is_lead']),(g2,'ACTIVE',False))
+        self.assertEqual(uc.get('/api/state').status_code,401)
+        self.assertEqual(self.client.post(path,json={**payload,'group_id':g}).status_code,409)
+        self.assertEqual(next(p for p in self.client.get('/api/state').json()['people'] if p['id']==u['id'])['group_id'],g2)
+        self.assertEqual(self.client.post(path,json={'expected_group_id':g2,'group_id':g,'transfer_reason':''}).status_code,422)
+
+    def test_dedicated_transfer_timer_and_lead_constraints_are_atomic(self):
+        a,g,m,mc,u,uc=self.organization();g2=self.group(a,'G2')
+        m2,c2,_=self.person('MANAGER','M002',account=a,groups=[g2])
+        path='/api/admin/people/'+u['id']+'/transfer';payload={'expected_group_id':g,'group_id':g2,'transfer_reason':'Movimiento solicitado'}
+        self.post('/api/timers/start',{},uc)
+        self.assertEqual(self.client.post(path,json=payload).status_code,422)
+        self.assertEqual(next(p for p in self.client.get('/api/state').json()['people'] if p['id']==u['id'])['group_id'],g)
+        lead,lc,_=self.person('USER','L001',group=g,lead=True)
+        lead2,l2c,_=self.person('USER','L002',group=g2,lead=True)
+        self.assertEqual(self.client.post('/api/admin/people/'+lead['id']+'/transfer',json={**payload,'is_lead':False}).status_code,422)
+        after=next(p for p in self.client.get('/api/state').json()['people'] if p['id']==lead['id'])
+        self.assertEqual(after['group_id'],g);self.assertTrue(after['is_lead'])
+
+
 if __name__=='__main__':
     unittest.main(verbosity=2)
