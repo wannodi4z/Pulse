@@ -874,3 +874,6 @@ dialog.access-modal::backdrop{background:#071c3cb0;backdrop-filter:blur(6px)}
 @media(max-width:600px){.rule-day>header{padding:10px 12px}.rule-day-content{padding:13px 12px}.rule-interval{grid-template-columns:minmax(0,1fr) 14px minmax(0,1fr) 26px;gap:8px}.rule-interval>small{grid-column:1/4;grid-row:2;margin:0;font-size:9px}.rule-interval>.icon-btn{grid-column:4;grid-row:1}.rule-interval>.interval-arrow{grid-column:2;grid-row:1}.rule-interval>label{grid-row:1}.rule-interval>label:nth-of-type(2){grid-column:3}.weekly-rule-intro p{font-size:10px}.inline-form-actions{flex-wrap:wrap}.inline-form-actions .primary{flex:1}.delegation-summary>div{min-width:190px}.delegation-summary h3{font-size:13px}.delegation-summary .eyebrow{font-size:7px}.priority-list strong{font-size:11px}.priority-list small{font-size:9px}.timer-actions{width:100%}}
 .detail-live{display:flex;align-items:center;gap:11px;background:#eefafa;border:1px solid #cceef0;border-radius:10px;padding:15px;color:#337c8b;font-size:11px}
 .detail-live>strong{font-size:22px;font-variant-numeric:tabular-nums;margin-left:auto;letter-spacing:1px;color:#197f8d}
+.login-password-input{position:relative;display:block}
+.login-password-input>input{padding-right:45px}
+.login-password-input>.password-visibility{top:5px;right:6px}

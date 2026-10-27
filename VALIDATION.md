@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.1.0
+# Validación ejecutada · Operational Pulse 1.1.1
 
 Fecha: 26 de octubre de 2026. Implementación nueva desde cero; no se declara equivalencia binaria ni preservación del código del ZIP antiguo.
 
@@ -109,3 +109,10 @@ Recorrido ejecutado desde la interfaz:
 5. Continúan pasando guardias, OT histórica, emergencia, aprobación, descarga Excel, Claim, ADP, navegación, activación, recuperación y las comprobaciones existentes.
 
 No se ejecutó esta versión en macOS físico ni Safari. Las pruebas usan bases temporales; no se reinicia la base manual del usuario.
+
+## Acceso enfocado en OT y Guardias · v1.1.1
+
+- Se actualizan los textos de login, Mi tiempo y Acerca del proyecto para describir control de OT y Guardias. Se retiran las referencias a comenzar una jornada.
+- Se agrega el botón de mostrar/ocultar contraseña del login, reutilizando el controlador existente: la prueba real de navegador verifica ambos tipos de campo, el valor conservado, etiquetas accesibles y que el botón no envíe el formulario.
+- La suite de navegador existente continúa con activación, recuperación, organización, reglas multintervalo, delegación inline, tarjetas, timers, aprobaciones, Excel, Claim y ADP. Resultado: PASS, sin errores JavaScript.
+- Sintaxis JavaScript y Python verificadas. El backend sólo cambia el número de versión; los once tests de lógica pasaron en v1.1.0 y no se repitieron para este ajuste de texto y control visual.

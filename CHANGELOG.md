@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## v1.1.1 · 26 de octubre de 2026
+
+- Acceso enfocado en «Control de OT y guardias», con textos coherentes en el mensaje de bienvenida, Mi tiempo y Acerca del proyecto.
+- Se retiran las referencias a comenzar una jornada laboral.
+- Botón de mostrar/ocultar contraseña en el login, con etiqueta accesible y conservación del valor escrito.
+- Sin cambios en reglas operativas, permisos ni datos.
+
 ## v1.1.0 · 26 de octubre de 2026
 
 - Reglas de Guardia con varios intervalos por día, agregar/quitar horarios y cobertura explícita de 24 horas.

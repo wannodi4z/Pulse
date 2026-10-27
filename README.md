@@ -1,4 +1,4 @@
-# Operational Pulse · 1.1.0
+# Operational Pulse · 1.1.1
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.0`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.1`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.1.0/
+Operational_Pulse_v1.1.1/
   index.html
   server.py
   requirements.txt
@@ -181,3 +181,7 @@ Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders,
 - **Panel que lleva a la acción:** las tarjetas del Manager abren Tiempo del equipo con tipo y estado ya seleccionados. Pendientes y timers usan «Todos los periodos» para incluir eventos anteriores al mes visible. «Ver actividad» abre el detalle del Timer con contador en vivo.
 - **Solicitudes concretas:** el bloque lateral del Panel presenta hasta tres solicitudes para revisar, en lugar de repetir el contador de pendientes. El detalle permite aprobar o rechazar usando las mismas validaciones del servidor.
 - **Compatibilidad:** se conserva la base existente. No se agregan datos de ejemplo ni se borran registros. Si una base antigua contiene varios backups simultáneos, sólo la última asignación activa otorga autoridad; al reasignar o revocar se consolidan conservando el historial.
+
+## Enfoque de la herramienta · v1.1.1
+
+Los textos del acceso y Mi tiempo se centran en el control de horas extra (OT), Guardias y sus aprobaciones. Se retiran las referencias a comenzar una jornada; la herramienta no se presenta como un control de asistencia. También se incluye el botón del ojo para mostrar u ocultar la contraseña en el login. No cambia la lógica operativa.
