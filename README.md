@@ -1,12 +1,12 @@
-# Operational Pulse · 1.0.0
+# Operational Pulse · 1.0.1
 
-Aplicación nueva, creada desde cero. La numeración se reinicia en **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
 ## Ejecutarla en tu Mac
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.0`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.1`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.0/
+Operational_Pulse_v1.0.1/
   index.html
   server.py
   requirements.txt
@@ -135,6 +135,7 @@ Operational_Pulse_v1.0.0/
   README.md
   SPECIFICATION.md
   VALIDATION.md
+  CHANGELOG.md
   THIRD_PARTY_NOTICES.md
   start.command
   .gitignore
@@ -164,3 +165,7 @@ Autores del proyecto:
 
 - Samuel Alejandro Díaz Chávez
 - Francisco Cervantes Marquez
+
+## Novedades de v1.0.1
+
+Activación y recuperación ahora tienen modales propios con información por secciones, ayuda para el código, botones para mostrar la contraseña, comprobación de coincidencia y confirmaciones al terminar. El flujo de recuperación conserva el usuario y explica que el código lo entrega el responsable por un canal corporativo. La contraseña continúa requiriendo al menos 10 caracteres. El historial y el criterio de numeración están en `CHANGELOG.md`.

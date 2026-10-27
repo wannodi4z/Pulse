@@ -46,18 +46,46 @@ def run():
                 def save():
                     page.locator('dialog[open] button[type=submit]').click()
                 def action(name,within=None):
-                    (within or page).locator(f'[data-action="{name}"]').first.click()
+                    selector=f'[data-action="{name}"]'
+                    target=within if within is not None else page.locator('dialog[open]') if page.locator('dialog[open] '+selector).count() else page
+                    target.locator(selector).first.click()
                 def login(username,password='Password2026!'):
                     page.locator('[data-form=login] [name=identity]').fill(username)
                     page.locator('[data-form=login] [name=password]').fill(password)
                     page.locator('[data-form=login] button').click()
                     page.locator('.sidebar').wait_for()
                 def activate(username,code):
-                    action('activate');fill('identity',username);fill('code',code);fill('password','Password2026!');fill('confirm','Password2026!');save();expect(page.locator('#modal')).not_to_be_visible()
-                # Branding and credits work before and after authentication.
+                    action('activate');fill('identity',username);fill('code',code);fill('password','Password2026!');fill('confirm','Password2026!');save();expect(page.locator('.access-result-body')).to_be_visible();action('access-login');expect(page.locator('#modal')).not_to_be_visible()
+                # Access dialogs: layout, feedback, visibility and a real recovery cycle.
                 page.locator('[data-form=login]').wait_for()
+                action('activate')
+                expect(page.locator('#modal [name=identity]')).to_be_focused()
+                fill('password','Password2026!');fill('confirm','Different2026!')
+                expect(page.locator('[data-password-check=length]')).to_have_class('satisfied')
+                expect(page.locator('[data-password-check=match]')).not_to_have_class('satisfied')
+                page.locator('[data-action=password-visibility]').first.click()
+                expect(page.locator('#access-password')).to_have_attribute('type','text')
+                expect(page.locator('[data-action=password-visibility]').first).to_have_attribute('aria-pressed','true')
+                page.locator('[data-action=password-visibility]').first.click()
+                expect(page.locator('#access-password')).to_have_attribute('type','password')
+                for width,height in [(1440,1000),(390,844)]:
+                    page.set_viewport_size({'width':width,'height':height})
+                    assert page.locator('#modal').evaluate('(el)=>el.scrollWidth<=el.clientWidth'),'Access dialog horizontal overflow'
+                    assert page.locator('#modal').evaluate('(el)=>el.getBoundingClientRect().height<=innerHeight'),'Access dialog vertical overflow'
+                page.set_viewport_size({'width':1440,'height':1000})
+                if os.environ.get('PULSE_SCREENSHOT_DIR'):
+                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.0.1.png'))
+                page.keyboard.press('Escape');expect(page.locator('#modal')).not_to_be_visible()
+                action('recovery-request');fill('identity','admin2')
+                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.0.1.png'))
+                save();expect(page.locator('.access-result-body')).to_contain_text('Si tu cuenta está activa')
+                expect(page.locator('#modal h2')).to_have_text('Solicitud recibida')
+                action('recovery-complete');expect(page.locator('#modal [name=identity]')).to_have_value('admin2')
+                action('recovery-request');expect(page.locator('#modal [name=identity]')).to_have_value('admin2')
+                action('close')
+                # Branding and credits work before and after authentication.
                 action('about');expect(page.locator('.about-project')).to_contain_text('Francisco Cervantes Marquez')
-                expect(page.locator('.about-project')).to_contain_text('Versión 1.0.0')
+                expect(page.locator('.about-project')).to_contain_text('Versión 1.0.1')
                 expect(page.locator('.author-list')).to_contain_text('Samuel Alejandro Díaz Chávez')
                 expect(page.locator('.author-list article')).to_have_count(2)
                 page.set_viewport_size({'width':390,'height':844})
@@ -67,8 +95,19 @@ def run():
                 assert page.locator('.about-project img.kyndryl-logo').evaluate('(img)=>img.complete&&img.naturalWidth>0')
                 action('close')
                 login('admin1','admin12026')
-                expect(page.locator('.workspace-tag')).to_contain_text('v1.0.0')
+                expect(page.locator('.workspace-tag')).to_contain_text('v1.0.1')
                 action('about');expect(page.locator('.author-list')).to_contain_text('Francisco Cervantes Marquez');action('close')
+                page.locator('.sidebar [data-page=recoveries]').click();action('recovery-issue')
+                expect(page.locator('.secret-code')).to_be_visible();recovery_code=page.locator('.secret-code').inner_text();action('close');action('logout')
+                action('recovery-request');fill('identity','admin2');action('recovery-complete')
+                fill('code','REC-INVALID');fill('password','Recovered2026!');fill('confirm','Mismatch2026!');save()
+                expect(page.locator('#access-error')).to_contain_text('Las contraseñas no coinciden')
+                expect(page.locator('#access-error')).to_be_focused()
+                fill('confirm','Recovered2026!');save();expect(page.locator('#access-error')).to_contain_text('Código inválido o vencido')
+                expect(page.locator('#modal [name=identity]')).to_have_value('admin2')
+                fill('code',recovery_code);save();expect(page.locator('#modal h2')).to_have_text('Contraseña actualizada')
+                action('access-login');expect(page.locator('[data-form=login] [name=identity]')).to_have_value('admin2')
+                login('admin2','Recovered2026!');action('logout');login('admin1','admin12026')
                 page.locator('.sidebar [data-page=organization]').click()
                 expect(page.locator('h1')).to_have_text('Organización')
                 action('account-new');fill('code','MX');fill('name','Operación México');save();expect(page.locator('.account-block')).to_have_count(1)
@@ -139,7 +178,7 @@ def run():
                 expect(page.locator('.sidebar [data-page=time]')).to_have_count(1);expect(page.locator('.sidebar [data-page=teamTime]')).to_have_count(0)
                 page.locator('.sidebar [data-page=time]').click();expect(page.locator('h1')).to_have_text('Mi tiempo')
                 assert errors==[],errors
-                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.0.0','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','Claim/ADP rows','Lead has no implicit approval authority'],'javascript_errors':errors},ensure_ascii=False,indent=2))
+                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.0.1','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','Claim/ADP rows','Lead has no implicit approval authority'],'javascript_errors':errors},ensure_ascii=False,indent=2))
                 browser.close()
         except Exception:
             log.flush();log.seek(0);print(log.read()[-7000:]);raise

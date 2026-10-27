@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.0 · especificación de la implementación nueva
+# Operational Pulse 1.0.1 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -50,6 +50,10 @@ SQLite normalizado, claves foráneas activas, transacciones de escritura y audit
 
 La compatibilidad con macOS se prepara con comandos estándar Python, `start.command` y depuración VS Code. Las pruebas de esta entrega se realizan en Linux; macOS y Safari requieren validación en el equipo del usuario. La publicación en un servidor global está fuera del alcance de esta etapa local.
 
-## Identidad visual v1.0.0
+## Identidad visual de la base v1.0.0
 
 Azul profundo para navegación, azul para acciones principales, blanco para superficies y turquesa para acentos. Iconos vectoriales y logotipo original de Kyndryl desde sus paquetes oficiales Shidoka, con licencias distribuidas. Créditos del proyecto en un modal propio accesible desde el login y el pie de todas las secciones. La numeración se reinicia sin restablecer la base ni cambiar las reglas operativas.
+
+## Acceso: refinamiento v1.0.1
+
+Los modales públicos usan un marco visual propio y accesible, dentro del mismo `dialog` y controlador de eventos de la aplicación. Activar y restablecer separan identidad/código y contraseña; la solicitud de recuperación explica el proceso sin revelar si una cuenta existe. El usuario se conserva durante las transiciones; no se guardan contraseñas ni códigos en el borrador del flujo. Se presentan errores dentro del formulario y resultados de éxito dentro del modal. Mostrar contraseñas no altera sus valores ni las reglas del servidor. No hay cambios en lógica operativa ni esquema de datos.

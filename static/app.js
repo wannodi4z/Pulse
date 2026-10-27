@@ -53,7 +53,7 @@ function toast(message,error=false){
   const el=$('#toast');el.textContent=message;el.className=`visible ${error?'error':''}`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='',5000);
 }
 function showModal(title,body,wide=false){
-  const modal=$('#modal');modal.innerHTML=`<header class="dialog-header"><div><p class="eyebrow">OPERATIONAL PULSE</p><h2>${title}</h2></div><button class="icon-btn" data-action="close" aria-label="Cerrar">×</button></header>${body}`;modal.className=wide?'wide':'';if(!modal.open)modal.showModal();
+  const modal=$('#modal');modal.innerHTML=`<header class="dialog-header"><div><p class="eyebrow">OPERATIONAL PULSE</p><h2 id="dialog-title">${title}</h2></div><button class="icon-btn" data-action="close" aria-label="Cerrar">×</button></header>${body}`;modal.className=wide?'wide':'';modal.setAttribute('aria-labelledby','dialog-title');if(!modal.open)modal.showModal();
 }
 function form(name,body,id='',submit='Guardar'){
   return `<form data-form="${name}" data-id="${esc(id)}"><div class="form-body">${body}</div><p class="form-error" role="alert"></p><footer class="dialog-footer"><button type="button" class="secondary" data-action="close">Cancelar</button><button class="primary" type="submit">${submit}</button></footer></form>`;
@@ -62,7 +62,7 @@ function credentials(code,username,title='Datos de activación'){
   showModal(title,`<div class="form-body"><p>Entrega este código por un canal corporativo. La persona definirá su contraseña desde «Activar cuenta».</p>${username?`<p>Usuario: <strong>${esc(username)}</strong></p>`:''}<div class="secret-code">${esc(code)}</div><p class="muted">El código se muestra sólo al generar o regenerar el acceso.</p></div><footer class="dialog-footer">${btn('Listo','close','','primary')}</footer>`);
 }
 function login(){
-  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">TU OPERACIÓN, EN SINTONÍA</p><h1>Más claridad.<br>Mejor equipo.</h1><p>Personas, tiempo y decisiones.<br>Un solo espacio para conectar tu operación.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.0.0</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">BIENVENIDO A TU ESPACIO</p><h2>Comienza tu jornada</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}${field('password','Contraseña','','password','required autocomplete="current-password"')}<p class="form-error" role="alert"></p><button class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Tu información y tu equipo, en un mismo lugar.</small></p></div></div><footer>Operational Pulse · Gestión operativa <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
+  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">TU OPERACIÓN, EN SINTONÍA</p><h1>Más claridad.<br>Mejor equipo.</h1><p>Personas, tiempo y decisiones.<br>Un solo espacio para conectar tu operación.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.0.1</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">BIENVENIDO A TU ESPACIO</p><h2>Comienza tu jornada</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}${field('password','Contraseña','','password','required autocomplete="current-password"')}<p class="form-error" role="alert"></p><button class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Tu información y tu equipo, en un mismo lugar.</small></p></div></div><footer>Operational Pulse · Gestión operativa <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
 }
 function nav(){
   const items=isAdmin()?['dashboard','organization','admins','recoveries','profile']:isManager()?['dashboard','team','teamTime','timeRules','recoveries','profile']:['dashboard','time','claim','adp',...(state.can_approve?['team','teamTime','recoveries']:[]),'profile'];
@@ -283,11 +283,49 @@ function delegationModal(){
   if(!leads.length)return toast('Designa un Técnico como Lead antes de delegar.',true);
   showModal('Delegar autoridad temporal',form('delegation',select('lead_id','Lead *',options(leads,'',full),'required')+`<div class="form-grid">${field('start_at','Desde *',localInput(new Date().toISOString()),'datetime-local','required')}${field('end_at','Hasta *','','datetime-local','required')}</div><fieldset><legend>Grupos bajo la delegación</legend>${state.groups.filter(g=>state.scope.includes(g.id)).map(g=>`<label class="checkbox"><input type="checkbox" name="group_ids" value="${esc(g.id)}"><span>${esc(g.name)}</span></label>`).join('')}</fieldset><p class="callout">El Lead no podrá aprobar sus propios registros. Puedes revocar la delegación en cualquier momento.</p>`,'','Activar delegación'));
 }
-function publicModal(kind){
-  if(kind==='activate')showModal('Activar cuenta',form('activate',field('identity','Employee ID o usuario *','','text','required autocomplete="username"')+field('code','Código de activación *','','text','required autocomplete="off"')+field('password','Crea tu contraseña *','','password','required minlength="10" autocomplete="new-password"')+field('confirm','Confirma tu contraseña *','','password','required minlength="10" autocomplete="new-password"'),'','Activar cuenta'));
-  if(kind==='request')showModal('Recuperar acceso',form('recovery-request',`<p class="muted">Tu Manager o un administrador validará tu identidad y te entregará un código temporal.</p>${field('identity','Employee ID o usuario *','','text','required')}<button type="button" class="link" data-action="recovery-complete">Ya tengo un código</button>`,'','Solicitar recuperación'));
-  if(kind==='complete')showModal('Restablecer contraseña',form('recovery-complete',field('identity','Employee ID o usuario *','','text','required')+field('code','Código temporal *','','text','required')+field('password','Nueva contraseña *','','password','required minlength="10"')+field('confirm','Confirmar contraseña *','','password','required minlength="10"'),'','Restablecer'));
+const accessDraft = {identity:''};
+function accessField(name,label,{value='',type='text',placeholder='',hint='',symbol='profile',autofocus=false}={}){
+  const id='access-'+name, password=type==='password';
+  return `<label class="field access-field" for="${id}"><span>${label}</span><span class="access-input">${icon(symbol)}<input id="${id}" name="${name}" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}" required ${password?'minlength="10" autocomplete="new-password"':name==='identity'?'autocomplete="username" autocapitalize="none" spellcheck="false"':'autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"'} ${autofocus?'autofocus':''} aria-describedby="${id}-hint access-error">${password?`<button type="button" class="password-visibility" data-action="password-visibility" data-id="${id}" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button>`:''}</span><small id="${id}-hint" class="access-hint">${hint}</small></label>`;
 }
+function accessShell(title,subtitle,symbol,body,{wide=false,success=false}={}){
+  showModal(title,body);
+  const modal=$('#modal');modal.className=`access-modal ${wide?'access-wide':''} ${success?'access-success':''}`;
+  $('.dialog-header',modal).outerHTML=`<header class="access-header"><div class="access-topline"><span class="access-brand">${icon('time')} OPERATIONAL PULSE</span><button type="button" class="icon-btn" data-action="close" aria-label="Cerrar">${icon('close')}</button></div><div class="access-intro"><span class="access-hero-icon">${icon(symbol)}</span><div><p class="eyebrow">${success?'TODO LISTO':'TU ACCESO, PASO A PASO'}</p><h2 id="dialog-title">${title}</h2></div></div><p class="access-subtitle">${subtitle}</p></header>`;
+  $('[autofocus]',modal)?.focus();
+}
+function accessForm(name,body,submit,secondary='Volver al inicio'){
+  return `<form data-form="${name}" class="access-form"><div class="access-body">${body}<p id="access-error" class="form-error" role="alert" tabindex="-1"></p></div><footer class="access-footer"><button type="button" class="access-back" data-action="close">${icon('back')} ${secondary}</button><button type="submit" class="primary access-submit">${submit} ${icon('forward')}</button></footer><div class="access-footnote">${icon('lock')} Acceso a tu espacio de trabajo</div></form>`;
+}
+function accessSteps(current){
+  return `<ol class="access-steps" aria-label="Proceso de recuperación">${['Solicita','Valida tu identidad','Restablece'].map((label,i)=>`<li class="${i===current?'current':i<current?'complete':''}" ${i===current?'aria-current="step"':''}><span>${i<current?icon('check'):i+1}</span><small>${label}</small></li>`).join('')}</ol>`;
+}
+function publicModal(kind){
+  const current=$('.access-form [name="identity"]');if(current)accessDraft.identity=current.value;
+  const identity=accessField('identity','Employee ID o usuario',{value:accessDraft.identity,placeholder:'Ej. tu Employee ID',autofocus:true});
+  if(kind==='activate'){
+    const body=`<section class="access-section"><div class="access-section-title"><span>01</span><div><h3>Verifica tu cuenta</h3><p>Usa los datos que te entregó Administración.</p></div></div><div class="access-fields-grid">${identity}${accessField('code','Código de activación',{placeholder:'ACT-XXXXXXXXXX',hint:'Lo recibes de tu Manager o administrador.',symbol:'key'})}</div></section><section class="access-section"><div class="access-section-title"><span>02</span><div><h3>Define tu contraseña</h3><p>Será tu acceso personal a Operational Pulse.</p></div></div><div class="access-fields-grid">${accessField('password','Contraseña',{type:'password',placeholder:'Al menos 10 caracteres',symbol:'lock'})}${accessField('confirm','Confirmar contraseña',{type:'password',placeholder:'Escríbela una vez más',symbol:'lock'})}</div><div class="password-checks" aria-live="polite"><span data-password-check="length">${icon('check')} Al menos 10 caracteres</span><span data-password-check="match">${icon('check')} Las contraseñas coinciden</span></div></section>`;
+    accessShell('Activa tu cuenta','Tu primer paso para conectar con tu equipo. Confirma tu acceso y crea una contraseña.', 'key',accessForm('activate',body,'Activar mi cuenta'),{wide:true});
+  }
+  if(kind==='request'){
+    const body=`${accessSteps(0)}<div class="access-copy"><h3>Vamos a ayudarte a volver.</h3><p>Ingresa tu usuario para solicitar la recuperación. Tu Manager o Administración validará tu identidad antes de entregarte un código.</p></div>${identity}<div class="access-assistance">${icon('info')}<p>El código se entrega por un canal corporativo; no se envía un correo automático.</p></div><button type="button" class="access-alternative" data-action="recovery-complete"><span class="alternative-icon">${icon('key')}</span><span><strong>¿Ya tienes un código?</strong><small>Continúa para crear tu nueva contraseña.</small></span>${icon('forward')}</button>`;
+    accessShell('Recupera tu acceso','Un proceso sencillo para volver a tu espacio de trabajo.', 'recoveries',accessForm('recovery-request',body,'Solicitar recuperación'));
+  }
+  if(kind==='complete'){
+    const body=`${accessSteps(2)}<section class="access-section"><div class="access-section-title"><span>${icon('key')}</span><div><h3>Confirma tu acceso</h3><p>Ten a la mano el código que te entregó tu responsable.</p></div></div><div class="access-fields-grid">${identity}${accessField('code','Código de recuperación',{placeholder:'REC-XXXXXXXXXXXX',hint:'Tiene una vigencia de 15 minutos y un solo uso.',symbol:'key'})}</div></section><section class="access-section"><div class="access-section-title"><span>${icon('lock')}</span><div><h3>Elige una nueva contraseña</h3><p>Al guardar, las sesiones anteriores se cerrarán.</p></div></div><div class="access-fields-grid">${accessField('password','Nueva contraseña',{type:'password',placeholder:'Al menos 10 caracteres',symbol:'lock'})}${accessField('confirm','Confirmar contraseña',{type:'password',placeholder:'Escríbela una vez más',symbol:'lock'})}</div><div class="password-checks" aria-live="polite"><span data-password-check="length">${icon('check')} Al menos 10 caracteres</span><span data-password-check="match">${icon('check')} Las contraseñas coinciden</span></div></section><button type="button" class="access-inline-link" data-action="recovery-request">${icon('back')} Necesito solicitar otro código</button>`;
+    accessShell('Crea tu nuevo acceso','Confirma el código de recuperación y vuelve a tomar el control de tu cuenta.', 'lock',accessForm('recovery-complete',body,'Guardar contraseña'),{wide:true});
+  }
+}
+function accessResult(kind,username){
+  accessDraft.identity=username;
+  const pending=kind==='request';
+  const title=pending?'Solicitud recibida':kind==='activate'?'Tu cuenta está lista':'Contraseña actualizada';
+  const subtitle=pending?'El siguiente paso es validar tu identidad.':kind==='activate'?'Ya puedes comenzar a trabajar con tu equipo.':'Todo listo para volver a tu espacio de trabajo.';
+  const copy=pending?'Si tu cuenta está activa, tu solicitud quedó registrada. Contacta a tu Manager o a Administración para que valide tu identidad y te entregue un código de recuperación.':kind==='activate'?'Tu acceso se activó correctamente. Inicia sesión con tu usuario y la contraseña que acabas de crear.':'Tu nueva contraseña se guardó y las sesiones anteriores se cerraron. Ya puedes iniciar sesión de nuevo.';
+  const body=`<div class="access-result-body">${pending?accessSteps(1):''}<div class="access-result-account">${icon('profile')}<div><small>USUARIO</small><strong>${esc(username)}</strong></div><span class="access-result-pill">${pending?'En validación':'Listo'}</span></div><p>${copy}</p>${pending?`<div class="access-assistance">${icon('time')}<p>Cuando recibas tu código, tendrás 15 minutos para utilizarlo. Sólo puede usarse una vez.</p></div>`:''}<button class="primary access-result-primary" data-action="${pending?'recovery-complete':'access-login'}">${pending?'Ya tengo mi código':'Ir a iniciar sesión'} ${icon('forward')}</button>${pending?'<button class="access-result-back" data-action="access-login">Volver al inicio de sesión</button>':''}</div>`;
+  accessShell(title,subtitle,pending?'recoveries':'check',body,{success:true});
+}
+
 function detailModal(key){
   const [kind,id]=key.split(':'),r=(kind==='ot'?state.overtime:state.guards).find(r=>r.id===id);if(!r)return;
   const logs=state.audit.filter(a=>a.entity_id===id);
@@ -297,6 +335,8 @@ function auditLabel(action){return {CREATE_OT:'Registro de OT',EDIT_OT_REOPEN_AP
 
 async function perform(action,id,button){
   switch(action){
+    case 'password-visibility':{const input=$('#'+id,$('#modal'));if(!input||!['password','confirm'].includes(input.name))return;const reveal=input.type==='password';input.type=reveal?'text':'password';button.setAttribute('aria-pressed',String(reveal));button.setAttribute('aria-label',reveal?'Ocultar contraseña':'Mostrar contraseña');button.innerHTML=icon(reveal?'eye-off':'eye');return;}
+    case 'access-login':$('#modal').close();{const input=$('[data-form="login"] [name="identity"]');if(input){input.value=accessDraft.identity;$('[data-form="login"] [name="password"]')?.focus();}}return;
     case 'about':aboutProject();return;
     case 'close':$('#modal').close();return;
     case 'logout':await api('/api/logout','POST',{});state=null;page='dashboard';$('#modal').close();render();return;
@@ -336,13 +376,14 @@ async function perform(action,id,button){
 }
 async function submitForm(f){
   const fd=new FormData(f),data=Object.fromEntries(fd),kind=f.dataset.form,id=f.dataset.id;
+  if(['activate','recovery-request','recovery-complete'].includes(kind)){data.identity=data.identity.trim();if(data.code)data.code=data.code.trim().toUpperCase();}
   if(['password','activate','recovery-complete'].includes(kind)&&data.password!==data.confirm)throw Error('Las contraseñas no coinciden.');
   let response;
   switch(kind){
     case 'login':await api('/api/login','POST',data);page='dashboard';await refresh();return;
-    case 'activate':await api('/api/activate','POST',data);$('#modal').close();toast('Cuenta activada. Ya puedes iniciar sesión.');return;
-    case 'recovery-request':response=await api('/api/recoveries','POST',data);$('#modal').close();toast(response.message);return;
-    case 'recovery-complete':await api('/api/recoveries/complete','POST',data);$('#modal').close();toast('Contraseña actualizada. Ya puedes iniciar sesión.');return;
+    case 'activate':await api('/api/activate','POST',data);accessResult('activate',data.identity);return;
+    case 'recovery-request':await api('/api/recoveries','POST',data);accessResult('request',data.identity);return;
+    case 'recovery-complete':await api('/api/recoveries/complete','POST',data);accessResult('complete',data.identity);return;
     case 'account':await api('/api/accounts'+(id?'/'+id:''),id?'PUT':'POST',data);break;
     case 'group':await api('/api/groups'+(id?'/'+id:''),id?'PUT':'POST',data);break;
     case 'person':data.group_ids=fd.getAll('group_ids');data.is_lead=fd.has('is_lead');response=await api('/api/people'+(id?'/'+id:''),id?'PUT':'POST',data);await refresh();if(response.activation_code){credentials(response.activation_code,data.username||data.employee_id);return;}break;
@@ -366,8 +407,8 @@ function bind(){
   });
   document.addEventListener('submit',async event=>{
     const f=event.target.closest('[data-form]');if(!f)return;event.preventDefault();if(busy)return;
-    busy=true;const button=$('[type="submit"], button:not([type])',f);if(button)button.disabled=true;const err=$('.form-error',f);if(err)err.textContent='';
-    try{await submitForm(f);}catch(error){if(err&&err.isConnected)err.textContent=error.message;else toast(error.message,true);}finally{busy=false;if(button?.isConnected)button.disabled=false;}
+    busy=true;const button=$('[type="submit"], button:not([type])',f),buttonContent=button?.innerHTML;const isAccess=f.classList.contains('access-form');if(button){button.disabled=true;if(isAccess)button.innerHTML='<span class="access-spinner" aria-hidden="true"></span> Procesando…';}f.setAttribute('aria-busy','true');const err=$('.form-error',f);if(err)err.textContent='';
+    try{await submitForm(f);}catch(error){if(err&&err.isConnected){err.textContent=error.message;if(isAccess)err.focus();}else toast(error.message,true);}finally{busy=false;f.removeAttribute('aria-busy');if(button?.isConnected){button.disabled=false;if(isAccess)button.innerHTML=buttonContent;}}
   });
   document.addEventListener('change',async event=>{
     const target=event.target,f=target.closest('form');
@@ -380,6 +421,11 @@ function bind(){
     }catch(error){toast(error.message,true);}
   });
   document.addEventListener('input',event=>{
+    if(event.target.closest('.access-form')){
+      const f=event.target.form;
+      if(event.target.name==='identity')accessDraft.identity=event.target.value;
+      if(f?.elements.password){const password=f.elements.password.value,confirm=f.elements.confirm.value;f.querySelector('[data-password-check="length"]')?.classList.toggle('satisfied',password.length>=10);f.querySelector('[data-password-check="match"]')?.classList.toggle('satisfied',confirm.length>0&&password===confirm);}
+    }
     if(event.target.id==='team-search'){$$('[data-search-row]').forEach(row=>{row.hidden=!row.dataset.searchRow.includes(event.target.value.trim().toLowerCase());});}
   });
   $('#modal').addEventListener('click',event=>{if(event.target===$('#modal')){const rect=event.target.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)event.target.close();}});
@@ -390,5 +436,5 @@ setInterval(tick,1000);
 setInterval(()=>{if(state&&!busy&&!document.hidden&&!$('#modal').open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))refresh(true);},5000);
 
 function aboutProject(){
-  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.0.0 · Gestión operativa</span></div>${kyndrylBrand()}</div><p>Un espacio para conectar personas, tiempo y decisiones. Diseñado para dar claridad a la operación y fortalecer el trabajo en equipo.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
+  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.0.1 · Gestión operativa</span></div>${kyndrylBrand()}</div><p>Un espacio para conectar personas, tiempo y decisiones. Diseñado para dar claridad a la operación y fortalecer el trabajo en equipo.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
 }

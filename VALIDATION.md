@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.0
+# Validación ejecutada · Operational Pulse 1.0.1
 
 Fecha: 26 de octubre de 2026. Implementación nueva desde cero; no se declara equivalencia binaria ni preservación del código del ZIP antiguo.
 
@@ -55,7 +55,7 @@ Recorrido ejecutado desde la interfaz:
 - `python -m pip install -r requirements-dev.txt`: completado.
 - `python -m pip check`: sin dependencias rotas.
 - `bash -n start.command`: aprobado.
-- `bash start.command`: inició la aplicación con el intérprete del entorno virtual; comprobados health v1.0.0, acceso de admin2, estado operativo vacío y respuestas de HTML/JavaScript.
+- `bash start.command`: inició la aplicación con el intérprete del entorno virtual; comprobados health v1.0.1, acceso de admin2, estado operativo vacío y respuestas de HTML/JavaScript.
 - `node --check static/app.js`: aprobado.
 - Compilación de `server.py` y archivos Python de pruebas: aprobada.
 - Inspección AST: una sola definición de `nav`, `content`, `app`, `render`, `bind`, `dashboard`, `timePage` y `teamTimePage`.
@@ -76,3 +76,11 @@ Recorrido ejecutado desde la interfaz:
 - Los ocho tests funcionales del backend volvieron a pasar tras el cambio de versión.
 - El recorrido de navegador incluye el apartado de autores desde login y sesión iniciada, además de las comprobaciones operativas existentes. Los créditos identifican a Samuel Alejandro Díaz Chávez y Francisco Cervantes Marquez.
 - Se mantienen los límites de plataforma: pruebas en Linux/Chromium, sin ejecución física en macOS ni Safari.
+
+## Validación de los modales v1.0.1
+
+- Los ocho tests del backend volvieron a pasar. `server.py` sólo cambia el número de versión; el esquema y las reglas permanecen iguales.
+- El recorrido real de navegador comprueba los modales a anchura de escritorio y móvil, foco inicial, mostrar/ocultar contraseña, indicadores de longitud/coincidencia, cierre con Escape y conservación de usuario entre solicitud y código.
+- Se solicita recuperación de admin2 desde el login, admin1 emite un código en la interfaz y se restablece la contraseña desde el modal público. Se comprueba error por contraseñas distintas, error por código inválido y éxito con un código real; finalmente se inicia sesión con la nueva contraseña.
+- Las activaciones de Manager, Técnico y Lead continúan probándose con sus códigos reales y la nueva pantalla de confirmación. Después se ejecutan los flujos operativos existentes.
+- La validación continúa siendo en Linux/Chromium; macOS y Safari no se ejecutaron aquí.
