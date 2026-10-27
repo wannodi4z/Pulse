@@ -1,4 +1,4 @@
-# Operational Pulse 1.3.1 · especificación de la implementación nueva
+# Operational Pulse 1.4.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -66,7 +66,7 @@ La asignación de backup se captura dentro de Mi equipo y mantiene vigencia, alc
 
 Las tarjetas del Manager son botones con navegación contextual. El estado «En curso» y el periodo «Todos los periodos» permiten localizar timers aunque se esté consultando otro mes. Los filtros de tipo, Técnico y Grupo se conservan en la pantalla de revisión hasta que se cambian o se navega a otra sección. El Excel sigue correspondiendo a tiempo aprobado del mes seleccionado, tal como indica la pantalla. Las solicitudes concretas del Panel reutilizan el detalle y los endpoints de aprobación existentes.
 
-## Analítica y separación de responsabilidades v1.3.1
+## Analítica y separación de responsabilidades v1.4.0
 
 `GET /api/analytics` y `/api/analytics.xlsx` requieren Manager o Lead con delegación efectiva. El conjunto de usuarios se obtiene exclusivamente de los Grupos bajo su alcance; no se añade la identidad propia del Lead si su Grupo no está delegado. Admin y Técnicos sin delegación reciben 403.
 
@@ -81,7 +81,7 @@ Las recuperaciones de Técnicos se asignan a su Manager activo; las de Managers/
 El código conserva su hash verificador y se agrega un valor cifrado con Fernet en una tabla separada. La clave local se crea con permisos 0600, permanece fuera de SQLite y no se entrega en el ZIP ni Git. Sólo se revela el valor a su responsable autorizado por un endpoint POST auditado. Ver no renueva vigencia; regenerar invalida el anterior; consumir elimina el valor cifrado e invalida sesiones anteriores. Las solicitudes abiertas duplicadas se evitan y los códigos de otras solicitudes del mismo usuario se invalidan al emitir/consumir. Los códigos de versiones previas sin valor cifrado requieren regeneración para consulta.
 
 
-## Administración del ciclo de vida · v1.3.1
+## Administración del ciclo de vida · v1.4.0
 
 Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferir y dar de baja son acciones independientes.** Manager gestiona tiempo y recuperaciones, sin editar la estructura.
 
@@ -94,7 +94,7 @@ Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferi
 - **Reactivar:** requiere motivo y genera una activación nueva; la persona define una contraseña nueva. Conserva identidad e historial, pero no restaura Lead, delegaciones, Grupos del antiguo Manager, timers ni coberturas canceladas. Un Manager heredado en baja que aún tiene Grupos requiere regularizar primero el traspaso mediante la revisión de baja.
 - **Revisión vigente:** la baja exige un resumen firmado por hash de la situación revisada. Si cambia el equipo o los pendientes, se rechaza con 409; cierra y vuelve a abrir la revisión. Motivos, movimientos, cierres y cambios de acceso quedan en auditoría.
 
-El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los formularios usan columnas en escritorio y muestran instrucciones. Las confirmaciones usan el diálogo de la aplicación. En ventanas pequeñas o formularios extensos se conserva desplazamiento accesible; no se ocultan controles para evitar scroll.
+El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los formularios usan columnas en escritorio y muestran instrucciones. Las confirmaciones usan el diálogo de la aplicación. Los formularios extensos usan pasos y las listas se paginan.
 
 
 ### API administrativa del ciclo de vida
@@ -106,3 +106,10 @@ El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los for
 | `POST /api/admin/people/{id}/reactivate` | Motivo; genera código de activación nuevo. |
 | `PUT /api/people/{id}` | Edita o transfiere con `group_id` y `transfer_reason`; no permite cambiar estado de acceso directamente. |
 | `PUT /api/groups/{id}` | Edita o transfiere con `manager_id` y `transfer_reason`; valida Cuenta, Manager activo para equipos y Lead único. |
+
+
+## Presentación y reglas editables v1.4.0
+
+`static/layout.js` controla exclusivamente vistas, paginación y pasos de formularios a escala nativa. Conserva los nodos e inputs y usa delegación de eventos de la aplicación. No modifica datos de OT, horas, aprobaciones, sesiones ni SQLite. La ruta central y los controladores de negocio siguen siendo únicos en app.js. Los cambios de tamaño recalculan la paginación; el contenido se recorre mediante controles visibles, sin depender de scroll de página o diálogo.
+
+`PUT /api/rules/{id}` valida los mismos intervalos que la creación y verifica propiedad Manager dentro de la transacción. `DELETE /api/rules/{id}` verifica rol y propiedad y elimina únicamente la plantilla; registra su contenido anterior en auditoría. Los snapshots JSON de Guards no se actualizan en ninguna de estas operaciones.

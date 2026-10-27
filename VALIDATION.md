@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.3.1
+# Validación ejecutada · Operational Pulse 1.4.0
 
 Fecha: 26 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -15,7 +15,7 @@ PULSE_CHROMIUM_EXECUTABLE=/tmp/chromium .venv/bin/python tests/browser_smoke.py
 
 ## Backend
 
-22 pruebas funcionales aprobadas, sin fallas ni omisiones. Se realizaron llamadas HTTP con FastAPI TestClient y se comprobaron datos persistidos y cálculos, además de sintaxis.
+23 pruebas funcionales aprobadas, sin fallas ni omisiones. Se realizaron llamadas HTTP con FastAPI TestClient y se comprobaron datos persistidos y cálculos, además de sintaxis.
 
 - Base nueva: sólo admin1 y admin2; catálogos y operación vacíos; reinicializar conserva datos manuales. Sin migraciones que creen datos demo.
 - Jerarquía: varios Managers por Cuenta, varios Grupos por Manager, varios Técnicos por Grupo, propiedad exclusiva del Grupo, mezcla de Cuentas rechazada y eliminación de Cuenta ocupada bloqueada.
@@ -41,15 +41,24 @@ Recorrido: marca Kyndryl y ambos autores; versión; mostrar/ocultar contraseña;
 
 También ejecutó desde la interfaz: transferencia de Técnico activo a otro Grupo, transferencia de Grupo a otro Manager, baja del Manager con traspaso de su Grupo restante y reactivación con código nuevo. Se verificaron los estados e IDs mediante `/api/state`.
 
-Diseño comprobado a 1440 × 1000 y 390 × 844: sin desbordamiento horizontal de la página ni del diálogo de acceso; altura del diálogo dentro del viewport. Se inspeccionaron capturas de los diálogos ampliados. No se afirma ausencia de scroll en todas las resoluciones o cantidades de pendientes: los formularios extensos y las pantallas pequeñas conservan desplazamiento.
+Diseño comprobado a 1440 × 1000 y 390 × 844: sin desbordamiento horizontal de la página ni del diálogo de acceso; altura del diálogo dentro del viewport. Se inspeccionaron capturas de los diálogos ampliados. Se utiliza paginación de vistas, listas y pasos de formulario para el contenido extenso.
 
 ## Entrega
 
 ZIP completo con código, HTML, CSS, JavaScript, requisitos, README, especificación, validación, configuración VS Code y pruebas. Excluye entornos virtuales, bases SQLite, claves, sesiones y datos de prueba. Se descomprime e importa el servidor del ZIP con una base temporal nueva para comprobar versión, dos administradores iniciales y operación vacía.
 
 
-## Ajuste de escala v1.3.1
+## Ajuste de escala v1.4.0
 
-Prueba adicional sin zoom CSS ni transformaciones: el diálogo de baja con un Grupo, destino, instrucciones, reemplazo, motivo, confirmación y acciones mide aproximadamente 601 px de alto. En viewports de 1440×760, 1366×700 y 1280×650 se verificó que cabe completo y que `scrollHeight` del contenido coincide con `clientHeight`: no requiere desplazamiento en ese caso. El navegador usa su escala nativa 100%. Cabecera y botones quedan fuera de la zona desplazable para casos con muchos pendientes. Las reglas de Guardia muestran un día por vez, conservando todos los intervalos de la semana al guardar. La suite recorrió los siete días y verificó los 13 intervalos persistidos.
+Prueba adicional sin zoom CSS ni transformaciones: el diálogo de baja con un Grupo, destino, instrucciones, reemplazo, motivo, confirmación y acciones mide aproximadamente 601 px de alto. En viewports de 1440×760, 1366×700 y 1280×650 se verificó que cabe completo y que `scrollHeight` del contenido coincide con `clientHeight`: no requiere desplazamiento en ese caso. El navegador usa su escala nativa 100%. Cabecera y botones permanecen visibles; el contenido extenso se organiza por pasos. Las reglas de Guardia muestran un día por vez, conservando todos los intervalos de la semana al guardar. La suite recorrió los siete días y verificó los 13 intervalos persistidos.
 
 Se conservaron pruebas móviles. No se ejecutó Safari ni una Mac física; las alturas de viewport representan el área de contenido disponible después de las barras del navegador.
+
+
+## Comprobación completa de vistas v1.4.0
+
+`tests/layout_smoke.py`: PASS. Se crearon una Cuenta, tres Grupos, un Manager, doce Técnicos y ocho OT reales aprobadas en SQLite temporal. Se recorrieron 54 combinaciones de rol/ruta/viewport: Admin (5 rutas), Manager (7) y Técnico (6), cada uno a 1440×780, 1366×700 y 1280×650, con zoom nativo 100%. En cada ruta se recorrieron las opciones de Vista y las páginas de las listas visibles. Se verificaron límites de botones, campos, títulos e identidades respecto al área central, sin desbordamiento del documento. También se completó un formulario OT por sus controles Continuar, verificando sus límites y que referencia, descripción e impacto se persistieran sin perder valores. Cero errores JavaScript.
+
+La prueba de navegador general además creó, editó y eliminó una regla desde la interfaz y verificó que la copia de una Guardia existente permaneciera idéntica. El test de API `test_rule_edit_delete_preserves_existing_guard_snapshots` comprobó propiedad, rechazo de Admin/Técnico/otro Manager, intervalos inválidos, copia original y nueva, eliminación, horas sin cambio, nuevas solicitudes rechazadas al eliminarse la regla y auditoría de ambas operaciones.
+
+Se validó sintaxis tanto de app.js como de layout.js. No se ejecutó la aplicación en una MacBook Air M1 física ni Safari: las pruebas de dimensiones se realizaron en Chromium/Linux y representan el área útil del navegador. Las cifras anteriores delimitan exactamente las resoluciones y datos comprobados; no son una afirmación de equivalencia con todos los tamaños de pantalla posibles.

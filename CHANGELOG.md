@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v1.4.0 · 26 de octubre de 2026
+
+- Páginas organizadas en vistas y listas/tablas paginadas para trabajar al 100% sin desplazamiento de página.
+- Formularios extensos divididos en pasos, con valores preservados y validación antes de avanzar o enviar.
+- Sidebar simplificado: operación principal, configuración agrupada y acciones personales en el menú superior.
+- Editar y eliminar reglas de Guardia propias; solicitudes existentes y sus cálculos conservados mediante snapshots.
+- Pruebas nuevas de viewport con datos reales para Admin, Manager y Técnico y de integridad al editar/eliminar reglas.
+
+
 ## v1.3.1 · 26 de octubre de 2026
 
 - Distribución de diálogos a zoom nativo 100%, sin escalado artificial: controles de 15 px, etiquetas de 14 px y espaciado reducido.

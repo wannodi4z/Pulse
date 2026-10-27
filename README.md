@@ -1,4 +1,4 @@
-# Operational Pulse · 1.3.1
+# Operational Pulse · 1.4.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.3.1`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.4.0`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.3.1/
+Operational_Pulse_v1.4.0/
   index.html
   server.py
   requirements.txt
@@ -186,7 +186,7 @@ Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders,
 
 Los textos del acceso y Mi tiempo se centran en el control de horas extra (OT), Guardias y sus aprobaciones. Se retiran las referencias a comenzar una jornada; la herramienta no se presenta como un control de asistencia. También se incluye el botón del ojo para mostrar u ocultar la contraseña en el login. No cambia la lógica operativa.
 
-## Analítica mensual · v1.3.1
+## Analítica mensual · v1.4.0
 
 - **Manager:** «Analítica del equipo» muestra sus Grupos y Técnicos.
 - **Lead:** «Mi resumen» contiene sus horas; «Analítica del equipo» sólo aparece y funciona con delegación vigente y exclusivamente para los Grupos delegados. Revocar o dejar vencer la delegación bloquea las consultas y exportaciones del equipo en el servidor.
@@ -197,7 +197,7 @@ El desglose separa **OT emergente, OT programada, OT histórica y Guardia neta**
 
 Elige el mes; en el equipo, selecciona Grupo y/o Técnico. Las tarjetas abren el detalle por tipo, las filas de Grupo llevan a sus Técnicos y cada Técnico permite abrir sus horas diarias. Excel exporta **Resumen, Por grupo, Por técnico y Detalle**, respetando los mismos filtros y permisos.
 
-## Administración y recuperación · v1.3.1
+## Administración y recuperación · v1.4.0
 
 Las altas y los cambios organizacionales de Cuentas, Managers, Grupos y Técnicos corresponden exclusivamente a Admin. Manager consulta Mi equipo, gestiona el tiempo y asigna/revoca su backup; no crea, mueve ni edita personas. Cada usuario conserva Mi perfil para sus propios datos personales y contraseña, sin poder cambiar allí Employee ID, Grupo, rol ni capacidad Lead.
 
@@ -226,7 +226,7 @@ Usar el código invalida la solicitud y las sesiones anteriores. No se crean sol
 Si la carpeta no tiene `.venv`, sigue primero la instalación inicial. Esta versión agrega `cryptography`; hay que actualizar dependencias aunque ya tuvieras una versión anterior funcionando. La clave local se genera al emitir el primer código y queda excluida del código fuente y del ZIP. Con `PULSE_DB_PATH`, la clave usa la misma ubicación y nombre base, con extensión `.key`; puede configurarse otra ubicación con `PULSE_RECOVERY_KEY_PATH`.
 
 
-## Administración del ciclo de vida · v1.3.1
+## Administración del ciclo de vida · v1.4.0
 
 Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferir y dar de baja son acciones independientes.** Manager gestiona tiempo y recuperaciones, sin editar la estructura.
 
@@ -239,9 +239,20 @@ Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferi
 - **Reactivar:** requiere motivo y genera una activación nueva; la persona define una contraseña nueva. Conserva identidad e historial, pero no restaura Lead, delegaciones, Grupos del antiguo Manager, timers ni coberturas canceladas. Un Manager heredado en baja que aún tiene Grupos requiere regularizar primero el traspaso mediante la revisión de baja.
 - **Revisión vigente:** la baja exige un resumen firmado por hash de la situación revisada. Si cambia el equipo o los pendientes, se rechaza con 409; cierra y vuelve a abrir la revisión. Motivos, movimientos, cierres y cambios de acceso quedan en auditoría.
 
-El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los formularios usan columnas en escritorio y muestran instrucciones. Las confirmaciones usan el diálogo de la aplicación. En ventanas pequeñas o formularios extensos se conserva desplazamiento accesible; no se ocultan controles para evitar scroll.
+El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los formularios usan columnas en escritorio y muestran instrucciones. Las confirmaciones usan el diálogo de la aplicación. Los formularios extensos se recorren por pasos conservando los campos y sus valores.
 
 
-### Escala de pantalla v1.3.1
+### Escala de pantalla v1.4.0
 
-Usa el zoom normal del navegador (100%). Los diálogos ajustan ancho, columnas y espaciado al área disponible, con etiquetas de 14 px y controles de 15 px. La baja de Manager separa destinos de reemplazo/motivo; las acciones quedan al pie y los botones de Organización tienen una fila definida. En reglas de Guardia, selecciona cada día para editarlo: al guardar se conserva la configuración de toda la semana. Si hay muchos pendientes o la ventana es pequeña, sólo se desplaza el contenido, manteniendo visibles el título y las acciones.
+Usa el zoom normal del navegador (100%). Los diálogos ajustan ancho, columnas y espaciado al área disponible, con etiquetas de 14 px y controles de 15 px. La baja de Manager separa destinos de reemplazo/motivo; las acciones quedan al pie y los botones de Organización tienen una fila definida. En reglas de Guardia, selecciona cada día para editarlo: al guardar se conserva la configuración de toda la semana. Si hay muchos pendientes se utilizan pasos y paginación, manteniendo visibles el título y las acciones.
+
+
+## Interfaz sin desplazamiento · v1.4.0
+
+La aplicación se organiza en vistas dentro del área disponible al 100% de zoom. **Vista**, Anterior y Siguiente permiten recorrer las secciones de una página. Las listas y tablas grandes se paginan: no se eliminan filas ni se reduce artificialmente la escala. En Organización se mantienen Cuenta → Manager → Grupo → Técnico, con controles para recorrer Managers, Grupos y Técnicos.
+
+Los formularios que superan la altura disponible se dividen en pasos. Completa cada paso y pulsa Continuar; puedes regresar sin perder lo escrito. Guardar o Enviar aparece en el último paso. Cambiar de paso no envía datos al servidor. Los campos obligatorios se validan y, si falta uno, se abre su paso antes de señalarlo.
+
+El sidebar contiene la operación diaria; Configuración agrupa las opciones secundarias del rol. Mi perfil y Cerrar sesión están en el menú del usuario, arriba a la derecha. Se conserva la marca Kyndryl y la versión, sin textos repetidos al pie.
+
+**Reglas de Guardia:** el Manager propietario tiene Editar y Eliminar. Editar permite cambiar nombre, vigencia e intervalos. Eliminar retira la plantilla para solicitudes nuevas. Las solicitudes anteriores guardan su propia copia y conservan cobertura, aprobaciones y horas incluso si la regla se modifica o elimina. Eliminar pide confirmación. Otro Manager, Admin y Técnico no pueden editar o eliminar la regla ajena mediante la API.

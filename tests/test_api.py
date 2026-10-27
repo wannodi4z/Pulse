@@ -574,5 +574,32 @@ class PulseTests(unittest.TestCase):
             self.assertEqual(uc.get('/api/accounting?month=2026-01').json()['guard_minutes'],60)
 
 
+    def test_rule_edit_delete_preserves_existing_guard_snapshots(self):
+        a,g,m,mc,u,uc=self.organization()
+        m2,c2,_=self.person('MANAGER','M002',account=a)
+        original={'name':'Cobertura original','effective_from':'2026-01-01','segments':[{'day':0,'start':'22:00','end':'06:00'}]}
+        rule=self.post('/api/rules',original,mc)['id']
+        guard=self.post('/api/guards',{'rule_id':rule,'start_date':'2026-01-05','end_date':'2026-01-05'},uc)['id']
+        self.approve(mc,'guard',guard)
+        changed={**original,'name':'Cobertura actualizada','segments':[{'day':0,'start':'20:00','end':'00:00'},{'day':1,'start':'02:00','end':'04:00'}]}
+        for client in [self.client,uc,c2]:
+            self.assertEqual(client.put('/api/rules/'+rule,json=changed).status_code,403)
+            self.assertEqual(client.delete('/api/rules/'+rule).status_code,403)
+        self.assertEqual(mc.put('/api/rules/'+rule,json={**changed,'segments':[]}).status_code,422)
+        self.assertEqual(mc.put('/api/rules/'+rule,json=changed).status_code,200)
+        before=uc.get('/api/accounting?month=2026-01').json()
+        self.assertEqual(before['guard_minutes'],480)
+        old=next(r for r in uc.get('/api/state').json()['guards'] if r['id']==guard)
+        self.assertEqual(old['rule_snapshot']['segments'],original['segments'])
+        newer=self.post('/api/guards',{'rule_id':rule,'start_date':'2026-01-12','end_date':'2026-01-12'},uc)['id']
+        self.assertEqual(next(r for r in uc.get('/api/state').json()['guards'] if r['id']==newer)['rule_snapshot']['segments'],changed['segments'])
+        self.assertEqual(mc.delete('/api/rules/'+rule).status_code,200)
+        self.assertEqual(uc.get('/api/state').json()['rules'],[])
+        self.assertEqual(uc.get('/api/accounting?month=2026-01').json()['guard_minutes'],480)
+        self.assertEqual(uc.post('/api/guards',json={'rule_id':rule,'start_date':'2026-01-19','end_date':'2026-01-19'}).status_code,404)
+        audit=mc.get('/api/state').json()['audit']
+        self.assertTrue(any(r['action']=='EDIT_RULE' for r in audit));self.assertTrue(any(r['action']=='DELETE_RULE' for r in audit))
+
+
 if __name__=='__main__':
     unittest.main(verbosity=2)

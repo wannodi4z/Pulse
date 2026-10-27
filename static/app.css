@@ -1034,3 +1034,86 @@ dialog.access-wide{max-width:1120px}
 dialog .weekly-rule-intro,dialog .weekly-rule-days{grid-column:1/-1}
 .rule-day[hidden]{display:none}
 dialog .rule-day>header .checkbox,dialog .rule-full-day,dialog .rule-interval>label>span,dialog .rule-interval>small,dialog .rule-add,dialog .weekly-rule-intro p{font-size:14px!important}
+/* One viewport at native scale. Extra content is reached through explicit views/steps. */
+html,body,#app{height:100%;overflow:hidden}
+.shell{height:100dvh;overflow:hidden}
+.workspace{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{flex:none;height:60px;min-height:60px}
+#main{width:100%;max-width:none;min-height:0;flex:1;display:flex;flex-direction:column;padding:18px 24px 10px;overflow:hidden}
+.page-heading{flex:none;margin-bottom:12px;gap:16px}.page-heading h1{font-size:26px;margin-bottom:4px}
+.page-heading .eyebrow{margin-bottom:4px}.page-heading>div>p:last-child{font-size:14px}
+.main-footer{flex:none;margin-top:8px;padding-top:8px;font-size:12px}
+.viewport-stage{flex:1;min-height:0;overflow:hidden;position:relative;padding:2px}
+.viewport-stage>*,.viewport-stage .panel,.viewport-stage .account-block{margin-bottom:0}
+.viewport-off{display:none!important}
+.viewport-sections,.viewport-pagination,.wizard-navigation{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;flex:none;font-size:14px}
+.viewport-sections{border-bottom:1px solid var(--line);margin-bottom:10px}
+.viewport-sections label,.viewport-pagination label{display:flex;align-items:center;gap:10px;font-weight:600;min-width:0}
+.viewport-sections select{width:min(360px,45vw);font-size:14px;min-height:38px;padding:7px 10px}
+.viewport-sections>div{display:flex;gap:8px}.viewport-location{margin-left:auto;font-variant-numeric:tabular-nums}
+.viewport-sections button,.viewport-pagination button,.wizard-navigation button{border:1px solid #ccdeec;background:white;border-radius:7px;padding:7px 12px;font-size:14px;min-height:36px;color:#28516f}
+.viewport-pagination{padding:6px 10px;border-top:1px solid var(--line);background:#f6fafc}
+.viewport-pagination select{width:auto;font-size:14px;min-height:34px;padding:5px 8px}
+.viewport-single-column{grid-template-columns:1fr!important}
+.viewport-stage .welcome-banner{min-height:220px;padding:24px}
+.viewport-stage .panel{padding:18px}.viewport-stage .table-panel{padding:0}
+.viewport-stage .account-header{padding:12px 16px;gap:12px}
+.viewport-stage .account-code{padding:10px;min-width:48px;font-size:14px}
+.viewport-stage .account-header h2{font-size:18px}.viewport-stage .account-header p{font-size:13px}
+.viewport-stage .account-body{padding:10px 14px}
+.viewport-stage .manager-block{padding:10px;margin-bottom:0}.viewport-stage .manager-header{padding-bottom:8px;margin-bottom:8px;gap:10px}
+.viewport-stage .manager-backup{font-size:13px;margin:4px 0}
+.viewport-stage .group-card>header{padding:10px 12px}.viewport-stage .group-card>footer{padding:7px 12px}
+.viewport-stage .technicians{padding:0 12px}.viewport-stage .technician{padding:8px 0;gap:8px}
+.viewport-stage .technician .entity-actions{padding-top:5px}
+.viewport-stage .identity strong,.viewport-stage .identity small,.viewport-stage button.link,.viewport-stage .text-danger{font-size:14px}
+.viewport-stage .group-grid{gap:10px}.viewport-stage td{padding:10px 12px;font-size:14px;min-width:0}.viewport-stage th{padding:10px 12px;font-size:13px}
+.sidebar{padding-top:20px;padding-bottom:14px}.sidebar .brand{margin-bottom:22px}.sidebar-bottom{padding-top:12px}.sidebar nav{gap:3px}.nav-item{min-height:38px}
+.login-shell{height:100dvh;min-height:0;overflow:hidden}.login-story{padding:28px}.story-copy{padding:24px 0}.login-main{padding:24px 36px}
+.login-card h2{margin:8px 0;font-size:26px}.login-card>.muted{margin-bottom:18px;font-size:14px}.login-card form{gap:12px}.login-note{margin-top:18px}
+.login-main footer{bottom:12px}.login-story .pulse-line{margin-top:24px}
+.wizard-body{display:flex!important;flex-direction:column!important;gap:8px!important;overflow:hidden!important}
+.wizard-step{display:grid;grid-template-columns:1fr;gap:12px;min-width:0}
+.wizard-step[hidden]{display:none!important}
+.wizard-step>.form-grid{gap:12px}.wizard-navigation{border-top:1px solid var(--line);margin-top:auto;padding-top:8px}
+.wizard-step .access-section{border:0;padding:0}.wizard-step>.checkbox,.wizard-step>.field{grid-area:auto!important}
+.wizard-step>.offboard-replacement{grid-area:auto!important}.wizard-step>.offboard-transfers{grid-area:auto!important}
+dialog .form-body,dialog .access-body,dialog>.about-project{overflow:hidden!important}
+.table-scroll{overflow:hidden}
+@media(max-height:760px){.sidebar .brand{margin-bottom:12px}.sidebar .nav-label{margin-top:8px;margin-bottom:5px}.sidebar-bottom .workspace-tag{margin-bottom:8px;padding-bottom:8px}.sidebar .nav-item{padding-top:7px;padding-bottom:7px;min-height:34px}}
+@media(max-width:700px){.shell{display:flex;flex-direction:column}.sidebar{flex:none;height:auto;padding:10px 12px}.sidebar .brand{margin:0 0 7px}.sidebar nav{flex-wrap:wrap;overflow:hidden;gap:2px}.sidebar .nav-item{padding:5px 7px;min-height:30px}.sidebar-bottom{top:12px}.workspace{height:auto;flex:1;min-height:0}.topbar{height:42px;min-height:42px}#main{padding:10px 12px}.page-heading h1{font-size:22px}.page-heading>div>p:last-child{display:none}.main-footer{font-size:11px}.main-footer button{font-size:11px}.viewport-stage .account-header{flex-wrap:wrap}.viewport-sections label{gap:5px}.viewport-sections{gap:6px}.viewport-location{display:none}.login-shell{display:block}.login-story{display:none}.login-main{height:100dvh;padding:20px}.login-note{margin-top:12px}}
+/* Quieter role navigation; personal actions live in the user menu. */
+.sidebar nav{display:flex;flex-direction:column;gap:7px}
+.sidebar .nav-label{margin:12px 12px 5px;font-size:11px}
+.nav-settings{margin-top:18px;border-top:1px solid #ffffff18;padding-top:12px}
+.nav-settings>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:14px;color:#bed1e8}
+.nav-settings>summary>span{margin-left:auto}.nav-settings .nav-item{font-size:14px}
+.sidebar .nav-item{font-size:14px;min-height:42px}
+.sidebar-bottom{display:flex;flex-direction:column;gap:10px;padding:12px!important}
+.sidebar-bottom .sidebar-brand{display:block}.sidebar-bottom small{font-size:11px;color:#9ab5d5}
+.user-menu{position:relative}.user-menu>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
+.user-menu>div{position:absolute;right:0;top:calc(100% + 12px);z-index:20;width:220px;padding:8px;border:1px solid var(--line);border-radius:12px;background:white;box-shadow:0 12px 30px #0b214225}
+.user-menu>div>button{display:flex;align-items:center;gap:10px;width:100%;padding:12px;font-size:14px;color:#254b71;text-align:left}
+.user-menu>div>button:hover{background:#eef7fb;border-radius:8px}
+@media(max-width:700px){.sidebar nav{flex-direction:row;flex-wrap:wrap;gap:3px}.sidebar .nav-label{display:none}.nav-settings{margin:0;padding:0;border:0}.nav-settings>summary{font-size:13px;padding:6px}.sidebar-bottom{position:absolute;right:10px;top:7px;padding:0!important}.sidebar-bottom small{display:none}.sidebar-bottom .kyndryl-logo{width:65px}.sidebar .nav-item{min-height:30px;font-size:12px}.nav-settings[open]{position:absolute;left:12px;top:95px;background:#102c50;padding:10px;z-index:10;border-radius:10px}}
+@media(min-width:1000px){.viewport-stage .technician .entity-actions{width:auto;margin-left:auto;padding:0;border:0}.viewport-stage .technician .identity{flex:1;min-width:130px}.viewport-stage .technician{flex-wrap:nowrap}.viewport-stage .group-grid{grid-template-columns:1fr}}
+.viewport-pagination{gap:8px;padding:3px 8px;font-size:13px}
+.viewport-pagination button{min-height:30px;padding:4px 8px;font-size:13px}
+.viewport-pagination select{min-height:28px;padding:3px 6px;font-size:13px}
+.team-search-bar{padding:12px 16px;border-bottom:1px solid var(--line)}
+.viewport-stage .account-header .eyebrow,.viewport-stage .group-card>header .small-label{display:none}
+.viewport-stage .account-header{padding:8px 12px}.viewport-stage .account-code{padding:8px}
+.viewport-stage .group-card>header{padding:7px 12px;align-items:center}.viewport-stage .group-card h3{margin:0;font-size:16px}
+.viewport-stage .manager-backup{display:none}
+.viewport-stage .manager-header{margin-bottom:4px;padding-bottom:4px}.viewport-stage .manager-meta .small-label{display:none}
+.viewport-stage .account-body{padding:7px 10px}.viewport-stage .manager-block{padding:7px}
+.viewport-stage .profile-person{margin:0 0 12px;padding-bottom:12px}
+.viewport-stage .profile-grid .form-body{grid-template-columns:1fr 1fr;gap:12px 18px}
+.viewport-stage .profile-grid .form-body>.field:last-child{grid-column:1/-1}
+.viewport-stage .profile-grid form>.primary,.viewport-stage .profile-grid form>.secondary{margin-top:12px}
+.viewport-stage input,.viewport-stage select,.viewport-stage textarea{font-size:15px}
+.viewport-stage .field>span{font-size:14px}
+.viewport-stage .entity-actions button,.viewport-stage .heading-actions button{font-size:14px}
+.viewport-stage .badge,.viewport-stage .lead-pill{font-size:12px}
+.viewport-stage .manager-meta,.viewport-stage .group-card>header small,.viewport-stage .kpi small,.viewport-stage .kpi>div>span{font-size:13px}
+.viewport-pagination button:disabled,.viewport-sections button:disabled,.wizard-navigation button:disabled{cursor:default}

@@ -22,7 +22,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.3.1'
+VERSION = '1.4.0'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -854,7 +854,8 @@ def revoke(identity: str, actor=Depends(current_user)):
 
 
 @app.post('/api/rules')
-def add_rule(data: dict = Body(...), actor=Depends(current_user)):
+@app.put('/api/rules/{identity}')
+def add_rule(data: dict = Body(...), identity: str = '', actor=Depends(current_user)):
     if actor['role'] != 'MANAGER':
         fail('Sólo el Manager crea reglas de Guardia.', 403)
     segments = data.get('segments', [])
@@ -877,11 +878,31 @@ def add_rule(data: dict = Body(...), actor=Depends(current_user)):
         effective = date.fromisoformat(text(data, 'effective_from')).isoformat()
     except ValueError:
         fail('Fecha de vigencia inválida.')
-    identity = uid()
     with connection(True) as c:
-        c.execute('INSERT INTO rules VALUES(?,?,?,?,?)', (identity, actor['id'], text(data, 'name'), effective, json.dumps(normalized)))
-        audit(c, actor, 'CREATE_RULE', identity)
+        if identity:
+            old=get(c,'rules',identity)
+            if old['manager_id']!=actor['id']:
+                fail('Sólo el Manager propietario puede editar esta regla.',403)
+            c.execute('UPDATE rules SET name=?,effective_from=?,segments=? WHERE id=?',(text(data,'name'),effective,json.dumps(normalized),identity))
+            audit(c,actor,'EDIT_RULE',identity,{'previous':old,'new_segments':normalized})
+        else:
+            identity=uid()
+            c.execute('INSERT INTO rules VALUES(?,?,?,?,?)', (identity, actor['id'], text(data, 'name'), effective, json.dumps(normalized)))
+            audit(c, actor, 'CREATE_RULE', identity)
     return {'id': identity}
+
+
+@app.delete('/api/rules/{identity}')
+def delete_rule(identity: str, actor=Depends(current_user)):
+    if actor['role']!='MANAGER':
+        fail('Sólo el Manager propietario elimina reglas de Guardia.',403)
+    with connection(True) as c:
+        rule=get(c,'rules',identity)
+        if rule['manager_id']!=actor['id']:
+            fail('Sólo el Manager propietario elimina esta regla.',403)
+        c.execute('DELETE FROM rules WHERE id=?',(identity,))
+        audit(c,actor,'DELETE_RULE',identity,{'previous':rule,'existing_requests_preserved':True})
+    return {'ok':True}
 
 
 @app.post('/api/guards')
