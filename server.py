@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.2'
+VERSION = '1.1.0'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 TZ = ZoneInfo(os.environ.get('PULSE_TIMEZONE', 'America/Mexico_City'))
@@ -139,6 +139,19 @@ def admin(user=Depends(current_user)):
     return user
 
 
+def effective_delegations(c):
+    """One effective backup per Manager, including legacy databases with duplicate rows.
+
+    Preserve history and select the most recently assigned active record; do not
+    delete or reseed records while reading a database from an older version.
+    """
+    stamp = now()
+    selected = {}
+    for row in c.execute('SELECT * FROM delegations WHERE revoked_at IS NULL AND start_at<=? AND end_at>? ORDER BY rowid DESC', (stamp, stamp)):
+        selected.setdefault(row['manager_id'], dict(row))
+    return list(selected.values())
+
+
 def scope(c, user):
     if user['role'] == 'ADMIN':
         return {g['id'] for g in rows(c, 'groups')}
@@ -146,7 +159,9 @@ def scope(c, user):
         return {r[0] for r in c.execute('SELECT id FROM groups WHERE manager_id=?', (user['id'],))}
     ids = set()
     if user['is_lead']:
-        for d in c.execute('SELECT * FROM delegations WHERE lead_id=? AND revoked_at IS NULL AND start_at<=? AND end_at>?', (user['id'], now(), now())):
+        for d in effective_delegations(c):
+            if d['lead_id'] != user['id']:
+                continue
             allowed = {r[0] for r in c.execute('SELECT id FROM groups WHERE manager_id=?', (d['manager_id'],))}
             own = c.execute('SELECT manager_id FROM groups WHERE id=?', (user['group_id'],)).fetchone()
             if own and own[0] == d['manager_id']:
@@ -540,8 +555,18 @@ def delegate(data: dict = Body(...), actor=Depends(current_user)):
     with connection(True) as c:
         lead = get(c, 'users', text(data, 'lead_id'))
         allowed = scope(c, actor)
-        if not lead['is_lead'] or lead['group_id'] not in allowed or not ids or not set(ids).issubset(allowed):
-            fail('Selecciona un Lead de tu equipo y Grupos bajo tu autoridad.')
+        if not lead['is_lead'] or lead['status'] != 'ACTIVE' or lead['group_id'] not in allowed or not ids or not set(ids).issubset(allowed):
+            fail('Selecciona un Lead activo de tu equipo y Grupos bajo tu autoridad.')
+        if parse_at(end) <= datetime.now(timezone.utc):
+            fail('La delegación debe terminar en el futuro.')
+        # The write transaction serializes concurrent assignments. Changing backup
+        # explicitly revokes the existing active/scheduled assignment atomically.
+        outstanding = c.execute('SELECT * FROM delegations WHERE manager_id=? AND revoked_at IS NULL AND end_at>?', (actor['id'], now())).fetchall()
+        if outstanding and data.get('replace_current') is not True:
+            fail('Ya hay una persona delegada. Usa la asignación del equipo para sustituirla.', 409)
+        for previous in outstanding:
+            c.execute('UPDATE delegations SET revoked_at=? WHERE id=?', (now(), previous['id']))
+            audit(c, actor, 'REVOKE_DELEGATION', previous['id'], {'reason': 'REPLACED', 'new_lead_id': lead['id']})
         identity = uid()
         c.execute('INSERT INTO delegations VALUES(?,?,?,?,?,?,NULL)', (identity, actor['id'], lead['id'], json.dumps(ids), start, end))
         audit(c, actor, 'DELEGATE', identity)
@@ -554,8 +579,15 @@ def revoke(identity: str, actor=Depends(current_user)):
         d = get(c, 'delegations', identity)
         if d['manager_id'] != actor['id']:
             fail('Sólo el Manager que delegó puede revocar.', 403)
-        c.execute('UPDATE delegations SET revoked_at=? WHERE id=?', (now(), identity))
-        audit(c, actor, 'REVOKE_DELEGATION', identity)
+        if not d['revoked_at'] and parse_at(d['end_at']) > datetime.now(timezone.utc):
+            # Older versions could save multiple backups. Explicit revocation must
+            # not reactivate an older row when the current one is revoked.
+            targets = c.execute('SELECT id FROM delegations WHERE manager_id=? AND revoked_at IS NULL AND end_at>?', (actor['id'], now())).fetchall()
+        else:
+            targets = [{'id': identity}]
+        for target in targets:
+            c.execute('UPDATE delegations SET revoked_at=? WHERE id=?', (now(), target['id']))
+            audit(c, actor, 'REVOKE_DELEGATION', target['id'])
     return {'ok': True}
 
 
@@ -564,14 +596,19 @@ def add_rule(data: dict = Body(...), actor=Depends(current_user)):
     if actor['role'] != 'MANAGER':
         fail('Sólo el Manager crea reglas de Guardia.', 403)
     segments = data.get('segments', [])
-    if not segments:
+    if not isinstance(segments, list) or not segments:
         fail('Agrega al menos un segmento de Guardia.')
+    if len(segments) > 128:
+        fail('La regla admite hasta 128 intervalos semanales.')
+    normalized = []
     for s in segments:
         try:
             if int(s['day']) not in range(7):
                 raise ValueError()
-            time.fromisoformat(s['start'])
-            time.fromisoformat(s['end'])
+            start_time, end_time = time.fromisoformat(s['start']), time.fromisoformat(s['end'])
+            if start_time.tzinfo or end_time.tzinfo or start_time.second or end_time.second or start_time.microsecond or end_time.microsecond:
+                raise ValueError()
+            normalized.append({'day': int(s['day']), 'start': start_time.strftime('%H:%M'), 'end': end_time.strftime('%H:%M')})
         except (KeyError, ValueError, TypeError):
             fail('Revisa los días y horas de la regla.')
     try:
@@ -580,7 +617,7 @@ def add_rule(data: dict = Body(...), actor=Depends(current_user)):
         fail('Fecha de vigencia inválida.')
     identity = uid()
     with connection(True) as c:
-        c.execute('INSERT INTO rules VALUES(?,?,?,?,?)', (identity, actor['id'], text(data, 'name'), effective, json.dumps(segments)))
+        c.execute('INSERT INTO rules VALUES(?,?,?,?,?)', (identity, actor['id'], text(data, 'name'), effective, json.dumps(normalized)))
         audit(c, actor, 'CREATE_RULE', identity)
     return {'id': identity}
 

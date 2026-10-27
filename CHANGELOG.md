@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v1.1.0 · 26 de octubre de 2026
+
+- Reglas de Guardia con varios intervalos por día, agregar/quitar horarios y cobertura explícita de 24 horas.
+- Delegación inline junto a las personas de Mi equipo, sin modal y con una sola asignación vigente/programada por Manager.
+- Sustitución atómica del backup, revocación y conservación de historial, incluida compatibilidad con múltiples filas de versiones anteriores.
+- Tarjetas del Panel que abren los registros con filtros relevantes; eventos pendientes y en curso accesibles sin depender del mes visible.
+- Detalle de actividad con Timer en vivo y decisiones de aprobación desde el detalle.
+- Solicitudes concretas para revisar en el Panel, en lugar de un segundo contador de pendientes.
+- Once tests del backend y recorrido real de Chromium ampliados para los nuevos flujos.
+
 ## v1.0.2 · 26 de octubre de 2026
 
 - Se oscurecen textos secundarios, etiquetas, ayudas, placeholders y mensajes de los modales para mejorar su lectura.

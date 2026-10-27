@@ -119,6 +119,74 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(self.client.put('/api/people/'+lead['id'],json={**d1,'is_lead':False}).status_code,200)
         self.assertEqual(self.client.put('/api/people/'+tech['id'],json={**d3,'is_lead':True}).status_code,200)
 
+    def test_multiple_weekday_intervals_full_sunday_and_net_guard(self):
+        _, _, _, mc, u, uc = self.organization()
+        segments = [{'day': day, 'start': start, 'end': end} for day in range(5) for start, end in [('02:00', '04:00'), ('20:00', '00:00')]]
+        segments += [{'day': 5, 'start': '00:00', 'end': '08:00'}, {'day': 5, 'start': '15:00', 'end': '00:00'}, {'day': 6, 'start': '00:00', 'end': '00:00'}]
+        rule = self.post('/api/rules', {'name': 'Cobertura por intervalos', 'effective_from': '2026-01-01', 'segments': segments}, mc)['id']
+        saved = next(r for r in mc.get('/api/state').json()['rules'] if r['id'] == rule)
+        self.assertEqual(saved['segments'], segments)
+        self.assertEqual(len(saved['segments']), 13)
+        guard = self.post('/api/guards', {'rule_id': rule, 'start_date': '2026-01-05', 'end_date': '2026-01-11'}, uc)['id']
+        self.approve(mc, 'guard', guard)
+        result = uc.get('/api/accounting?month=2026-01').json()
+        self.assertEqual(result['guard_minutes'], 71*60)
+        self.assertEqual(sum(r['minutes'] for r in result['rows'] if r['date']=='2026-01-11'), 24*60)
+        overtime = self.ot(uc, '2026-01-05T20:30:00-06:00', '2026-01-05T22:30:00-06:00')
+        self.approve(mc, 'ot', overtime)
+        result = uc.get('/api/accounting?month=2026-01').json()
+        self.assertEqual(result['ot_minutes'], 120)
+        self.assertEqual(result['guard_minutes'], 69*60)
+        self.assertEqual(mc.post('/api/rules', json={'name':'Invalid', 'effective_from':'2026-01-01', 'segments':[{'day':0,'start':'30:00','end':'04:00'}]}).status_code,422)
+        self.assertEqual(mc.post('/api/rules', json={'name':'Invalid', 'effective_from':'2026-01-01', 'segments':'bad'}).status_code,422)
+
+    def test_single_backup_atomic_replacement_and_history(self):
+        a = self.account(); g1 = self.group(a); g2 = self.group(a, 'G2')
+        manager, mc, _ = self.person('MANAGER', 'M001', account=a, groups=[g1,g2])
+        first, c1, _ = self.person('USER', 'L001', group=g1, lead=True)
+        second, c2, _ = self.person('USER', 'L002', group=g2, lead=True)
+        start=(self.server.datetime.now(self.server.timezone.utc)-self.server.timedelta(minutes=1)).isoformat()
+        end=(self.server.datetime.now(self.server.timezone.utc)+self.server.timedelta(hours=2)).isoformat()
+        data={'lead_id':first['id'],'group_ids':[g1,g2],'start_at':start,'end_at':end}
+        old=self.post('/api/delegations',data,mc)['id']
+        self.assertTrue(c1.get('/api/state').json()['can_approve'])
+        self.assertEqual(mc.post('/api/delegations',json={**data,'lead_id':second['id']}).status_code,409)
+        # Invalid replacements roll back without revoking the current backup.
+        self.assertEqual(mc.post('/api/delegations',json={**data,'lead_id':'missing','replace_current':True}).status_code,404)
+        self.assertTrue(c1.get('/api/state').json()['can_approve'])
+        latest=self.post('/api/delegations',{**data,'lead_id':second['id'],'replace_current':True},mc)['id']
+        self.assertFalse(c1.get('/api/state').json()['can_approve'])
+        self.assertTrue(c2.get('/api/state').json()['can_approve'])
+        records=mc.get('/api/state').json()['delegations']
+        self.assertEqual(len(records),2)
+        self.assertTrue(next(d for d in records if d['id']==old)['revoked_at'])
+        self.assertEqual(len([d for d in records if not d['revoked_at']]),1)
+        self.assertEqual(c1.post('/api/delegations',json=data).status_code,403)
+        self.assertEqual(mc.delete('/api/delegations/'+latest).status_code,200)
+        self.assertFalse(c2.get('/api/state').json()['can_approve'])
+        self.assertTrue(c1.get('/api/state').json()['user']['is_lead'])
+        self.assertTrue(c2.get('/api/state').json()['user']['is_lead'])
+
+    def test_legacy_multiple_backups_never_grant_simultaneous_authority(self):
+        a=self.account();g1=self.group(a);g2=self.group(a,'G2')
+        manager,mc,_=self.person('MANAGER','M001',account=a,groups=[g1,g2])
+        first,c1,_=self.person('USER','L001',group=g1,lead=True)
+        second,c2,_=self.person('USER','L002',group=g2,lead=True)
+        start=(self.server.datetime.now(self.server.timezone.utc)-self.server.timedelta(minutes=1)).isoformat()
+        end=(self.server.datetime.now(self.server.timezone.utc)+self.server.timedelta(hours=2)).isoformat()
+        import json
+        with self.server.connection(True) as c:
+            for identity,lead in [('old',first),('latest',second)]:
+                c.execute('INSERT INTO delegations VALUES(?,?,?,?,?,?,NULL)',(identity,manager['id'],lead['id'],json.dumps([g1,g2]),start,end))
+        self.server.init_db()
+        self.assertEqual(len(mc.get('/api/state').json()['delegations']),2)
+        self.assertFalse(c1.get('/api/state').json()['can_approve'])
+        self.assertTrue(c2.get('/api/state').json()['can_approve'])
+        self.assertEqual(mc.delete('/api/delegations/latest').status_code,200)
+        self.assertFalse(c1.get('/api/state').json()['can_approve'])
+        self.assertFalse(c2.get('/api/state').json()['can_approve'])
+        self.assertEqual(len(mc.get('/api/state').json()['delegations']),2)
+
     def test_accounting_midnight_guard_net_unique_ot_and_excel(self):
         _,_,_,mc,u,uc=self.organization()
         rule=self.post('/api/rules',{'name':'Noche','effective_from':'2026-01-01','segments':[{'day':0,'start':'22:00','end':'06:00'}]},mc)['id']

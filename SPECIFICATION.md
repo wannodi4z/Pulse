@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.2 · especificación de la implementación nueva
+# Operational Pulse 1.1.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -57,3 +57,11 @@ Azul profundo para navegación, azul para acciones principales, blanco para supe
 ## Acceso: refinamiento v1.0.1
 
 Los modales públicos usan un marco visual propio y accesible, dentro del mismo `dialog` y controlador de eventos de la aplicación. Activar y restablecer separan identidad/código y contraseña; la solicitud de recuperación explica el proceso sin revelar si una cuenta existe. El usuario se conserva durante las transiciones; no se guardan contraseñas ni códigos en el borrador del flujo. Se presentan errores dentro del formulario y resultados de éxito dentro del modal. Mostrar contraseñas no altera sus valores ni las reglas del servidor. No hay cambios en lógica operativa ni esquema de datos.
+
+## Flujos operativos v1.1.0
+
+Las reglas almacenan una lista de segmentos; se admiten días repetidos y cobertura 00:00–00:00 para 24 horas. La captura muestra un bloque por día, permite agregar/quitar intervalos y valida horas antes de guardar. El motor común de contabilidad no cambia.
+
+La asignación de backup se captura dentro de Mi equipo y mantiene vigencia, alcance y capacidad Lead independientes. El servidor impide una segunda asignación pendiente/activa salvo sustitución explícita; la revocación y nueva inserción comparten la transacción de escritura. Lecturas de bases antiguas eligen como máximo una delegación efectiva por Manager sin borrar registros. La revocación de una asignación vigente impide reactivar inadvertidamente una fila antigua.
+
+Las tarjetas del Manager son botones con navegación contextual. El estado «En curso» y el periodo «Todos los periodos» permiten localizar timers aunque se esté consultando otro mes. Los filtros de tipo, Técnico y Grupo se conservan en la pantalla de revisión hasta que se cambian o se navega a otra sección. El Excel sigue correspondiendo a tiempo aprobado del mes seleccionado, tal como indica la pantalla. Las solicitudes concretas del Panel reutilizan el detalle y los endpoints de aprobación existentes.

@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.2
+# Validación ejecutada · Operational Pulse 1.1.0
 
 Fecha: 26 de octubre de 2026. Implementación nueva desde cero; no se declara equivalencia binaria ni preservación del código del ZIP antiguo.
 
@@ -91,3 +91,21 @@ Recorrido ejecutado desde la interfaz:
 - Las ayudas y textos secundarios de los modales se ajustaron a un contraste calculado de al menos 4.8:1 respecto al fondo de referencia claro `#f5f9ff`. Se conservaron los textos claros sobre superficies oscuras. Esta comprobación no equivale a una auditoría completa de accesibilidad de todas las combinaciones.
 - Se inspeccionó la captura actualizada de activación y se repitió el recorrido funcional existente en Chromium, sin errores JavaScript.
 - Sintaxis JavaScript y Python: correctas. El backend sólo cambia la versión; sus ocho tests de lógica pasaron en la entrega anterior y no se repitieron para este ajuste de color.
+
+## Flujos v1.1.0
+
+**Suite completa: 11 tests aprobados, 0 fallidos, 0 omitidos.** Se mantienen los ocho originales y se agregan:
+
+- `test_multiple_weekday_intervals_full_sunday_and_net_guard`: guarda exactamente los trece intervalos del ejemplo (dos de lunes a sábado y domingo completo), obtiene 71 horas de cobertura semanal y 69 horas netas después de dos horas de OT totalmente contenidas en la cobertura. Valida datos de hora inválidos y forma de segmentos.
+- `test_single_backup_atomic_replacement_and_history`: rechaza una segunda asignación, mantiene la primera ante una sustitución inválida, sustituye de forma explícita, verifica autoridad exclusiva del nuevo backup, conserva ambas filas y mantiene la capacidad Lead al revocar.
+- `test_legacy_multiple_backups_never_grant_simultaneous_authority`: simula una base anterior con dos filas activas, conserva la información al inicializar, autoriza sólo la última y comprueba que revocar no reactive la anterior.
+
+**Recorrido Chromium: PASS, cero errores JavaScript.** Además de los flujos anteriores:
+
+1. Activa dos Leads de diferentes Grupos, asigna el primero desde su fila de Mi equipo y lo sustituye por el segundo sin abrir un dialog. Comprueba que sólo una fila siga vigente, las dos personas conserven capacidad Lead y revocar retire la asignación.
+2. Captura desde la interfaz los trece segmentos semanales, agrega/quita un intervalo, selecciona domingo 24 horas, verifica el ancho del formulario en móvil y lee los segmentos reales guardados en SQLite a través del API.
+3. Una sesión independiente de Técnico inicia un Timer y registra una OT de un periodo anterior. Desde el Panel del Manager se abre la tarjeta de timers mientras está seleccionado otro mes: el filtro pasa a Todos los periodos y se muestra la actividad real. El detalle muestra En curso y su contador.
+4. La tarjeta de pendientes localiza la OT del periodo anterior; el Manager aprueba desde el detalle y la fila deja de aparecer en el filtro de pendientes. La sesión del Técnico detiene su propio Timer.
+5. Continúan pasando guardias, OT histórica, emergencia, aprobación, descarga Excel, Claim, ADP, navegación, activación, recuperación y las comprobaciones existentes.
+
+No se ejecutó esta versión en macOS físico ni Safari. Las pruebas usan bases temporales; no se reinicia la base manual del usuario.

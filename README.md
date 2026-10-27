@@ -1,4 +1,4 @@
-# Operational Pulse · 1.0.2
+# Operational Pulse · 1.1.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.2`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.0`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -76,7 +76,7 @@ Una Cuenta con Grupos no se puede eliminar. Si tiene Managers, primero deben mov
 
 ### Delegación y recuperación
 
-Ser Lead no da permisos de aprobación. El Manager define qué Grupos delega y las fechas de inicio y fin. El Lead delegado no puede aprobar sus propios registros. Revocar la delegación no quita la capacidad Lead. Cambiar la propiedad del Grupo o mover/quitar la capacidad del Lead revoca las delegaciones afectadas.
+Ser Lead no da permisos de aprobación. Desde **Mi equipo**, el Manager elige **Delegar** junto a un Lead activo y define, dentro de la misma página, los Grupos y las fechas. Sólo puede haber una persona delegada por Manager. Al sustituirla, la asignación anterior se revoca de forma atómica y se conserva su historial. El Lead delegado no puede aprobar sus propios registros. Revocar la delegación no quita la capacidad Lead. Cambiar la propiedad del Grupo o mover/quitar la capacidad del Lead revoca las delegaciones afectadas.
 
 En el login, **¿Olvidaste tu contraseña?** registra una solicitud. El Manager, Lead delegado dentro de su alcance o un administrador valida la identidad y emite un código de 15 minutos. Nadie emite su propio código. El código es de un solo uso y cambiar la contraseña invalida las sesiones anteriores. No se envían correos automáticamente.
 
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.2/
+Operational_Pulse_v1.1.0/
   index.html
   server.py
   requirements.txt
@@ -173,3 +173,11 @@ Activación y recuperación ahora tienen modales propios con información por se
 ## Ajuste de lectura v1.0.2
 
 Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders, manteniendo la composición, tamaños y paleta existentes. Los textos claros sobre fondos azules oscuros se conservan.
+
+## Novedades de v1.1.0
+
+- **Guardias por intervalos:** cada día admite varios horarios. Usa «Agregar intervalo» o «24 horas»; el Manager define su semana sin horarios operativos precargados. Un fin como 00:00 después de 20:00 corresponde al día siguiente. Los intervalos se muestran agrupados por día al guardar.
+- **Delegación junto al equipo:** elige «Delegar» en la fila de un Lead activo. El formulario aparece dentro de Mi equipo, sin modal. Permite cambiar vigencia y alcance, sustituir al backup y revocar. Sólo hay una asignación vigente o programada por Manager; guardar otra sustituye la anterior inmediatamente, incluso si la nueva comienza después.
+- **Panel que lleva a la acción:** las tarjetas del Manager abren Tiempo del equipo con tipo y estado ya seleccionados. Pendientes y timers usan «Todos los periodos» para incluir eventos anteriores al mes visible. «Ver actividad» abre el detalle del Timer con contador en vivo.
+- **Solicitudes concretas:** el bloque lateral del Panel presenta hasta tres solicitudes para revisar, en lugar de repetir el contador de pendientes. El detalle permite aprobar o rechazar usando las mismas validaciones del servidor.
+- **Compatibilidad:** se conserva la base existente. No se agregan datos de ejemplo ni se borran registros. Si una base antigua contiene varios backups simultáneos, sólo la última asignación activa otorga autoridad; al reasignar o revocar se consolidan conservando el historial.
