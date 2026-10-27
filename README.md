@@ -1,12 +1,12 @@
-# Operational Pulse · 2.0.0
+# Operational Pulse · 1.0.0
 
-Aplicación nueva, creada desde cero. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+Aplicación nueva, creada desde cero. La numeración se reinicia en **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
 ## Ejecutarla en tu Mac
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre la carpeta `Operational_Pulse_v2.0.0` completa en VS Code: **File → Open Folder**. Esa carpeta contiene `server.py`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.0`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v2.0.0/
+Operational_Pulse_v1.0.0/
   index.html
   server.py
   requirements.txt
@@ -135,6 +135,7 @@ Operational_Pulse_v2.0.0/
   README.md
   SPECIFICATION.md
   VALIDATION.md
+  THIRD_PARTY_NOTICES.md
   start.command
   .gitignore
   .vscode/
@@ -142,6 +143,8 @@ Operational_Pulse_v2.0.0/
     app.js
     app.css
     favicon.svg
+    kyndryl-logo.svg
+    icons.svg
   tests/
     test_api.py
     browser_smoke.py
@@ -152,3 +155,12 @@ Operational_Pulse_v2.0.0/
 ## Más adelante: servidor
 
 Esta entrega inicia en `127.0.0.1`, accesible sólo desde tu Mac. No publica nada en Internet. La preparación para usuarios de varias regiones —dominio, HTTPS, política de zonas horarias, copias automáticas, monitoreo, correo, capacidad y posible migración de base— se realizará como una etapa posterior. No se ha validado despliegue, carga multiusuario de producción ni compatibilidad con formatos corporativos específicos de importación.
+
+## Identidad visual y créditos
+
+Interfaz en azul, blanco y turquesa, con iconografía SVG de Shidoka y logotipo de Kyndryl incluido localmente. No requiere fuentes, imágenes ni servicios externos para mostrar la interfaz. El apartado **Acerca del proyecto y autores** está disponible al pie de la aplicación; también puede abrirse desde el login. Las atribuciones de los recursos se incluyen en `THIRD_PARTY_NOTICES.md`.
+
+Autores del proyecto:
+
+- Samuel Alejandro Díaz Chávez
+- Francisco Cervantes Marquez

@@ -1,4 +1,4 @@
-# Operational Pulse 2.0.0 · especificación de la implementación nueva
+# Operational Pulse 1.0.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -49,3 +49,7 @@ La lectura común se hace mediante `GET /api/state`. Las escrituras son transacc
 SQLite normalizado, claves foráneas activas, transacciones de escritura y auditoría de acciones. Base nueva con sólo admin1/admin2. Reiniciar o instalar no vuelve a crear datos demo ni borra trabajo manual. Pruebas y capturas usan bases temporales que se destruyen al terminar. No se distribuyen bases, sesiones, entornos virtuales ni binarios de navegador en el ZIP.
 
 La compatibilidad con macOS se prepara con comandos estándar Python, `start.command` y depuración VS Code. Las pruebas de esta entrega se realizan en Linux; macOS y Safari requieren validación en el equipo del usuario. La publicación en un servidor global está fuera del alcance de esta etapa local.
+
+## Identidad visual v1.0.0
+
+Azul profundo para navegación, azul para acciones principales, blanco para superficies y turquesa para acentos. Iconos vectoriales y logotipo original de Kyndryl desde sus paquetes oficiales Shidoka, con licencias distribuidas. Créditos del proyecto en un modal propio accesible desde el login y el pie de todas las secciones. La numeración se reinicia sin restablecer la base ni cambiar las reglas operativas.

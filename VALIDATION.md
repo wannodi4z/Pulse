@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 2.0.0
+# Validación ejecutada · Operational Pulse 1.0.0
 
 Fecha: 26 de octubre de 2026. Implementación nueva desde cero; no se declara equivalencia binaria ni preservación del código del ZIP antiguo.
 
@@ -55,7 +55,7 @@ Recorrido ejecutado desde la interfaz:
 - `python -m pip install -r requirements-dev.txt`: completado.
 - `python -m pip check`: sin dependencias rotas.
 - `bash -n start.command`: aprobado.
-- `bash start.command`: inició la aplicación con el intérprete del entorno virtual; comprobados health v2.0.0, acceso de admin2, estado operativo vacío y respuestas de HTML/JavaScript.
+- `bash start.command`: inició la aplicación con el intérprete del entorno virtual; comprobados health v1.0.0, acceso de admin2, estado operativo vacío y respuestas de HTML/JavaScript.
 - `node --check static/app.js`: aprobado.
 - Compilación de `server.py` y archivos Python de pruebas: aprobada.
 - Inspección AST: una sola definición de `nav`, `content`, `app`, `render`, `bind`, `dashboard`, `timePage` y `teamTimePage`.
@@ -68,3 +68,11 @@ Recorrido ejecutado desde la interfaz:
 - Excel fue generado, descargado y abierto con openpyxl; no se abrió Microsoft Excel para Mac en esta máquina ni se validó un formato corporativo externo de importación.
 - Claim y ADP son guías locales de captura; no se conectaron servicios externos.
 - La prueba visual responsive comprobó anchuras de documento y se inspeccionaron capturas de Panel y Organización. No equivale a una auditoría completa de accesibilidad ni de todos los navegadores.
+
+## Revisión visual de la base v1.0.0
+
+- Paleta revisada a azul, blanco y turquesa; iconos SVG y logotipo original de Kyndryl servidos localmente. Los recursos del logotipo cargaron correctamente en navegador real.
+- Se verificó el cambio de versión en health, login, menú y créditos, sin modificar el esquema ni las reglas del backend.
+- Los ocho tests funcionales del backend volvieron a pasar tras el cambio de versión.
+- El recorrido de navegador incluye el apartado de autores desde login y sesión iniciada, además de las comprobaciones operativas existentes. Los créditos identifican a Samuel Alejandro Díaz Chávez y Francisco Cervantes Marquez.
+- Se mantienen los límites de plataforma: pruebas en Linux/Chromium, sin ejecución física en macOS ni Safari.
