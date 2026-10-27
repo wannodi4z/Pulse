@@ -1,4 +1,4 @@
-# Operational Pulse · 1.4.0
+# Operational Pulse · 1.0.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.4.0`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.0`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.4.0/
+Operational_Pulse_v1.0.0/
   index.html
   server.py
   requirements.txt
@@ -186,7 +186,7 @@ Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders,
 
 Los textos del acceso y Mi tiempo se centran en el control de horas extra (OT), Guardias y sus aprobaciones. Se retiran las referencias a comenzar una jornada; la herramienta no se presenta como un control de asistencia. También se incluye el botón del ojo para mostrar u ocultar la contraseña en el login. No cambia la lógica operativa.
 
-## Analítica mensual · v1.4.0
+## Analítica mensual · v1.0.0
 
 - **Manager:** «Analítica del equipo» muestra sus Grupos y Técnicos.
 - **Lead:** «Mi resumen» contiene sus horas; «Analítica del equipo» sólo aparece y funciona con delegación vigente y exclusivamente para los Grupos delegados. Revocar o dejar vencer la delegación bloquea las consultas y exportaciones del equipo en el servidor.
@@ -197,7 +197,7 @@ El desglose separa **OT emergente, OT programada, OT histórica y Guardia neta**
 
 Elige el mes; en el equipo, selecciona Grupo y/o Técnico. Las tarjetas abren el detalle por tipo, las filas de Grupo llevan a sus Técnicos y cada Técnico permite abrir sus horas diarias. Excel exporta **Resumen, Por grupo, Por técnico y Detalle**, respetando los mismos filtros y permisos.
 
-## Administración y recuperación · v1.4.0
+## Administración y recuperación · v1.0.0
 
 Las altas y los cambios organizacionales de Cuentas, Managers, Grupos y Técnicos corresponden exclusivamente a Admin. Manager consulta Mi equipo, gestiona el tiempo y asigna/revoca su backup; no crea, mueve ni edita personas. Cada usuario conserva Mi perfil para sus propios datos personales y contraseña, sin poder cambiar allí Employee ID, Grupo, rol ni capacidad Lead.
 
@@ -226,7 +226,7 @@ Usar el código invalida la solicitud y las sesiones anteriores. No se crean sol
 Si la carpeta no tiene `.venv`, sigue primero la instalación inicial. Esta versión agrega `cryptography`; hay que actualizar dependencias aunque ya tuvieras una versión anterior funcionando. La clave local se genera al emitir el primer código y queda excluida del código fuente y del ZIP. Con `PULSE_DB_PATH`, la clave usa la misma ubicación y nombre base, con extensión `.key`; puede configurarse otra ubicación con `PULSE_RECOVERY_KEY_PATH`.
 
 
-## Administración del ciclo de vida · v1.4.0
+## Administración del ciclo de vida · v1.0.0
 
 Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferir y dar de baja son acciones independientes.** Manager gestiona tiempo y recuperaciones, sin editar la estructura.
 
@@ -242,12 +242,12 @@ Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferi
 El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los formularios usan columnas en escritorio y muestran instrucciones. Las confirmaciones usan el diálogo de la aplicación. Los formularios extensos se recorren por pasos conservando los campos y sus valores.
 
 
-### Escala de pantalla v1.4.0
+### Escala de pantalla v1.0.0
 
 Usa el zoom normal del navegador (100%). Los diálogos ajustan ancho, columnas y espaciado al área disponible, con etiquetas de 14 px y controles de 15 px. La baja de Manager separa destinos de reemplazo/motivo; las acciones quedan al pie y los botones de Organización tienen una fila definida. En reglas de Guardia, selecciona cada día para editarlo: al guardar se conserva la configuración de toda la semana. Si hay muchos pendientes se utilizan pasos y paginación, manteniendo visibles el título y las acciones.
 
 
-## Interfaz sin desplazamiento · v1.4.0
+## Interfaz sin desplazamiento · v1.0.0
 
 La aplicación se organiza en vistas dentro del área disponible al 100% de zoom. **Vista**, Anterior y Siguiente permiten recorrer las secciones de una página. Las listas y tablas grandes se paginan: no se eliminan filas ni se reduce artificialmente la escala. En Organización se mantienen Cuenta → Manager → Grupo → Técnico, con controles para recorrer Managers, Grupos y Técnicos.
 
@@ -256,3 +256,10 @@ Los formularios que superan la altura disponible se dividen en pasos. Completa c
 El sidebar contiene la operación diaria; Configuración agrupa las opciones secundarias del rol. Mi perfil y Cerrar sesión están en el menú del usuario, arriba a la derecha. Se conserva la marca Kyndryl y la versión, sin textos repetidos al pie.
 
 **Reglas de Guardia:** el Manager propietario tiene Editar y Eliminar. Editar permite cambiar nombre, vigencia e intervalos. Eliminar retira la plantilla para solicitudes nuevas. Las solicitudes anteriores guardan su propia copia y conservan cobertura, aprobaciones y horas incluso si la regla se modifica o elimina. Eliminar pide confirmación. Otro Manager, Admin y Técnico no pueden editar o eliminar la regla ajena mediante la API.
+
+
+## Limpieza de flujos y reinicio de versión
+
+Esta entrega se identifica como **v1.0.0** por solicitud del autor. El reinicio es del contador; conserva el modelo SQLite y los datos existentes. El historial de entregas previas permanece en CHANGELOG.
+
+Organización abre el resumen y la estructura juntos. Si existe una sola Cuenta, no se muestra un selector de pantallas; cuando hay varias, se elige la Cuenta desde el mismo espacio. Tiempo del equipo conserva sus filtros junto a los registros; Mi tiempo conserva acciones y totales con OT/Guardias; Claim y ADP presentan el resumen sobre las semanas. Analítica combina totales, gráficas y criterios y mantiene los filtros al cambiar entre desglose por Grupo, Técnico y detalle. El Panel de Admin presenta Cuentas con acceso directo a su estructura y tareas de accesos/asignación. La firma Kyndryl acompaña a la identidad del producto en la parte superior del sidebar; Configuración tiene un engranaje propio y Organización su jerarquía.

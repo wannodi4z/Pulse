@@ -6,6 +6,7 @@ window.PulseLayout=(()=>{
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let dialogState=null,resizeFrame;
   function name(node,index){
+    if(node.dataset.viewLabel)return node.dataset.viewLabel;
     const known={'welcome-banner':'Bienvenida',kpis:'Indicadores','organization-summary':'Resumen de estructura','analytics-metrics':'Totales por tipo','analytics-criteria':'Criterios de cálculo','analytics-method':'Cómo se calcula','analytics-personal-scope':'Mi alcance','delegation-summary':'Backup del Manager','inline-delegation':'Configurar delegación','profile-grid':'Mi cuenta'};
     for(const [cls,title] of Object.entries(known))if(node.classList.contains(cls))return title;
     return q('h2,h3',node)?.textContent.trim()||q('legend',node)?.textContent.trim()||(node.matches('.time-actions')?'Registrar tiempo':node.matches('.timer-list')?'Timers activos':node.querySelector('[data-search-row]')?'Personas':node.matches('.table-panel')?'Registros':`Sección ${index+1}`);
@@ -17,15 +18,48 @@ window.PulseLayout=(()=>{
     function update(value){index=Math.max(0,Math.min(count-1,value));memory.set(key,index);select.value=String(index);buttons[0].disabled=index===0;buttons[1].disabled=index===count-1;change(index);}
     buttons[0].onclick=()=>update(index-1);buttons[1].onclick=()=>update(index+1);select.onchange=()=>update(Number(select.value));update(index);return bar;
   }
+  function compose(main,key,heading,footer){
+    const roots=()=>[...main.children].filter(n=>n!==heading&&n!==footer);
+    const sticky=[];
+    const pin=selector=>{const node=q(':scope > '+selector,main);if(node){node.classList.add('workspace-context');sticky.push(node);}};
+    const bundle=(nodes,label)=>{nodes=nodes.filter(Boolean);if(!nodes.length)return;const section=document.createElement('section');section.className='workspace-view';section.dataset.viewLabel=label;main.insertBefore(section,nodes[0]);nodes.forEach(n=>section.append(n));return section;};
+    if(key==='organization')pin('.organization-summary');
+    if(key==='teamTime')pin('.filters');
+    if(key==='team')pin('.delegation-summary');
+    if(key==='time'){
+      pin('.time-actions');
+      const totals=q(':scope > .kpis',main);if(totals){totals.classList.add('workspace-totals');pin('.kpis');}
+    }
+    if(key==='claim'||key==='adp')pin('.capture-summary');
+    if(key==='analytics'||key==='myAnalytics'){
+      pin('.analytics-filters');pin('.analytics-personal-scope');
+      const charts=q(':scope > .analytics-charts',main),metrics=q(':scope > .analytics-metrics',main),criteria=q(':scope > .analytics-criteria',main),method=q(':scope > .analytics-method',main);
+      bundle([metrics,charts,criteria,method],'Resumen mensual');
+    }
+    if(key==='dashboard'){
+      q(':scope > .welcome-banner',main)?.remove();
+      const metrics=q(':scope > .kpis',main),panels=q(':scope > .two-columns',main);
+      bundle([metrics,panels],'Resumen y prioridades');
+    }
+    roots().forEach(n=>{
+      if(n.matches('.table-panel')&&q('[data-search-row]',n))n.dataset.viewLabel='Personas';
+      if(n.matches('.timer-list'))n.dataset.viewLabel='Actividades en curso';
+      if(n.matches('.delegation-history'))n.dataset.viewLabel='Historial de delegaciones';
+      if(n.matches('.inline-delegation'))n.dataset.viewLabel='Asignar backup temporal';
+    });
+    return {sticky,items:roots().filter(n=>!sticky.includes(n)&&(n.textContent.trim()||n.querySelector('input,button,svg')))};
+  }
   function page(main,key){
     if(!main)return;
     const heading=q(':scope > .page-heading',main),footer=q(':scope > .main-footer',main);
-    const items=[...main.children].filter(n=>n!==heading&&n!==footer&&(n.textContent.trim()||n.querySelector('input,button,svg')));
+    const {sticky,items}=compose(main,key,heading,footer);
     if(!items.length)return;
     const stage=document.createElement('div');stage.className='viewport-stage';main.insertBefore(stage,footer);
+    sticky.forEach(n=>main.insertBefore(n,stage));
     items.forEach(n=>stage.append(n));
     const bar=document.createElement('nav');bar.className='viewport-sections';bar.setAttribute('aria-label','Secciones de esta página');
-    bar.innerHTML=`<label>Vista <select aria-label="Vista de la página">${items.map((n,i)=>`<option value="${i}">${esc(name(n,i))}</option>`).join('')}</select></label><span class="viewport-location" aria-live="polite"></span><div><button type="button" data-section-prev aria-label="Vista anterior">←</button><button type="button" data-section-next aria-label="Vista siguiente">→</button></div>`;
+    bar.hidden=items.length<2;
+    bar.innerHTML=`<label>${key==='organization'?'Cuenta':'Contenido'} <select aria-label="Vista de la página">${items.map((n,i)=>`<option value="${i}">${esc(name(n,i))}</option>`).join('')}</select></label><span class="viewport-location" aria-live="polite"></span><div><button type="button" data-section-prev aria-label="Vista anterior">←</button><button type="button" data-section-next aria-label="Vista siguiente">→</button></div>`;
     main.insertBefore(bar,stage);let index=Math.min(memory.get('section:'+key)||0,items.length-1);
     function show(next){
       index=Math.max(0,Math.min(items.length-1,next));memory.set('section:'+key,index);
@@ -39,7 +73,7 @@ window.PulseLayout=(()=>{
   function fitCollection(root,budget,key){
     all('.group-card',root).forEach(card=>{const footer=q(':scope > footer',card),actions=q(':scope > header .entity-actions',card);if(footer&&actions){[...footer.children].forEach(node=>actions.append(node));footer.remove();}});
     // Table and repeated-card pagination retains every row, header and delegated action.
-    const selectors='tbody,.technicians,.group-grid,.account-body,.record-list,.rules-grid,.priority-list,.analytics-ranking,.audit-list,.rule-intervals,.rule-segments,.offboard-transfers,.delegation-group-options,#group-checks,.delegation-list';
+    const selectors='tbody,.technicians,.group-grid,.account-body,.record-list,.rules-grid,.priority-list,.analytics-ranking,.audit-list,.rule-intervals,.rule-segments,.offboard-transfers,.delegation-group-options,#group-checks,.delegation-list,.admin-account-list';
     const lists=all(selectors,root).reverse();
     if(root.matches(selectors))lists.push(root);
     lists.forEach((list,li)=>{
@@ -48,7 +82,8 @@ window.PulseLayout=(()=>{
       if(children.length<2)return;
       const table=list.tagName==='TBODY';const height=children.reduce((total,n)=>total+n.getBoundingClientRect().height,0);
       if(height<Math.max(130,budget*.55)&&root.getBoundingClientRect().height<=budget)return;
-      let size=table?Math.max(1,Math.floor((budget-150)/Math.max(45,height/children.length))):1;
+      const overhead=Math.max(70,root.getBoundingClientRect().height-height)+42;
+      let size=table?Math.max(1,Math.floor((budget-overhead)/Math.max(45,height/children.length))):1;
       size=Math.min(size,children.length);if(size>=children.length)return;
       const count=Math.ceil(children.length/size),id=key+':list:'+li;
       const label=table?'Filas':list.matches('.technicians')?'Técnicos':list.matches('.group-grid')?'Grupos':list.matches('.account-body')?'Managers':list.matches('.rule-intervals')?'Intervalos':list.matches('.rule-segments')?'Días':list.matches('.rules-grid')?'Reglas':'Elementos';

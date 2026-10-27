@@ -56,9 +56,16 @@ def run():
                             for route in routes:
                                 target=page.locator('[data-page='+route+']').first;target.evaluate('(el)=>el.closest("details")?.setAttribute("open", "")');target.click()
                                 page.wait_for_function('(route)=>document.querySelector(".breadcrumb strong")?.textContent===pageNames[route]',arg=route)
-                                selector=page.locator('[aria-label="Vista de la página"]');count=selector.locator('option').count()
+                                if route=='organization':
+                                    assert page.locator('.organization-summary').is_visible()
+                                    assert page.locator('.account-block').is_visible()
+                                    assert not page.locator('[aria-label="Vista de la página"]').is_visible(),'One Account must not require a separate summary screen'
+                                if route in ['teamTime','analytics']:
+                                    assert page.locator('.workspace-context.filters,.workspace-context.analytics-filters').is_visible()
+                                selector=page.locator('[aria-label="Vista de la página"]');count=selector.locator('option').count() if selector.is_visible() else 1
                                 for index in range(count):
-                                    selector.select_option(str(index));bounds(f'{role} {route} {width}x{height} section {index}')
+                                    if selector.is_visible():selector.select_option(str(index))
+                                    bounds(f'{role} {route} {width}x{height} section {index}')
                                     # Traverse each visible list's pages, checking that controls never leave the frame.
                                     controls=page.locator('.viewport-pagination:visible select').all()
                                     for control in controls:
@@ -67,7 +74,7 @@ def run():
                                 checked.append(f'{role}:{route}:{width}x{height}')
                     # Complete a long OT form through the actual step controls at native 100%.
                     target=page.locator('[data-page=time]').first;target.click();page.wait_for_function('()=>page==="time" && document.querySelector(".breadcrumb strong")?.textContent==="Mi tiempo"')
-                    page.locator('[aria-label="Vista de la página"]').select_option(label='Registrar tiempo')
+                    page.locator('[data-action=ot-new]').evaluate('(el)=>PulseLayout.reveal(el)')
                     page.locator('[data-action=ot-new]').click()
                     values={'scheduled_start':'2026-01-15T20:00','scheduled_end':'2026-01-15T21:00','reference':'INC123456','description':'Descripción completa','justification':'Servicio requerido','impact':'Continuidad','in_lieu':'Sin cobertura'}
                     for _ in range(30):

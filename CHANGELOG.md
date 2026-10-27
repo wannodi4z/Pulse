@@ -1,5 +1,17 @@
 # Historial de versiones
 
+## v1.0.0 · nueva base de versiones · 26 de octubre de 2026
+
+Por solicitud de Samuel, el contador vuelve a v1.0.0. Este reinicio identifica la nueva entrega; conserva los datos, accesos y funciones existentes. Las entradas anteriores quedan como historial de trabajo.
+
+- Resumen de Organización integrado con las Cuentas; una Cuenta abre directamente su estructura y no un resumen vacío.
+- Indicadores, filtros y ayudas comparten contexto con sus registros; secciones de contenido sólo para tareas diferenciadas.
+- Panel de Admin con Cuentas que se pueden abrir y tareas de recuperación/asignación, sustituyendo la bienvenida decorativa y los pasos redundantes.
+- Marca Kyndryl integrada junto a Operational Pulse; versión sólo en el pie principal.
+- Configuración usa engranaje oficial Shidoka; Organización conserva el icono de jerarquía.
+- Se mantiene el trabajo al 100%, la paginación de listas extensas, los formularios por pasos y el historial operativo.
+
+
 ## v1.4.0 · 26 de octubre de 2026
 
 - Páginas organizadas en vistas y listas/tablas paginadas para trabajar al 100% sin desplazamiento de página.
