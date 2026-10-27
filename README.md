@@ -1,4 +1,4 @@
-# Operational Pulse · 1.2.0
+# Operational Pulse · 1.3.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.2.0`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.3.0`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.2.0/
+Operational_Pulse_v1.3.0/
   index.html
   server.py
   requirements.txt
@@ -186,7 +186,7 @@ Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders,
 
 Los textos del acceso y Mi tiempo se centran en el control de horas extra (OT), Guardias y sus aprobaciones. Se retiran las referencias a comenzar una jornada; la herramienta no se presenta como un control de asistencia. También se incluye el botón del ojo para mostrar u ocultar la contraseña en el login. No cambia la lógica operativa.
 
-## Analítica mensual · v1.2.0
+## Analítica mensual · v1.3.0
 
 - **Manager:** «Analítica del equipo» muestra sus Grupos y Técnicos.
 - **Lead:** «Mi resumen» contiene sus horas; «Analítica del equipo» sólo aparece y funciona con delegación vigente y exclusivamente para los Grupos delegados. Revocar o dejar vencer la delegación bloquea las consultas y exportaciones del equipo en el servidor.
@@ -197,7 +197,7 @@ El desglose separa **OT emergente, OT programada, OT histórica y Guardia neta**
 
 Elige el mes; en el equipo, selecciona Grupo y/o Técnico. Las tarjetas abren el detalle por tipo, las filas de Grupo llevan a sus Técnicos y cada Técnico permite abrir sus horas diarias. Excel exporta **Resumen, Por grupo, Por técnico y Detalle**, respetando los mismos filtros y permisos.
 
-## Administración y recuperación · v1.2.0
+## Administración y recuperación · v1.3.0
 
 Las altas y los cambios organizacionales de Cuentas, Managers, Grupos y Técnicos corresponden exclusivamente a Admin. Manager consulta Mi equipo, gestiona el tiempo y asigna/revoca su backup; no crea, mueve ni edita personas. Cada usuario conserva Mi perfil para sus propios datos personales y contraseña, sin poder cambiar allí Employee ID, Grupo, rol ni capacidad Lead.
 
@@ -224,3 +224,19 @@ Usar el código invalida la solicitud y las sesiones anteriores. No se crean sol
    ```
 
 Si la carpeta no tiene `.venv`, sigue primero la instalación inicial. Esta versión agrega `cryptography`; hay que actualizar dependencias aunque ya tuvieras una versión anterior funcionando. La clave local se genera al emitir el primer código y queda excluida del código fuente y del ZIP. Con `PULSE_DB_PATH`, la clave usa la misma ubicación y nombre base, con extensión `.key`; puede configurarse otra ubicación con `PULSE_RECOVERY_KEY_PATH`.
+
+
+## Administración del ciclo de vida · v1.3.0
+
+Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferir y dar de baja son acciones independientes.** Manager gestiona tiempo y recuperaciones, sin editar la estructura.
+
+- **Transferir Técnico activo:** en Organización, pulsa Transferir junto a la persona, elige un Grupo con Manager activo y explica el motivo. Conserva identidad, estado e historial. No se permite mover un Técnico con Timer en curso: primero debe detenerlo. Su sesión se invalida para aplicar el acceso nuevo; vuelve a entrar con su contraseña. La capacidad Lead se conserva si no genera un segundo backup para el Manager de destino; para cambiar al backup, Admin debe retirar primero la designación correspondiente.
+- **Transferir Grupo activo:** pulsa Transferir en el Grupo. Elige otro Manager activo de la misma Cuenta. Conserva todos los integrantes, registros y timers de los Técnicos en ejecución. Revoca las delegaciones afectadas, sin desactivar a nadie. Si coinciden dos Leads bajo el destino, se rechaza toda la operación; Admin decide antes qué designación retirar.
+- **Un Lead por Manager:** el técnico designado es el backup de ese Manager, incluso si administra varios Grupos. Designarlo no otorga aprobación. El Manager define por separado la vigencia y los Grupos de la delegación temporal, y puede revocarla. Las bases anteriores con varios Leads no se borran ni corrigen silenciosamente: Organización muestra una advertencia y Admin debe retirar las designaciones adicionales. Las nuevas escrituras impiden crear el conflicto.
+- **Baja de Manager:** revisa el impacto y asigna cada Grupo a otro Manager activo de la misma Cuenta. Si el reemplazo es nuevo, créalo y activa su acceso primero; el titular permanece activo hasta confirmar el traspaso. Se puede repartir el equipo entre varios Managers. Los Grupos y Técnicos conservan sus IDs e historial y los Técnicos continúan activos; sus timers siguen en ejecución. La operación completa ocurre en una sola transacción.
+- **Baja de Técnico:** revisa los pendientes. Si tiene Timer activo, Admin debe autorizar su cierre en ese momento y completar la documentación de cualquier OT de emergencia pendiente. El tiempo ya realizado queda enviado a aprobación del responsable del Grupo. Las OT programadas individuales sin ejecutar se cancelan. Las Guardias aún no iniciadas se cancelan; las que ya iniciaron conservan cobertura hasta la hora de la baja, incluyendo cruces de medianoche. Claim, ADP, Excel y analítica usan ese mismo límite. No se elimina el historial.
+- **Seguridad de la baja:** retira acceso, sesiones, activación y capacidad Lead, revoca delegaciones y cancela las recuperaciones propias. No permite la baja del Admin que ejecuta la acción ni del último Admin activo. Los códigos emitidos por el responsable saliente y los de Técnicos que cambian de Manager se invalidan y las solicitudes quedan pendientes para el nuevo responsable. Los códigos no se transfieren.
+- **Reactivar:** requiere motivo y genera una activación nueva; la persona define una contraseña nueva. Conserva identidad e historial, pero no restaura Lead, delegaciones, Grupos del antiguo Manager, timers ni coberturas canceladas. Un Manager heredado en baja que aún tiene Grupos requiere regularizar primero el traspaso mediante la revisión de baja.
+- **Revisión vigente:** la baja exige un resumen firmado por hash de la situación revisada. Si cambia el equipo o los pendientes, se rechaza con 409; cierra y vuelve a abrir la revisión. Motivos, movimientos, cierres y cambios de acceso quedan en auditoría.
+
+El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los formularios usan columnas en escritorio y muestran instrucciones. Las confirmaciones usan el diálogo de la aplicación. En ventanas pequeñas o formularios extensos se conserva desplazamiento accesible; no se ocultan controles para evitar scroll.

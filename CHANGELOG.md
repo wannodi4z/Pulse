@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v1.3.0 · 26 de octubre de 2026
+
+- Un Lead por Manager entre todos sus Grupos; delegación independiente, conflictos de transferencias rechazados y advertencia para datos heredados.
+- Transferencias de Técnicos y Grupos activos desde Organización, con motivo y trazabilidad.
+- Baja revisada y atómica: traspaso de Grupos a Managers activos, cierre documentado de Timer propio, límite de Guardias, cancelación de compromisos futuros y revocación de acceso/códigos/delegaciones.
+- Reactivación mediante código nuevo, sin restaurar autoridad anterior ni eliminar historial.
+- Login «Planea. Trabaja. Controla.»; diálogos ampliados y guiados, confirmaciones internas y diseño adaptable.
+
+
 ## v1.2.0 · 26 de octubre de 2026
 
 - Analítica mensual con horas por Grupo, Técnico, día y tipo: emergente, programada, histórica y Guardia neta.

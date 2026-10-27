@@ -99,10 +99,14 @@ class PulseTests(unittest.TestCase):
         a=self.account();g1=self.group(a);g2=self.group(a,'G2')
         m,mc,_=self.person('MANAGER','M001',account=a,groups=[g1,g2])
         lead,lc,d1=self.person('USER','L001',group=g1,lead=True)
-        other,oc,d2=self.person('USER','L002',group=g2,lead=True)
+        other,oc,d2=self.person('USER','L002',group=g2)
+        self.assertEqual(self.client.put('/api/people/'+other['id'],json={**d2,'is_lead':True}).status_code,422)
         tech,tc,d3=self.person('USER','T003',group=g1)
         self.assertEqual(self.client.put('/api/people/'+tech['id'],json={**d3,'is_lead':True}).status_code,422)
         self.assertEqual(self.client.put('/api/people/'+lead['id'],json={**d1,'group_id':g2}).status_code,422)
+        self.assertEqual(self.client.put('/api/people/'+lead['id'],json={**d1,'group_id':g2,'transfer_reason':'Mover backup dentro del Manager'}).status_code,200)
+        self.assertEqual(self.client.put('/api/people/'+lead['id'],json={**d1,'transfer_reason':'Regresar backup'}).status_code,200)
+        self.login(lc,'L001')
         self.assertFalse(lc.get('/api/state').json()['can_approve'])
         future=(self.server.datetime.now(self.server.timezone.utc)+self.server.timedelta(hours=3)).isoformat()
         start=(self.server.datetime.now(self.server.timezone.utc)-self.server.timedelta(minutes=1)).isoformat()
@@ -143,17 +147,20 @@ class PulseTests(unittest.TestCase):
     def test_single_backup_atomic_replacement_and_history(self):
         a = self.account(); g1 = self.group(a); g2 = self.group(a, 'G2')
         manager, mc, _ = self.person('MANAGER', 'M001', account=a, groups=[g1,g2])
-        first, c1, _ = self.person('USER', 'L001', group=g1, lead=True)
-        second, c2, _ = self.person('USER', 'L002', group=g2, lead=True)
+        first, c1, d1 = self.person('USER', 'L001', group=g1, lead=True)
+        second, c2, d2 = self.person('USER', 'L002', group=g2)
         start=(self.server.datetime.now(self.server.timezone.utc)-self.server.timedelta(minutes=1)).isoformat()
         end=(self.server.datetime.now(self.server.timezone.utc)+self.server.timedelta(hours=2)).isoformat()
         data={'lead_id':first['id'],'group_ids':[g1,g2],'start_at':start,'end_at':end}
         old=self.post('/api/delegations',data,mc)['id']
         self.assertTrue(c1.get('/api/state').json()['can_approve'])
-        self.assertEqual(mc.post('/api/delegations',json={**data,'lead_id':second['id']}).status_code,409)
+        self.assertEqual(mc.post('/api/delegations',json={**data,'lead_id':second['id']}).status_code,422)
         # Invalid replacements roll back without revoking the current backup.
         self.assertEqual(mc.post('/api/delegations',json={**data,'lead_id':'missing','replace_current':True}).status_code,404)
         self.assertTrue(c1.get('/api/state').json()['can_approve'])
+        # Admin changes the unique Lead; removing the capability revokes the old delegation.
+        self.assertEqual(self.client.put('/api/people/'+first['id'],json={**d1,'is_lead':False}).status_code,200)
+        self.assertEqual(self.client.put('/api/people/'+second['id'],json={**d2,'is_lead':True}).status_code,200)
         latest=self.post('/api/delegations',{**data,'lead_id':second['id'],'replace_current':True},mc)['id']
         self.assertFalse(c1.get('/api/state').json()['can_approve'])
         self.assertTrue(c2.get('/api/state').json()['can_approve'])
@@ -164,14 +171,17 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(c1.post('/api/delegations',json=data).status_code,403)
         self.assertEqual(mc.delete('/api/delegations/'+latest).status_code,200)
         self.assertFalse(c2.get('/api/state').json()['can_approve'])
-        self.assertTrue(c1.get('/api/state').json()['user']['is_lead'])
+        self.assertFalse(c1.get('/api/state').json()['user']['is_lead'])
         self.assertTrue(c2.get('/api/state').json()['user']['is_lead'])
 
     def test_legacy_multiple_backups_never_grant_simultaneous_authority(self):
         a=self.account();g1=self.group(a);g2=self.group(a,'G2')
         manager,mc,_=self.person('MANAGER','M001',account=a,groups=[g1,g2])
         first,c1,_=self.person('USER','L001',group=g1,lead=True)
-        second,c2,_=self.person('USER','L002',group=g2,lead=True)
+        second,c2,_=self.person('USER','L002',group=g2)
+        # Reproduce a legacy pre-1.3 database, not a permitted new API assignment.
+        with self.server.connection(True) as c:
+            c.execute('UPDATE users SET is_lead=1 WHERE id=?',(second['id'],))
         start=(self.server.datetime.now(self.server.timezone.utc)-self.server.timedelta(minutes=1)).isoformat()
         end=(self.server.datetime.now(self.server.timezone.utc)+self.server.timedelta(hours=2)).isoformat()
         import json
@@ -431,6 +441,137 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(self.client.get('/').headers['x-frame-options'],'DENY')
         for p in ['server.py','operational_pulse.db','operational_pulse.key','requirements.txt']:
             self.assertEqual(self.client.get('/'+p).status_code,404)
+
+    def preview(self, identity):
+        r=self.client.get('/api/admin/people/'+identity+'/impact')
+        self.assertEqual(r.status_code,200,r.text)
+        return r.json()
+
+    def test_active_transfers_manager_lead_conflicts_and_authorization(self):
+        a,g,m,mc,u,uc=self.organization()
+        g2=self.group(a,'G2'); m2,c2,_=self.person('MANAGER','M002',account=a,groups=[g2])
+        lead,lc,ld=self.person('USER','L001',group=g,lead=True)
+        lead2,l2c,l2d=self.person('USER','L002',group=g2,lead=True)
+        original=uc.get('/api/state').json()['user']
+        # A different Group under the same Manager cannot have a second Lead.
+        g3=self.group(a,'G3',m['id'])
+        blocked=self.client.post('/api/people',json={'role':'USER','employee_id':'L003','first':'Bad','last':'Lead','email':'bad@test','group_id':g3,'is_lead':True})
+        self.assertEqual(blocked.status_code,422)
+        request={**original,'group_id':g2,'transfer_reason':'Reorganización activa'}
+        self.assertEqual(mc.put('/api/people/'+u['id'],json=request).status_code,403)
+        self.assertEqual(self.client.put('/api/people/'+u['id'],json=request).status_code,200)
+        self.assertEqual(uc.get('/api/state').status_code,401)
+        self.login(uc,'T001');moved=uc.get('/api/state').json()['user']
+        self.assertEqual((moved['id'],moved['status'],moved['group_id']),(u['id'],'ACTIVE',g2))
+        # Both person and whole-Group transfers reject duplicate Manager backups atomically.
+        self.assertEqual(self.client.put('/api/people/'+lead['id'],json={**ld,'group_id':g2,'transfer_reason':'Mover Lead'}).status_code,422)
+        payload={'account_id':a,'code':'G1','name':'Grupo G1','manager_id':m2['id'],'transfer_reason':'Mover equipo'}
+        self.assertEqual(self.client.put('/api/groups/'+g,json=payload).status_code,422)
+        impact=self.preview(m['id'])
+        self.assertEqual(self.client.post('/api/admin/people/'+m['id']+'/offboard',json={'expected':impact['expected'],'confirm':True,'reason':'Traspaso con conflicto','transfers':{g:m2['id'],g3:m2['id']}}).status_code,422)
+        self.assertEqual(mc.get('/api/state').status_code,200)
+        self.assertEqual(next(x for x in self.client.get('/api/state').json()['groups'] if x['id']==g)['manager_id'],m['id'])
+        self.assertEqual(self.client.put('/api/people/'+lead2['id'],json={**l2d,'is_lead':False}).status_code,200)
+        self.assertEqual(self.client.put('/api/groups/'+g,json=payload).status_code,200)
+        self.assertEqual(lc.get('/api/state').json()['user']['status'],'ACTIVE')
+        self.assertEqual(mc.get('/api/admin/people/'+u['id']+'/impact').status_code,403)
+        self.assertEqual(mc.post('/api/admin/people/'+u['id']+'/reactivate',json={'reason':'No'}).status_code,403)
+
+    def test_manager_offboard_transfers_live_team_recovery_and_delegation(self):
+        a,g,m,mc,u,uc=self.organization()
+        g2=self.group(a,'G2',m['id']); other,oc,_=self.person('USER','T002',group=g2)
+        m2,c2,_=self.person('MANAGER','M002',account=a)
+        lead,lc,_=self.person('USER','L001',group=g,lead=True)
+        current=self.server.datetime.now(self.server.timezone.utc)
+        self.post('/api/delegations',{'lead_id':lead['id'],'group_ids':[g,g2],'start_at':(current-self.server.timedelta(minutes=1)).isoformat(),'end_at':(current+self.server.timedelta(hours=1)).isoformat()},mc)
+        active=self.post('/api/timers/start',{},uc)
+        overtime=self.ot(oc)
+        self.post('/api/recoveries',{'identity':'T002'},oc)
+        rid=mc.get('/api/state').json()['recoveries'][0]['id']
+        reset=self.post('/api/recoveries/'+rid+'/issue',{},mc)
+        before=self.preview(m['id'])
+        request={'reason':'Cambio de responsable','confirm':True,'expected':before['expected'],'transfers':{g:m2['id'],g2:m2['id']}}
+        self.assertEqual(self.client.post('/api/admin/people/'+m['id']+'/offboard',json={**request,'transfers':{g:m2['id']}}).status_code,422)
+        self.post('/api/admin/people/'+m['id']+'/offboard',request)
+        self.assertEqual(mc.get('/api/state').status_code,401)
+        target=c2.get('/api/state').json()
+        self.assertEqual({x['id'] for x in target['groups']},{g,g2})
+        self.assertTrue(all(x['status']=='ACTIVE' for x in target['people'] if x['role']=='USER'))
+        self.assertTrue(any(t['id']==active['id'] and not t['end_at'] for t in target['timers']))
+        self.assertFalse(lc.get('/api/state').json()['can_approve'])
+        self.assertEqual(next(r for r in target['recoveries'] if r['id']==rid)['status'],'PENDING')
+        self.assertEqual(oc.post('/api/recoveries/complete',json={'identity':'T002','code':reset['code'],'password':'AnotherPassword2026!'}).status_code,422)
+        self.approve(c2,'ot',overtime)
+        self.assertEqual(len(uc.get('/api/state').json()['timers']),1)
+        self.assertEqual(self.client.post('/api/login',json={'identity':'M001','password':'Password2026!'}).status_code,401)
+
+    def test_offboard_stale_preview_new_manager_activation_and_self_protection(self):
+        a,g,m,mc,u,uc=self.organization()
+        replacement=self.post('/api/people',{'role':'MANAGER','employee_id':'M002','first':'Nuevo','last':'Manager','email':'new@test','account_id':a})
+        snapshot=self.preview(m['id']);payload={'expected':snapshot['expected'],'reason':'Reemplazo','confirm':True,'transfers':{g:replacement['id']}}
+        path='/api/admin/people/'+m['id']+'/offboard'
+        self.assertEqual(self.client.post(path,json=payload).status_code,422)
+        self.assertEqual(mc.get('/api/state').status_code,200)
+        self.post('/api/activate',{'identity':'M002','code':replacement['activation_code'],'password':'Password2026!'})
+        # Adding a team member invalidates the reviewed impact.
+        self.person('USER','T002',group=g)
+        self.assertEqual(self.client.post(path,json=payload).status_code,409)
+        payload['expected']=self.preview(m['id'])['expected'];self.post(path,payload)
+        mine=self.client.get('/api/state').json()['user']['id'];impact=self.preview(mine)
+        self.assertEqual(self.client.post('/api/admin/people/'+mine+'/offboard',json={'expected':impact['expected'],'reason':'Self','confirm':True,'transfers':{}}).status_code,422)
+
+    def test_pending_access_and_legacy_lead_regularization(self):
+        a,g,m,mc,u,uc=self.organization()
+        g2=self.group(a,'G2',m['id']);g3=self.group(a,'G3',m['id'])
+        first,lc,ld=self.person('USER','L001',group=g,lead=True)
+        second,sc,sd=self.person('USER','L002',group=g2)
+        third,tc,td=self.person('USER','L003',group=g3)
+        with self.server.connection(True) as c:
+            c.execute('UPDATE users SET is_lead=1 WHERE id IN (?,?)',(second['id'],third['id']))
+        self.server.init_db()
+        # Existing data survives, and Admin can reduce even three legacy designations to one.
+        self.assertEqual(self.client.put('/api/people/'+second['id'],json={**sd,'is_lead':False}).status_code,200)
+        self.assertEqual(self.client.put('/api/people/'+third['id'],json={**td,'is_lead':False}).status_code,200)
+        pending=self.post('/api/people',{'role':'USER','employee_id':'NEW','first':'Nueva','last':'Persona','email':'new@test','group_id':g})
+        impact=self.preview(pending['id'])
+        self.post('/api/admin/people/'+pending['id']+'/offboard',{'reason':'Alta cancelada','confirm':True,'expected':impact['expected'],'transfers':{}})
+        self.assertEqual(self.client.post('/api/activate',json={'identity':'NEW','code':pending['activation_code'],'password':'Password2026!'}).status_code,422)
+        revived=self.post('/api/admin/people/'+pending['id']+'/reactivate',{'reason':'Alta retomada'})
+        self.assertNotEqual(revived['activation_code'],pending['activation_code'])
+        self.post('/api/activate',{'identity':'NEW','code':revived['activation_code'],'password':'Password2026!'})
+
+    def test_technician_offboard_timer_guard_cutoff_and_reactivation(self):
+        a,g,m,mc,u,uc=self.organization()
+        with patch.object(self.server,'now',return_value='2026-01-06T05:00:00+00:00'):
+            rule=self.post('/api/rules',{'name':'Noche','effective_from':'2026-01-01','segments':[{'day':0,'start':'22:00','end':'06:00'},{'day':1,'start':'22:00','end':'06:00'}]},mc)['id']
+            guard=self.post('/api/guards',{'rule_id':rule,'start_date':'2026-01-05','end_date':'2026-01-05'},uc)['id'];self.approve(mc,'guard',guard)
+            future=self.post('/api/guards',{'rule_id':rule,'start_date':'2026-01-06','end_date':'2026-01-06'},uc)['id'];self.approve(mc,'guard',future)
+            timer=self.post('/api/timers/start',{},uc)
+        with patch.object(self.server,'now',return_value='2026-01-06T07:00:00+00:00'):
+            impact=self.preview(u['id']);self.assertEqual(len(impact['documents']),1)
+            payload={'reason':'Baja de personal','confirm':True,'expected':impact['expected'],'transfers':{}}
+            path='/api/admin/people/'+u['id']+'/offboard'
+            self.assertEqual(self.client.post(path,json=payload).status_code,422)
+            payload['stop_timers']=True
+            self.assertEqual(self.client.post(path,json=payload).status_code,422)
+            with self.server.connection() as c:self.assertIsNone(c.execute('SELECT end_at FROM timers WHERE id=?',(timer['id'],)).fetchone()[0])
+            oid=impact['documents'][0]['id']
+            payload['documents']=[{'id':oid,'reference':'INC123456','description':'Incidente','justification':'Servicio','impact':'Operación','in_lieu':'Sin cobertura'}]
+            self.post(path,payload)
+            self.assertEqual(uc.get('/api/state').status_code,401)
+            self.approve(mc,'ot',oid)
+            result=mc.get('/api/accounting?month=2026-01&user_id='+u['id']).json()
+            self.assertEqual((result['ot_minutes'],result['guard_minutes']),(120,60))
+            state=mc.get('/api/state').json()
+            self.assertEqual(next(r for r in state['guards'] if r['id']==future)['status'],'CANCELLED')
+            revived=self.post('/api/admin/people/'+u['id']+'/reactivate',{'reason':'Recontratación'})
+            self.assertEqual(uc.post('/api/login',json={'identity':'T001','password':'Password2026!'}).status_code,401)
+            self.post('/api/activate',{'identity':'T001','code':revived['activation_code'],'password':'NewPassword2026!'},uc)
+            self.login(uc,'T001','NewPassword2026!')
+            restored=uc.get('/api/state').json();self.assertFalse(restored['user']['is_lead'])
+            self.assertEqual(restored['user']['id'],u['id'])
+            self.assertFalse(any(not t['end_at'] for t in restored['timers']))
+            self.assertEqual(uc.get('/api/accounting?month=2026-01').json()['guard_minutes'],60)
 
 
 if __name__=='__main__':

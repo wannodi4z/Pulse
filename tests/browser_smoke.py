@@ -88,10 +88,10 @@ def run():
                     assert page.locator('#modal').evaluate('(el)=>el.getBoundingClientRect().height<=innerHeight'),'Access dialog vertical overflow'
                 page.set_viewport_size({'width':1440,'height':1000})
                 if os.environ.get('PULSE_SCREENSHOT_DIR'):
-                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.2.0.png'))
+                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.3.0.png'))
                 page.keyboard.press('Escape');expect(page.locator('#modal')).not_to_be_visible()
                 action('recovery-request');fill('identity','admin2')
-                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.2.0.png'))
+                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.3.0.png'))
                 save();expect(page.locator('.access-result-body')).to_contain_text('Si tu cuenta está activa')
                 expect(page.locator('#modal h2')).to_have_text('Solicitud recibida')
                 action('recovery-complete');expect(page.locator('#modal [name=identity]')).to_have_value('admin2')
@@ -99,7 +99,7 @@ def run():
                 action('close')
                 # Branding and credits work before and after authentication.
                 action('about');expect(page.locator('.about-project')).to_contain_text('Francisco Cervantes Marquez')
-                expect(page.locator('.about-project')).to_contain_text('Versión 1.2.0')
+                expect(page.locator('.about-project')).to_contain_text('Versión 1.3.0')
                 expect(page.locator('.author-list')).to_contain_text('Samuel Alejandro Díaz Chávez')
                 expect(page.locator('.author-list article')).to_have_count(2)
                 page.set_viewport_size({'width':390,'height':844})
@@ -109,7 +109,7 @@ def run():
                 assert page.locator('.about-project img.kyndryl-logo').evaluate('(img)=>img.complete&&img.naturalWidth>0')
                 action('close')
                 login('admin1','admin12026')
-                expect(page.locator('.workspace-tag')).to_contain_text('v1.2.0')
+                expect(page.locator('.workspace-tag')).to_contain_text('v1.3.0')
                 expect(page.locator('.sidebar [data-page=analytics]')).to_have_count(0)
                 action('about');expect(page.locator('.author-list')).to_contain_text('Francisco Cervantes Marquez');action('close')
                 page.locator('.sidebar [data-page=recoveries]').click();action('recovery-issue')
@@ -141,14 +141,14 @@ def run():
                 expect(page.locator('.unassigned .group-card')).to_have_count(1)
                 action('manager-new')
                 for name,value in [('first','José'),('last','Segundo'),('employee_id','M002'),('email','manager2@example.test')]:fill(name,value)
-                expect(page.locator('[name=group_ids]')).to_have_count(1);page.locator('[name=group_ids]').check();save();expect(page.locator('.secret-code')).to_be_visible();action('close')
+                expect(page.locator('[name=group_ids]')).to_have_count(1);page.locator('[name=group_ids]').check();save();expect(page.locator('.secret-code')).to_be_visible();manager2_code=page.locator('.secret-code').inner_text();action('close')
                 expect(page.locator('.manager-block')).to_have_count(2)
                 codes={}
-                for emp,lead,gid in [('T001',False,gids[0]),('L001',True,gids[0]),('T002',False,gids[0]),('L002',True,gids[1])]:
+                for emp,lead,gid in [('T001',False,gids[0]),('L001',True,gids[0]),('T002',False,gids[0]),('L002',False,gids[1])]:
                     action('tech-new',page.locator('[data-group="'+gid+'"]'))
                     for name,value in [('first','Persona'),('last',emp),('employee_id',emp),('email',emp+'@example.test')]:fill(name,value)
                     if lead:page.locator('[name=is_lead]').check()
-                    if emp=='T002':
+                    if emp in ['T002','L002']:
                         expect(page.locator('#lead-option')).not_to_be_visible();expect(page.locator('#lead-note')).to_contain_text('L001')
                     save();expect(page.locator('.secret-code')).to_be_visible();codes[emp]=page.locator('.secret-code').inner_text();action('close')
                 expect(page.locator('[data-group="'+gids[0]+'"] .technician')).to_have_count(3)
@@ -162,7 +162,7 @@ def run():
                     page.locator('.sidebar [data-page=organization]').click();expect(page.locator('h1')).to_have_text('Organización')
                 page.wait_for_timeout(5200);expect(page.locator('h1')).to_have_text('Organización');assert not page.url.endswith('#organization')
                 # Account with groups cannot be removed.
-                action('account-delete');expect(page.locator('#toast')).to_contain_text('contiene Grupos');expect(page.locator('.account-block')).to_have_count(1)
+                action('account-delete');save();expect(page.locator('#toast')).to_contain_text('contiene Grupos');expect(page.locator('.account-block')).to_have_count(1)
                 # Desktop and mobile layout must not overflow the viewport.
                 for width,height in [(1440,1000),(390,844)]:
                     page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(100)
@@ -176,18 +176,18 @@ def run():
                 expect(page.locator('[data-action=tech-new]')).to_have_count(0);expect(page.locator('[data-action=person-edit]')).to_have_count(0)
                 search=page.locator('#team-search');search.fill('T001');expect(page.locator('tbody tr:visible')).to_have_count(1);assert search.evaluate('(el)=>el===document.activeElement');search.fill('')
                 # Delegate inline from a person's row; replacing/revoking preserves Lead capability.
-                for employee in ['L001','L002']:
+                for employee in ['L001']:
                     row=page.locator('tbody tr').filter(has_text=employee)
                     action('delegation-inline',row);expect(page.locator('#modal')).not_to_be_visible()
                     expect(page.locator('#delegation-editor')).to_contain_text(employee)
                     if employee=='L002':expect(page.locator('#delegation-editor')).to_contain_text('sustituirá')
-                    if screenshot and employee=='L001':page.screenshot(path=str(Path(screenshot)/'inline-delegation-v1.2.0.png'),full_page=True)
+                    if screenshot and employee=='L001':page.screenshot(path=str(Path(screenshot)/'inline-delegation-v1.3.0.png'),full_page=True)
                     page.locator('#delegation-editor button[type=submit]').click()
                     expect(page.locator('#delegation-editor')).to_have_count(0)
                     expect(page.locator('.delegation-summary')).to_contain_text(employee)
                 delegated=page.request.get(base+'/api/state').json()
                 assert len([d for d in delegated['delegations'] if not d['revoked_at']])==1
-                assert all(p['is_lead'] for p in delegated['people'] if p['employee_id'] in ['L001','L002'])
+                assert len([p for p in delegated['people'] if p['is_lead']])==1
                 action('delegation-revoke');expect(page.locator('.delegation-summary')).to_contain_text('Sin delegación asignada')
                 # Capture the requested 13-interval week, including overnight and full Sunday.
                 page.locator('.sidebar [data-page=timeRules]').click();action('rule-new');fill('name','Guardia semanal');fill('effective_from','2026-01-01')
@@ -206,7 +206,7 @@ def run():
                 expect(sunday.locator('.rule-full-note')).to_be_visible()
                 page.set_viewport_size({'width':390,'height':844});assert page.locator('#modal').evaluate('(el)=>el.scrollWidth<=el.clientWidth')
                 page.set_viewport_size({'width':1440,'height':1000})
-                if screenshot:page.locator('#modal').evaluate('(el)=>el.scrollTop=0');page.screenshot(path=str(Path(screenshot)/'weekly-intervals-v1.2.0.png'))
+                if screenshot:page.locator('#modal').evaluate('(el)=>el.scrollTop=0');page.screenshot(path=str(Path(screenshot)/'weekly-intervals-v1.3.0.png'))
                 save();expect(page.locator('.rules-grid')).to_contain_text('24 horas')
                 assert len(page.request.get(base+'/api/state').json()['rules'][0]['segments'])==13
                 # Independent technician session provides a real active event for Manager drilldowns.
@@ -236,7 +236,7 @@ def run():
                 save();expect(page.locator('#modal')).not_to_be_visible()
                 page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');expect(page.locator('.record-list').first).to_contain_text('CHG12345')
                 action('guard-new');fill('start_date','2026-01-05');fill('end_date','2026-01-05');save();expect(page.locator('#modal')).not_to_be_visible()
-                action('timer-start');expect(page.locator('.timer-card')).to_have_count(1);page.wait_for_timeout(1100);action('timer-stop');expect(page.locator('.timer-card')).to_have_count(0)
+                action('timer-start');save();expect(page.locator('.timer-card')).to_have_count(1);page.wait_for_timeout(1100);action('timer-stop');expect(page.locator('.timer-card')).to_have_count(0)
                 action('logout');login('M001');page.locator('.sidebar [data-page=teamTime]').click()
                 page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');expect(page.locator('tbody tr')).to_have_count(2)
                 action('approve');expect(page.locator('[data-action=approve]')).to_have_count(1);action('approve');expect(page.locator('[data-action=approve]')).to_have_count(0)
@@ -257,7 +257,7 @@ def run():
                 for width,height in [(1440,1000),(390,844)]:
                     page.set_viewport_size({'width':width,'height':height});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
                 page.set_viewport_size({'width':1440,'height':1000})
-                if screenshot:page.evaluate('window.scrollTo(0,0)');page.screenshot(path=str(Path(screenshot)/'analytics-team-v1.2.0.png'),full_page=True)
+                if screenshot:page.evaluate('window.scrollTo(0,0)');page.screenshot(path=str(Path(screenshot)/'analytics-team-v1.3.0.png'),full_page=True)
                 with page.expect_download() as analytics_download:page.locator('a[download]').click()
                 analytics_file=Path(tmp)/'analytics.xlsx';analytics_download.value.save_as(analytics_file)
                 workbook=load_workbook(analytics_file);assert workbook.sheetnames==['Resumen','Por grupo','Por técnico','Detalle']
@@ -293,8 +293,35 @@ def run():
                 expect(page.locator('h1')).to_have_text('Mi resumen mensual');expect(page.locator('.sidebar [data-page=analytics]')).to_have_count(0)
                 manager_context.close()
                 page.locator('.sidebar [data-page=time]').click();expect(page.locator('h1')).to_have_text('Mi tiempo')
+                # Admin can transfer active people/groups independently from access withdrawal.
+                action('logout');activate('M002',manager2_code);login('admin1','admin12026')
+                page.locator('.sidebar [data-page=organization]').click()
+                source=page.request.get(base+'/api/state').json()
+                tech=next(x for x in source['people'] if x['employee_id']=='T001')
+                manager1=next(x for x in source['people'] if x['employee_id']=='M001')
+                manager2=next(x for x in source['people'] if x['employee_id']=='M002')
+                row=page.locator('[data-person="'+tech['id']+'"]')
+                action('person-transfer',row);expect(page.locator('.form-instructions')).to_contain_text('permanece activa')
+                page.locator('[name=group_id]').select_option(gids[1]);fill('transfer_reason','Reorganización de equipo activo');save()
+                expect(page.locator('[data-group="'+gids[1]+'"] [data-person="'+tech['id']+'"]')).to_have_count(1)
+                assert next(x for x in page.request.get(base+'/api/state').json()['people'] if x['id']==tech['id'])['status']=='ACTIVE'
+                action('group-transfer',page.locator('[data-group="'+gids[1]+'"]'))
+                page.locator('[name=manager_id]').select_option(manager2['id']);fill('transfer_reason','Traspaso de equipo activo');save()
+                expect(page.locator('[data-manager="'+manager2['id']+'"] [data-group="'+gids[1]+'"]')).to_have_count(1)
+                action('person-offboard',page.locator('[data-manager="'+manager1['id']+'"] > .manager-header'))
+                page.locator('[name="transfer:'+gids[0]+'"]').select_option(manager2['id'])
+                fill('reason','Sustitución de Manager');page.locator('[name=confirm]').check()
+                if screenshot:page.screenshot(path=str(Path(screenshot)/'manager-offboard-v1.3.0.png'))
+                save();expect(page.locator('#modal')).not_to_be_visible()
+                final=page.request.get(base+'/api/state').json()
+                assert next(x for x in final['people'] if x['id']==manager1['id'])['status']=='DISABLED'
+                assert next(x for x in final['people'] if x['id']==tech['id'])['status']=='ACTIVE'
+                expect(page.locator('[data-manager="'+manager2['id']+'"] .group-card')).to_have_count(3)
+                action('person-reactivate',page.locator('[data-manager="'+manager1['id']+'"] > .manager-header'))
+                fill('reason','Nuevo acceso con código de activación');save();expect(page.locator('.secret-code')).to_be_visible();action('close')
+                assert next(x for x in page.request.get(base+'/api/state').json()['people'] if x['id']==manager1['id'])['status']=='PENDING_ACTIVATION'
                 assert errors==[],errors
-                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.2.0','login password visibility and OT/guard copy','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','13 weekly intervals and full Sunday','inline single backup replacement/revocation','dashboard running/pending drilldowns and detail approvals','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','team analytics group/user/type/month drilldowns and Excel','personal analytics cannot request other users','delegated analytics scoped and revoked live','Admin-only people management','view/regenerate recovery codes','Claim/ADP rows','Lead has no implicit approval authority'],'javascript_errors':errors},ensure_ascii=False,indent=2))
+                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.3.0','login password visibility and OT/guard copy','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','13 weekly intervals and full Sunday','inline unique Manager Lead delegation/revocation','dashboard running/pending drilldowns and detail approvals','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','team analytics group/user/type/month drilldowns and Excel','personal analytics cannot request other users','delegated analytics scoped and revoked live','Admin-only people management','view/regenerate recovery codes','Claim/ADP rows','Lead has no implicit approval authority','one Lead across all Manager groups','guided expanded confirmation dialogs','active Technician and Group transfers','Manager offboard and reactivation via UI'],'javascript_errors':errors},ensure_ascii=False,indent=2))
                 browser.close()
         except Exception:
             log.flush();log.seek(0);print(log.read()[-7000:]);raise

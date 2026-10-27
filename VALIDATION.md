@@ -1,135 +1,48 @@
-# Validación ejecutada · Operational Pulse 1.2.0
+# Validación ejecutada · Operational Pulse 1.3.0
 
-Fecha: 26 de octubre de 2026. Implementación nueva desde cero; no se declara equivalencia binaria ni preservación del código del ZIP antiguo.
+Fecha: 26 de octubre de 2026, zona de referencia America/Mexico_City.
 
-## Entorno utilizado
+## Entorno y comandos
 
-- Linux x86_64, Python 3.12.14 y Chromium headless.
-- Dependencias instaladas en un entorno virtual nuevo usando `requirements.txt` y `requirements-dev.txt`.
-- Pruebas funcionales con SQLite temporal independiente. Las bases de prueba se eliminan al finalizar; no forman parte del ZIP.
-- El navegador se ejecutó con el binario Chromium del paquete `@sparticuz/chromium` instalado mediante npm con comprobación de integridad. Se indicó mediante `PULSE_CHROMIUM_EXECUTABLE`. La descarga estándar de Playwright no estaba disponible por la política de red de esta máquina; no se deshabilitó verificación TLS ni se usó una simulación del DOM.
+Linux, Python 3.12 y Chromium real headless. SQLite temporal por prueba, sin modificar datos de la instalación local. No se ejecutaron pruebas físicas en macOS, VS Code de Mac ni Safari. Chromium se inició con `/tmp/chromium`, del paquete `@sparticuz/chromium`, mediante la opción `PULSE_CHROMIUM_EXECUTABLE` del script.
 
-## Resultado
+```bash
+node --check static/app.js
+.venv/bin/python -m py_compile server.py tests/test_api.py tests/browser_smoke.py
+.venv/bin/python -m unittest discover -s tests -p test_api.py
+PULSE_CHROMIUM_EXECUTABLE=/tmp/chromium .venv/bin/python tests/browser_smoke.py
+```
 
-**8 pruebas automatizadas del backend: 8 aprobadas, 0 fallidas, 0 omitidas.** Ejecutadas de nuevo con las dependencias del entorno virtual recién creado.
+## Backend
 
-| Prueba | Comportamiento verificado |
-| --- | --- |
-| `test_clean_bootstrap_and_reinitialization` | Sólo admin1/admin2 al crear la base; catálogos y operación vacíos; reiniciar conserva una Cuenta manual; el estado no expone hashes; acceso anónimo rechazado. |
-| `test_hierarchy_ownership_cross_account_and_delete` | Varios Managers en una Cuenta; varios Grupos por Manager; Grupo ocupado rechazado para otro Manager; mezcla de Cuentas rechazada; Cuenta con Grupos protegida; Cuenta vacía eliminable; Manager no crea Cuentas. |
-| `test_one_lead_moves_and_independent_delegation` | Un Lead por Grupo; movimiento a Grupo con Lead rechazado; Lead sin autoridad implícita; delegación con alcance explícito; autoaprobación bloqueada; Grupo fuera del alcance bloqueado; revocación conserva capacidad; quitar capacidad permite designar otro Lead. |
-| `test_accounting_midnight_guard_net_unique_ot_and_excel` | Solicitudes de Guardia independientes; cobertura traslapada no duplica horas; OT exacta duplicada rechazada; OT traslapada cuenta una sola vez; resta sobre Guardia; división por medianoche; Excel real abierto con openpyxl y totales comprobados; filtro de tipo respetado. |
-| `test_timer_emergency_documentation_reapproval_and_history` | Inicio inmediato; segundo Timer bloqueado; otro usuario no lo detiene; stop genera documentación pendiente; documentar y aprobar; editar reabre aprobación y excluye temporalmente las horas; auditoría de edición y aprobación visible al propietario. |
-| `test_shared_planned_individual_participations` | Ventana compartida; dos participaciones diferentes; participación duplicada rechazada; dos timers individuales visibles al Manager; al detener, ambos registros vuelven a aprobación. |
-| `test_activation_recovery_password_and_session_invalidation` | Activación de cuentas; recuperación y uso único del código; sesiones anteriores invalidadas; login con contraseña nueva; contraseña actual incorrecta rechazada; cambio de contraseña funcional. |
-| `test_authorization_no_state_overwrite_and_external_origin` | Aislamiento entre Grupos; reportes ajenos rechazados; PUT global del estado no permitido; escritura desde origen externo bloqueada; cabeceras de protección; archivos de servidor/base no expuestos como contenido estático. |
+22 pruebas funcionales aprobadas, sin fallas ni omisiones. Se realizaron llamadas HTTP con FastAPI TestClient y se comprobaron datos persistidos y cálculos, además de sintaxis.
 
-Ejemplo numérico comprobado: Guardia de 22:00 a 06:00 y OT de 23:00 a 01:00 producen 2 horas OT y 6 horas de Guardia neta, repartidas entre dos días. Agregar OT traslapada de 00:30 a 02:00 produce 3 horas OT únicas y 5 horas de Guardia neta. Una segunda solicitud de Guardia sobre la misma cobertura conserva su ID sin duplicar el total.
+- Base nueva: sólo admin1 y admin2; catálogos y operación vacíos; reinicializar conserva datos manuales. Sin migraciones que creen datos demo.
+- Jerarquía: varios Managers por Cuenta, varios Grupos por Manager, varios Técnicos por Grupo, propiedad exclusiva del Grupo, mezcla de Cuentas rechazada y eliminación de Cuenta ocupada bloqueada.
+- Un Lead por Manager entre distintos Grupos; segundo Lead rechazado. Un Lead puede cambiar de Grupo dentro de su Manager con motivo; no se permite reunir dos Leads al transferir una persona, un Grupo o los Grupos de un Manager durante su baja. Los rechazos revierten toda la transacción.
+- Capacidad Lead independiente de aprobación, alcance explícito de delegación, autoaprobación bloqueada, revocación y cambio de designación con historial. Datos heredados conservados; Admin puede reducir tres designaciones anteriores a una.
+- Transferencia de Técnico activo conserva ID y estado e invalida su sesión; Manager no puede ejecutar cambios de personas. Transferencia de Grupo activo conserva integrantes y estado.
+- Baja de Manager con dos Grupos: exige todos los destinos, conserva activos a sus Técnicos y un Timer en ejecución, revoca acceso y delegación anterior, traslada pendientes al nuevo responsable e invalida códigos de recuperación conocidos por el anterior. Nuevo Manager puede aprobar tiempo del equipo transferido.
+- Reemplazo pendiente de activación rechazado; después de activarse puede recibir Grupos. Cambios posteriores a la revisión provocan 409. Baja de la propia cuenta Admin bloqueada.
+- Baja de Técnico con Timer de emergencia: sin confirmación de cierre o documentación, no modifica el Timer. Con documentación completa, cierra el Timer y envía el tiempo a aprobación. Guardia que cruza medianoche se limita al momento de la baja; Guardia futura se cancela.
+- Ejemplo de baja comprobado con reloj controlado: Guardia de lunes 22:00 a martes 06:00; Timer de lunes 23:00 a martes 01:00; baja martes 01:00. Resultado aprobado: 2 h OT y 1 h Guardia neta. La reactivación no reanuda cobertura cancelada.
+- Baja invalida activación pendiente; reactivación genera código distinto y exige nueva contraseña, conservando ID e historial.
+- Intervalos múltiples por día, domingo 24 h, deduplicación de traslapes, descuento OT sobre Guardia y separación por medianoche. Excel generado se abre con openpyxl y se comprueban totales.
+- OT compartida con participaciones individuales; timers inmediatos, detención, documentación, aprobación/rechazo e historial.
+- Analítica mensual por Grupo, Técnico, día y tipo; incluye tipos emergente, programada, histórica y Guardia neta. Conciliación con contabilidad y Excel. Técnico limitado a sus propios datos; Lead sólo al alcance delegado y mientras esté vigente; Admin no obtiene permiso operativo por administrar usuarios.
+- Recuperación de acceso según responsable, ver/regenerar código autorizado, código de un solo uso, invalidación de sesiones y clave cifrada separada. Lead delegado no gestiona recuperaciones.
+- Aislamiento de reportes, origen externo bloqueado, estado global no sobrescribible y archivos internos no servidos por HTTP.
 
 ## Navegador real
 
-**`tests/browser_smoke.py`: PASS. Cero errores JavaScript capturados.** No se sustituyeron las llamadas al backend por mocks.
+`tests/browser_smoke.py`: PASS, cero errores JavaScript capturados. Llamadas reales al servidor y SQLite, sin reemplazar el backend por mocks.
 
-Recorrido ejecutado desde la interfaz:
+Recorrido: marca Kyndryl y ambos autores; versión; mostrar/ocultar contraseña; activación y recuperación con validación y foco; altas y jerarquía anidada; selector Lead bloqueado también desde otro Grupo del mismo Manager; navegación desde Organización sin rebotes; búsqueda conserva foco; reglas con 13 intervalos; delegación dentro de Mi equipo; solicitudes, OT histórica, Timer de emergencia, aprobaciones y accesos desde tarjetas del Panel; Excel descargado; analítica y filtros, Excel analítico, separación personal/equipo y revocación; Claim y ADP; recuperaciones con ver/regenerar código.
 
-1. Login de administrador.
-2. Alta de Cuenta, tres Grupos y dos Managers.
-3. Grupos físicamente anidados dentro de su Manager; sección de Grupos sin asignar antes de asignarlos; etiqueta multigrupo.
-4. Alta de tres Técnicos en un Grupo y uno con capacidad Lead.
-5. Selector Lead oculto para otro Técnico cuando ya existe un Lead; visible y seleccionado al editar al actual.
-6. Salida de Organización hacia Panel, Administradores, Recuperación y Mi perfil; regreso a Organización; permanencia después del ciclo de sincronización y URL sin hash de navegación.
-7. Eliminación de Cuenta con Grupos rechazada con mensaje visible.
-8. Sin desbordamiento horizontal del documento en 1440×1000 y 390×844.
-9. Activación e inicio de sesión reales para Manager, Técnico y Lead.
-10. Búsqueda de Técnicos con filtrado y foco conservado.
-11. Creación de regla y solicitud de Guardia.
-12. Captura de OT histórica desde el formulario.
-13. Inicio y detención de Timer de emergencia desde los botones.
-14. Aprobación de Guardia y OT desde Tiempo del equipo.
-15. Descarga real del XLSX generado.
-16. Claim y ADP muestran las cuatro filas esperadas para el caso de medianoche; Lead mantiene Mi tiempo y no ve Tiempo del equipo sin delegación.
+También ejecutó desde la interfaz: transferencia de Técnico activo a otro Grupo, transferencia de Grupo a otro Manager, baja del Manager con traspaso de su Grupo restante y reactivación con código nuevo. Se verificaron los estados e IDs mediante `/api/state`.
 
-## Instalación, arranque y sintaxis
+Diseño comprobado a 1440 × 1000 y 390 × 844: sin desbordamiento horizontal de la página ni del diálogo de acceso; altura del diálogo dentro del viewport. Se inspeccionaron capturas de los diálogos ampliados. No se afirma ausencia de scroll en todas las resoluciones o cantidades de pendientes: los formularios extensos y las pantallas pequeñas conservan desplazamiento.
 
-- `python -m venv .venv` y `python -m pip install -r requirements.txt`: instalación completada en entorno nuevo.
-- `python -m pip install -r requirements-dev.txt`: completado.
-- `python -m pip check`: sin dependencias rotas.
-- `bash -n start.command`: aprobado.
-- `bash start.command`: inició la aplicación con el intérprete del entorno virtual; comprobados health v1.0.1, acceso de admin2, estado operativo vacío y respuestas de HTML/JavaScript.
-- `node --check static/app.js`: aprobado.
-- Compilación de `server.py` y archivos Python de pruebas: aprobada.
-- Inspección AST: una sola definición de `nav`, `content`, `app`, `render`, `bind`, `dashboard`, `timePage` y `teamTimePage`.
-- Inspección del paquete: proyecto completo, sin base de datos usada, sesiones, datos demo, entorno virtual ni dependencias/binarios de navegador.
+## Entrega
 
-## Límites de esta validación
-
-- No ejecutado en hardware macOS, Safari ni VS Code para Mac. Se incluyen comandos y configuración local para que el usuario lo pruebe allí.
-- No desplegado en Internet. No se ejecutaron pruebas de carga mundial, de múltiples regiones ni de operación de producción.
-- Excel fue generado, descargado y abierto con openpyxl; no se abrió Microsoft Excel para Mac en esta máquina ni se validó un formato corporativo externo de importación.
-- Claim y ADP son guías locales de captura; no se conectaron servicios externos.
-- La prueba visual responsive comprobó anchuras de documento y se inspeccionaron capturas de Panel y Organización. No equivale a una auditoría completa de accesibilidad ni de todos los navegadores.
-
-## Revisión visual de la base v1.0.0
-
-- Paleta revisada a azul, blanco y turquesa; iconos SVG y logotipo original de Kyndryl servidos localmente. Los recursos del logotipo cargaron correctamente en navegador real.
-- Se verificó el cambio de versión en health, login, menú y créditos, sin modificar el esquema ni las reglas del backend.
-- Los ocho tests funcionales del backend volvieron a pasar tras el cambio de versión.
-- El recorrido de navegador incluye el apartado de autores desde login y sesión iniciada, además de las comprobaciones operativas existentes. Los créditos identifican a Samuel Alejandro Díaz Chávez y Francisco Cervantes Marquez.
-- Se mantienen los límites de plataforma: pruebas en Linux/Chromium, sin ejecución física en macOS ni Safari.
-
-## Validación de los modales v1.0.1
-
-- Los ocho tests del backend volvieron a pasar. `server.py` sólo cambia el número de versión; el esquema y las reglas permanecen iguales.
-- El recorrido real de navegador comprueba los modales a anchura de escritorio y móvil, foco inicial, mostrar/ocultar contraseña, indicadores de longitud/coincidencia, cierre con Escape y conservación de usuario entre solicitud y código.
-- Se solicita recuperación de admin2 desde el login, admin1 emite un código en la interfaz y se restablece la contraseña desde el modal público. Se comprueba error por contraseñas distintas, error por código inválido y éxito con un código real; finalmente se inicia sesión con la nueva contraseña.
-- Las activaciones de Manager, Técnico y Lead continúan probándose con sus códigos reales y la nueva pantalla de confirmación. Después se ejecutan los flujos operativos existentes.
-- La validación continúa siendo en Linux/Chromium; macOS y Safari no se ejecutaron aquí.
-
-## Ajuste de contraste v1.0.2
-
-- Se oscurecieron únicamente colores de primer plano para textos, etiquetas, ayudas, placeholders y estados. La distribución y los tamaños no cambiaron.
-- Las ayudas y textos secundarios de los modales se ajustaron a un contraste calculado de al menos 4.8:1 respecto al fondo de referencia claro `#f5f9ff`. Se conservaron los textos claros sobre superficies oscuras. Esta comprobación no equivale a una auditoría completa de accesibilidad de todas las combinaciones.
-- Se inspeccionó la captura actualizada de activación y se repitió el recorrido funcional existente en Chromium, sin errores JavaScript.
-- Sintaxis JavaScript y Python: correctas. El backend sólo cambia la versión; sus ocho tests de lógica pasaron en la entrega anterior y no se repitieron para este ajuste de color.
-
-## Flujos v1.1.0
-
-**Suite completa: 11 tests aprobados, 0 fallidos, 0 omitidos.** Se mantienen los ocho originales y se agregan:
-
-- `test_multiple_weekday_intervals_full_sunday_and_net_guard`: guarda exactamente los trece intervalos del ejemplo (dos de lunes a sábado y domingo completo), obtiene 71 horas de cobertura semanal y 69 horas netas después de dos horas de OT totalmente contenidas en la cobertura. Valida datos de hora inválidos y forma de segmentos.
-- `test_single_backup_atomic_replacement_and_history`: rechaza una segunda asignación, mantiene la primera ante una sustitución inválida, sustituye de forma explícita, verifica autoridad exclusiva del nuevo backup, conserva ambas filas y mantiene la capacidad Lead al revocar.
-- `test_legacy_multiple_backups_never_grant_simultaneous_authority`: simula una base anterior con dos filas activas, conserva la información al inicializar, autoriza sólo la última y comprueba que revocar no reactive la anterior.
-
-**Recorrido Chromium: PASS, cero errores JavaScript.** Además de los flujos anteriores:
-
-1. Activa dos Leads de diferentes Grupos, asigna el primero desde su fila de Mi equipo y lo sustituye por el segundo sin abrir un dialog. Comprueba que sólo una fila siga vigente, las dos personas conserven capacidad Lead y revocar retire la asignación.
-2. Captura desde la interfaz los trece segmentos semanales, agrega/quita un intervalo, selecciona domingo 24 horas, verifica el ancho del formulario en móvil y lee los segmentos reales guardados en SQLite a través del API.
-3. Una sesión independiente de Técnico inicia un Timer y registra una OT de un periodo anterior. Desde el Panel del Manager se abre la tarjeta de timers mientras está seleccionado otro mes: el filtro pasa a Todos los periodos y se muestra la actividad real. El detalle muestra En curso y su contador.
-4. La tarjeta de pendientes localiza la OT del periodo anterior; el Manager aprueba desde el detalle y la fila deja de aparecer en el filtro de pendientes. La sesión del Técnico detiene su propio Timer.
-5. Continúan pasando guardias, OT histórica, emergencia, aprobación, descarga Excel, Claim, ADP, navegación, activación, recuperación y las comprobaciones existentes.
-
-No se ejecutó esta versión en macOS físico ni Safari. Las pruebas usan bases temporales; no se reinicia la base manual del usuario.
-
-## Acceso enfocado en OT y Guardias · v1.1.1
-
-- Se actualizan los textos de login, Mi tiempo y Acerca del proyecto para describir control de OT y Guardias. Se retiran las referencias a comenzar una jornada.
-- Se agrega el botón de mostrar/ocultar contraseña del login, reutilizando el controlador existente: la prueba real de navegador verifica ambos tipos de campo, el valor conservado, etiquetas accesibles y que el botón no envíe el formulario.
-- La suite de navegador existente continúa con activación, recuperación, organización, reglas multintervalo, delegación inline, tarjetas, timers, aprobaciones, Excel, Claim y ADP. Resultado: PASS, sin errores JavaScript.
-- Sintaxis JavaScript y Python verificadas. El backend sólo cambia el número de versión; los once tests de lógica pasaron en v1.1.0 y no se repitieron para este ajuste de texto y control visual.
-
-## Analítica, roles y recuperaciones · v1.2.0
-
-**Suite completa: 17 tests aprobados, 0 fallidos, 0 omitidos.** Además de los once existentes:
-
-- `test_analytics_breakdown_reconciles_groups_users_and_payroll`: cuatro tipos, dos Grupos, usuarios con/sin horas, OT traslapada entre categorías, Guardia neta, pendientes/programados sin ejecutar excluidos, suma por Grupo/usuario/día y coincidencia con contabilidad. El caso produce 2 h emergentes + 1.5 h programadas + 4 h históricas + 3.5 h de Guardia neta = 11 h.
-- `test_analytics_scope_export_delegation_expiry_and_revocation`: Técnico sin acceso al equipo ni su Excel, resumen personal sin filtros ajenos, Admin sin analítica operativa, Lead limitado a un Grupo delegado, rechazo de su propio Grupo si no está delegado, bloqueo al vencer/revocar y lectura de Excel generado.
-- `test_analytics_respects_month_boundaries_and_zero_hours`: OT y Guardia que cruzan enero/febrero, divididas correctamente por fecha local.
-- `test_only_admin_manages_people_and_team_roles_stay_operational`: Manager y Técnico no crean ni editan personas por API; Admin sí; el perfil propio no cambia la pertenencia al Grupo.
-- `test_recovery_routes_technicians_to_manager_managers_to_admin`: bandejas por responsable, prohibición al Lead incluso delegado, recuperación de Manager atendida por Admin, otro Admin para el administrador y fallback para Técnico sin Manager.
-- `test_recovery_code_view_regenerate_encryption_expiry_and_single_use`: consulta sin renovar expiración, ausencia de código en state, valor cifrado distinto del código, archivo de clave 0600, deduplicación de solicitudes, regeneración invalida el anterior, legado sin valor recuperable, rechazo de vencidos/usados e invalidación de sesiones.
-
-Los fixtures de analítica usan registros de categorías conocidas en SQLite temporal; los flujos reales de ejecución programada/emergencia tienen sus pruebas independientes. No se precargan esos datos en la entrega.
-
-**Navegador real: PASS, cero errores JavaScript.** Se mantienen los flujos existentes y se agregan: consulta y regeneración del código desde la bandeja, rechazo del código anterior, ausencia de botones de edición/alta para Manager, navegación de analítica por tipo/Grupo/Técnico y mes, descarga del Excel y lectura de sus cuatro hojas, vista personal sin filtros de otras personas, acceso de Lead sólo al Grupo delegado y retorno al resumen personal al revocar. También se verificó el ancho del documento en escritorio y móvil y se inspeccionó una captura de analítica.
-
-Se agregó `cryptography` al entorno virtual y a requirements. La clave de recuperación y las bases temporales no forman parte del paquete. Se mantiene el límite de plataforma: Linux/Chromium; no se ejecutó macOS físico ni Safari, ni se probó un despliegue público.
+ZIP completo con código, HTML, CSS, JavaScript, requisitos, README, especificación, validación, configuración VS Code y pruebas. Excluye entornos virtuales, bases SQLite, claves, sesiones y datos de prueba. Se descomprime e importa el servidor del ZIP con una base temporal nueva para comprobar versión, dos administradores iniciales y operación vacía.

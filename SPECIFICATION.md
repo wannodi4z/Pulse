@@ -1,4 +1,4 @@
-# Operational Pulse 1.2.0 · especificación de la implementación nueva
+# Operational Pulse 1.3.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -9,7 +9,7 @@ Aplicación local para macOS y VS Code. HTML, CSS y JavaScript sin compilación,
 - Cuenta: código único y nombre, edición y eliminación sólo si no tiene Grupos ni Managers.
 - Manager: persona con rol MANAGER, una Cuenta, cero Grupos mientras se configura y uno o más Grupos cuando se asignan. Los Grupos seleccionables son los de su Cuenta que estén libres o sean propios. Una selección multigrupo se presenta como `Multigrupo · N grupos`.
 - Grupo: una Cuenta y, opcionalmente, un Manager de la misma Cuenta. Una columna de propietario evita asignaciones simultáneas a dos Managers.
-- Técnico: persona con rol USER, un Grupo y una capacidad opcional `is_lead`. La restricción única de SQLite impide dos Leads en el mismo Grupo. Mover un Lead a un Grupo que tenga otro Lead se rechaza aunque se intente desmarcar la capacidad durante el movimiento.
+- Técnico: persona con rol USER, un Grupo y una capacidad opcional `is_lead`. Sólo puede haber un Lead entre todos los Grupos de un Manager. El Lead permanece dentro de su Grupo. La validación se ejecuta dentro de la transacción SQLite al designar, transferir un Técnico, reasignar un Grupo o transferir los equipos durante una baja. Un Grupo sin Manager no admite nuevas designaciones Lead.
 - Jerarquía visual: Cuenta contiene bloques de Managers; cada Manager contiene sólo sus Grupos; cada Grupo contiene sus Técnicos. Los Grupos libres aparecen bajo `Grupos sin Manager`.
 - Lead y Técnico comparten una identidad. La delegación temporal es una entidad independiente con Manager, Lead, alcance por Grupos, inicio, fin y revocación. No se permite autoaprobación.
 
@@ -66,7 +66,7 @@ La asignación de backup se captura dentro de Mi equipo y mantiene vigencia, alc
 
 Las tarjetas del Manager son botones con navegación contextual. El estado «En curso» y el periodo «Todos los periodos» permiten localizar timers aunque se esté consultando otro mes. Los filtros de tipo, Técnico y Grupo se conservan en la pantalla de revisión hasta que se cambian o se navega a otra sección. El Excel sigue correspondiendo a tiempo aprobado del mes seleccionado, tal como indica la pantalla. Las solicitudes concretas del Panel reutilizan el detalle y los endpoints de aprobación existentes.
 
-## Analítica y separación de responsabilidades v1.2.0
+## Analítica y separación de responsabilidades v1.3.0
 
 `GET /api/analytics` y `/api/analytics.xlsx` requieren Manager o Lead con delegación efectiva. El conjunto de usuarios se obtiene exclusivamente de los Grupos bajo su alcance; no se añade la identidad propia del Lead si su Grupo no está delegado. Admin y Técnicos sin delegación reciben 403.
 
@@ -79,3 +79,30 @@ La administración organizacional de personas queda protegida por Admin en el en
 Las recuperaciones de Técnicos se asignan a su Manager activo; las de Managers/administradores y los casos sin Manager activo se asignan a Admin distinto del solicitante. Lead no tiene permisos de recuperación. La misma regla se usa para filtrar la bandeja, emitir y ver el código.
 
 El código conserva su hash verificador y se agrega un valor cifrado con Fernet en una tabla separada. La clave local se crea con permisos 0600, permanece fuera de SQLite y no se entrega en el ZIP ni Git. Sólo se revela el valor a su responsable autorizado por un endpoint POST auditado. Ver no renueva vigencia; regenerar invalida el anterior; consumir elimina el valor cifrado e invalida sesiones anteriores. Las solicitudes abiertas duplicadas se evitan y los códigos de otras solicitudes del mismo usuario se invalidan al emitir/consumir. Los códigos de versiones previas sin valor cifrado requieren regeneración para consulta.
+
+
+## Administración del ciclo de vida · v1.3.0
+
+Sólo Admin crea, edita, transfiere, da de baja y reactiva personas. **Transferir y dar de baja son acciones independientes.** Manager gestiona tiempo y recuperaciones, sin editar la estructura.
+
+- **Transferir Técnico activo:** en Organización, pulsa Transferir junto a la persona, elige un Grupo con Manager activo y explica el motivo. Conserva identidad, estado e historial. No se permite mover un Técnico con Timer en curso: primero debe detenerlo. Su sesión se invalida para aplicar el acceso nuevo; vuelve a entrar con su contraseña. La capacidad Lead se conserva si no genera un segundo backup para el Manager de destino; para cambiar al backup, Admin debe retirar primero la designación correspondiente.
+- **Transferir Grupo activo:** pulsa Transferir en el Grupo. Elige otro Manager activo de la misma Cuenta. Conserva todos los integrantes, registros y timers de los Técnicos en ejecución. Revoca las delegaciones afectadas, sin desactivar a nadie. Si coinciden dos Leads bajo el destino, se rechaza toda la operación; Admin decide antes qué designación retirar.
+- **Un Lead por Manager:** el técnico designado es el backup de ese Manager, incluso si administra varios Grupos. Designarlo no otorga aprobación. El Manager define por separado la vigencia y los Grupos de la delegación temporal, y puede revocarla. Las bases anteriores con varios Leads no se borran ni corrigen silenciosamente: Organización muestra una advertencia y Admin debe retirar las designaciones adicionales. Las nuevas escrituras impiden crear el conflicto.
+- **Baja de Manager:** revisa el impacto y asigna cada Grupo a otro Manager activo de la misma Cuenta. Si el reemplazo es nuevo, créalo y activa su acceso primero; el titular permanece activo hasta confirmar el traspaso. Se puede repartir el equipo entre varios Managers. Los Grupos y Técnicos conservan sus IDs e historial y los Técnicos continúan activos; sus timers siguen en ejecución. La operación completa ocurre en una sola transacción.
+- **Baja de Técnico:** revisa los pendientes. Si tiene Timer activo, Admin debe autorizar su cierre en ese momento y completar la documentación de cualquier OT de emergencia pendiente. El tiempo ya realizado queda enviado a aprobación del responsable del Grupo. Las OT programadas individuales sin ejecutar se cancelan. Las Guardias aún no iniciadas se cancelan; las que ya iniciaron conservan cobertura hasta la hora de la baja, incluyendo cruces de medianoche. Claim, ADP, Excel y analítica usan ese mismo límite. No se elimina el historial.
+- **Seguridad de la baja:** retira acceso, sesiones, activación y capacidad Lead, revoca delegaciones y cancela las recuperaciones propias. No permite la baja del Admin que ejecuta la acción ni del último Admin activo. Los códigos emitidos por el responsable saliente y los de Técnicos que cambian de Manager se invalidan y las solicitudes quedan pendientes para el nuevo responsable. Los códigos no se transfieren.
+- **Reactivar:** requiere motivo y genera una activación nueva; la persona define una contraseña nueva. Conserva identidad e historial, pero no restaura Lead, delegaciones, Grupos del antiguo Manager, timers ni coberturas canceladas. Un Manager heredado en baja que aún tiene Grupos requiere regularizar primero el traspaso mediante la revisión de baja.
+- **Revisión vigente:** la baja exige un resumen firmado por hash de la situación revisada. Si cambia el equipo o los pendientes, se rechaza con 409; cierra y vuelve a abrir la revisión. Motivos, movimientos, cierres y cambios de acceso quedan en auditoría.
+
+El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los formularios usan columnas en escritorio y muestran instrucciones. Las confirmaciones usan el diálogo de la aplicación. En ventanas pequeñas o formularios extensos se conserva desplazamiento accesible; no se ocultan controles para evitar scroll.
+
+
+### API administrativa del ciclo de vida
+
+| Método / ruta | Función |
+| --- | --- |
+| `GET /api/admin/people/{id}/impact` | Vista consistente de Grupos, pendientes y huella `expected`; sólo Admin. |
+| `POST /api/admin/people/{id}/offboard` | Motivo, confirmación, huella revisada, mapa `transfers`, autorización `stop_timers` y documentación; operación atómica. |
+| `POST /api/admin/people/{id}/reactivate` | Motivo; genera código de activación nuevo. |
+| `PUT /api/people/{id}` | Edita o transfiere con `group_id` y `transfer_reason`; no permite cambiar estado de acceso directamente. |
+| `PUT /api/groups/{id}` | Edita o transfiere con `manager_id` y `transfer_reason`; valida Cuenta, Manager activo para equipos y Lead único. |
