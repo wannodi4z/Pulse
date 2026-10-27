@@ -18,12 +18,14 @@ from zoneinfo import ZoneInfo
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.1.1'
+VERSION = '1.2.0'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
+RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
 TZ = ZoneInfo(os.environ.get('PULSE_TIMEZONE', 'America/Mexico_City'))
 SESSION_SECONDS = 8 * 3600
 app = FastAPI(title='Operational Pulse', version=VERSION)
@@ -91,6 +93,7 @@ def init_db():
         CREATE UNIQUE INDEX IF NOT EXISTS one_active_timer ON timers(user_id) WHERE end_at IS NULL;
         CREATE TABLE IF NOT EXISTS guards(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), start_date TEXT NOT NULL, end_date TEXT NOT NULL, rule_snapshot TEXT NOT NULL, status TEXT NOT NULL, approved_by TEXT REFERENCES users(id), created_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS recoveries(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), status TEXT NOT NULL, code_hash TEXT, expires_at TEXT, created_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS recovery_code_vault(recovery_id TEXT PRIMARY KEY REFERENCES recoveries(id), encrypted_code BLOB NOT NULL, created_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY, actor_id TEXT REFERENCES users(id), action TEXT NOT NULL, entity_id TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
@@ -322,12 +325,13 @@ def state(user=Depends(current_user)):
                   'windows': [r for r in rows(c, 'windows') if user['role'] == 'ADMIN' or r['group_id'] in own_ids],
                   'rules': [dict(r, segments=json.loads(r['segments'])) for r in rows(c, 'rules') if user['role'] == 'ADMIN' or r['manager_id'] == user['id'] or any(g['manager_id'] == r['manager_id'] for g in shown_groups)],
                   'delegations': [dict(d, group_ids=json.loads(d['group_ids'])) for d in rows(c, 'delegations') if user['role'] == 'ADMIN' or d['manager_id'] == user['id'] or d['lead_id'] == user['id']],
-                  'recoveries': [r for r in rows(c, 'recoveries') if user['role'] == 'ADMIN' or next((p for p in people if p['id'] == r['user_id']), {}).get('group_id') in group_ids] if user['role'] != 'USER' or group_ids else [],
+                  'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
                   'audit': [a for a in rows(c, 'audit') if user['role'] == 'ADMIN' or a['actor_id'] in visible or a['entity_id'] in visible_entities][-300:]}
         for g in result['guards']:
             g['rule_snapshot'] = json.loads(g['rule_snapshot'])
         for r in result['recoveries']:
             r.pop('code_hash', None)
+            r['code_available'] = bool(r['status'] == 'ISSUED' and r['expires_at'] and parse_at(r['expires_at']) > datetime.now(timezone.utc) and c.execute('SELECT 1 FROM recovery_code_vault WHERE recovery_id=?', (r['id'],)).fetchone())
         return result
 
 
@@ -397,19 +401,12 @@ def delete_group(identity: str, actor=Depends(admin)):
 
 @app.post('/api/people')
 @app.put('/api/people/{identity}')
-def save_person(data: dict = Body(...), identity: str = '', actor=Depends(current_user)):
+def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)):
     with connection(True) as c:
         old = get(c, 'users', identity) if identity else None
         role = old['role'] if old else text(data, 'role')
         if role not in ('ADMIN', 'MANAGER', 'USER'):
             fail('Rol no válido.')
-        if actor['role'] != 'ADMIN':
-            if role != 'USER':
-                fail('Sólo Administración puede crear Managers y administradores.', 403)
-            if old:
-                authorized_target(c, actor, old)
-            if data.get('group_id') not in scope(c, actor):
-                fail('El Grupo no está en tu alcance.', 403)
         aid = data.get('account_id') if role == 'MANAGER' else None
         gid = data.get('group_id') if role == 'USER' else None
         lead = bool(data.get('is_lead')) and role == 'USER'
@@ -502,11 +499,46 @@ def change_password(data: dict = Body(...), actor=Depends(current_user)):
     return {'ok': True, 'reauthenticate': True}
 
 
+def recovery_handler_allowed(c, actor, target):
+    if actor['id'] == target['id'] or actor['role'] == 'USER':
+        return False
+    manager_id = None
+    if target['role'] == 'USER' and target['group_id']:
+        manager_row = c.execute("SELECT u.id FROM groups g JOIN users u ON u.id=g.manager_id WHERE g.id=? AND u.role='MANAGER' AND u.status='ACTIVE'", (target['group_id'],)).fetchone()
+        manager_id = manager_row['id'] if manager_row else None
+    if manager_id:
+        return actor['role'] == 'MANAGER' and actor['id'] == manager_id
+    return actor['role'] == 'ADMIN'
+
+
+def recovery_cipher(create=False):
+    """Authenticated encryption; key stays outside SQLite and outside the source ZIP."""
+    try:
+        try:
+            key = RECOVERY_KEY.read_bytes()
+        except FileNotFoundError:
+            if not create:
+                fail('No está disponible la clave del código guardado. Regenera el código para poder consultarlo.', 409)
+            RECOVERY_KEY.parent.mkdir(parents=True, exist_ok=True)
+            candidate = Fernet.generate_key()
+            try:
+                descriptor = os.open(RECOVERY_KEY, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError:
+                key = RECOVERY_KEY.read_bytes()
+            else:
+                with os.fdopen(descriptor, 'wb') as output:
+                    output.write(candidate)
+                key = candidate
+        return Fernet(key)
+    except (OSError, ValueError):
+        fail('No se pudo acceder a la clave local de recuperación. Revisa el archivo de clave y sus permisos.', 503)
+
+
 @app.post('/api/recoveries')
 def request_recovery(data: dict = Body(...)):
     with connection(True) as c:
         u = c.execute('SELECT * FROM users WHERE username=? COLLATE NOCASE', (text(data, 'identity'),)).fetchone()
-        if u and u['status'] == 'ACTIVE' and not c.execute("SELECT 1 FROM recoveries WHERE user_id=? AND status='PENDING'", (u['id'],)).fetchone():
+        if u and u['status'] == 'ACTIVE' and not c.execute("SELECT 1 FROM recoveries WHERE user_id=? AND status IN ('PENDING','ISSUED')", (u['id'],)).fetchone():
             c.execute('INSERT INTO recoveries VALUES(?,?,?,?,?,?)', (uid(), u['id'], 'PENDING', None, None, now()))
     return {'message': 'Si la cuenta está activa, se registró la solicitud. Contacta a tu Manager o a Administración.'}
 
@@ -515,17 +547,42 @@ def request_recovery(data: dict = Body(...)):
 def issue_recovery(identity: str, actor=Depends(current_user)):
     with connection(True) as c:
         r = get(c, 'recoveries', identity)
-        if r['status'] == 'USED':
-            fail('Esta solicitud ya fue utilizada.')
+        if r['status'] in ('USED', 'CANCELLED'):
+            fail('Esta solicitud ya fue utilizada o sustituida.')
         target = get(c, 'users', r['user_id'])
-        if target['id'] == actor['id']:
-            fail('Otra persona autorizada debe validar tu recuperación.', 403)
-        authorized_target(c, actor, target, approval=actor['role'] != 'ADMIN')
+        if not recovery_handler_allowed(c, actor, target):
+            fail('Esta recuperación corresponde a otro responsable; nadie puede emitir su propio código.', 403)
+        if target['status'] != 'ACTIVE':
+            fail('La cuenta debe estar activa. Administración debe revisar su estado.')
         code = 'REC-' + secrets.token_hex(6).upper()
         expires = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
+        encrypted = recovery_cipher(create=True).encrypt(code.encode())
+        c.execute("UPDATE recoveries SET status='CANCELLED',code_hash=NULL WHERE user_id=? AND id<>? AND status IN ('PENDING','ISSUED')", (target['id'], identity))
+        c.execute('DELETE FROM recovery_code_vault WHERE recovery_id IN (SELECT id FROM recoveries WHERE user_id=?)', (target['id'],))
         c.execute("UPDATE recoveries SET status='ISSUED',code_hash=?,expires_at=? WHERE id=?", (password_hash(code), expires, identity))
+        c.execute('INSERT INTO recovery_code_vault VALUES(?,?,?)', (identity, encrypted, now()))
         audit(c, actor, 'ISSUE_RECOVERY', identity)
-    return {'code': code, 'expires_at': expires}
+    return {'code': code, 'expires_at': expires, 'username': target['username']}
+
+
+@app.post('/api/recoveries/{identity}/view')
+def view_recovery_code(identity: str, actor=Depends(current_user)):
+    with connection(True) as c:
+        r = get(c, 'recoveries', identity)
+        target = get(c, 'users', r['user_id'])
+        if not recovery_handler_allowed(c, actor, target):
+            fail('Sólo el responsable autorizado puede consultar este código.', 403)
+        if r['status'] != 'ISSUED' or not r['expires_at'] or parse_at(r['expires_at']) <= datetime.now(timezone.utc):
+            fail('El código ya no está vigente. Genera uno nuevo.')
+        stored = c.execute('SELECT encrypted_code FROM recovery_code_vault WHERE recovery_id=?', (identity,)).fetchone()
+        if not stored:
+            fail('El código fue generado en una versión anterior. Regénéralo para poder consultarlo.', 409)
+        try:
+            code = recovery_cipher().decrypt(stored['encrypted_code']).decode()
+        except InvalidToken:
+            fail('No se puede consultar el código con la clave disponible. Regénéralo.', 409)
+        audit(c, actor, 'VIEW_RECOVERY_CODE', identity)
+    return {'code': code, 'expires_at': r['expires_at'], 'username': target['username']}
 
 
 @app.post('/api/recoveries/complete')
@@ -541,6 +598,8 @@ def complete_recovery(data: dict = Body(...)):
             fail('Código inválido o vencido.')
         c.execute('UPDATE users SET password_hash=? WHERE id=?', (password_hash(password), u['id']))
         c.execute("UPDATE recoveries SET status='USED',code_hash=NULL WHERE id=?", (r['id'],))
+        c.execute("UPDATE recoveries SET status='CANCELLED',code_hash=NULL WHERE user_id=? AND id<>? AND status IN ('PENDING','ISSUED')", (u['id'], r['id']))
+        c.execute('DELETE FROM recovery_code_vault WHERE recovery_id IN (SELECT id FROM recoveries WHERE user_id=?)', (u['id'],))
         invalidate_sessions(c, u['id'])
         audit(c, dict(u), 'RESET_PASSWORD', u['id'])
     return {'ok': True}
@@ -828,7 +887,7 @@ def accounting(c, visible, month=None):
         ots.setdefault(o['user_id'], []).append((parse_at(o['start_at']), parse_at(o['end_at'])))
     output = []
 
-    def append_parts(user_id, kind, a, b, ref, description, entity_id):
+    def append_parts(user_id, kind, a, b, ref, description, entity_id, capture_type=''):
         a, b = a.astimezone(TZ), b.astimezone(TZ)
         if month:
             a, b = max(a, lower), min(b, upper)
@@ -838,7 +897,7 @@ def accounting(c, visible, month=None):
             minutes = round((stop.astimezone(timezone.utc) - a.astimezone(timezone.utc)).total_seconds() / 60, 4)
             if minutes:
                 p = people[user_id]
-                output.append({'id': entity_id, 'user_id': user_id, 'employee_id': p['employee_id'], 'name': f"{p['first']} {p['last']}", 'group_id': p['group_id'], 'kind': kind, 'date': str(a.date()), 'start': a.strftime('%H:%M'), 'end': stop.strftime('%H:%M'), 'start_at': a.isoformat(), 'end_at': stop.isoformat(), 'minutes': minutes, 'hours': round(minutes / 60, 4), 'reference': ref, 'description': description})
+                output.append({'id': entity_id, 'user_id': user_id, 'employee_id': p['employee_id'], 'name': f"{p['first']} {p['last']}", 'group_id': p['group_id'], 'kind': kind, 'capture_type': capture_type if kind == 'OT' else 'GUARD', 'date': str(a.date()), 'start': a.strftime('%H:%M'), 'end': stop.strftime('%H:%M'), 'start_at': a.isoformat(), 'end_at': stop.isoformat(), 'minutes': minutes, 'hours': round(minutes / 60, 4), 'reference': ref, 'description': description})
             a = stop
 
     # Overlapping approved OT is counted once, even when two different records overlap.
@@ -847,7 +906,7 @@ def accounting(c, visible, month=None):
         for o in sorted([o for o in approved if o['user_id'] == user_id], key=lambda o: (o['start_at'], o['id'])):
             a, b = parse_at(o['start_at']), parse_at(o['end_at'])
             for pa, pb in subtract_intervals(a, b, prior):
-                append_parts(user_id, 'OT', pa, pb, o['reference'], o['description'], o['id'])
+                append_parts(user_id, 'OT', pa, pb, o['reference'], o['description'], o['id'], o['capture_type'])
             prior.append((a, b))
     guard_intervals = {}
     for g in rows(c, 'guards'):
@@ -891,6 +950,149 @@ def capture(month: str, user_id: str | None = None, group_id: str | None = None,
     with connection() as c:
         result = accounting(c, selected_users(c, actor, user_id, group_id), month)
     return {'rows': result, 'ot_minutes': round(sum(r['minutes'] for r in result if r['kind'] == 'OT'), 4), 'guard_minutes': round(sum(r['minutes'] for r in result if r['kind'] == 'GUARD'), 4), 'timezone': str(TZ)}
+
+
+ANALYTICS_TYPES = ('EMERGENCY', 'PLANNED', 'HISTORICAL', 'GUARD')
+
+
+def analytics_report(c, actor, month, user_id=None, group_id=None, personal=False):
+    """Aggregate accounting rows with separate personal/team authorization."""
+    if personal:
+        operational(actor)
+        allowed_groups = {actor['group_id']} if actor['group_id'] else set()
+        visible = {actor['id']}
+        user_id, group_id = actor['id'], None
+    else:
+        allowed_groups = scope(c, actor)
+        if actor['role'] != 'MANAGER' and not (actor['role'] == 'USER' and allowed_groups):
+            fail('La analítica del equipo requiere un Manager o un Lead con delegación vigente.', 403)
+        if group_id and group_id not in allowed_groups:
+            fail('El Grupo no está en tu alcance.', 403)
+        visible = {p['id'] for p in rows(c, 'users') if p['role'] == 'USER' and p['group_id'] in allowed_groups}
+        if user_id:
+            if user_id not in visible:
+                fail('El Técnico no está en tu alcance delegado.', 403)
+            visible &= {user_id}
+        if group_id:
+            visible &= {p['id'] for p in rows(c, 'users') if p['group_id'] == group_id}
+    try:
+        if len(month) != 7 or month[4] != '-':
+            raise ValueError()
+        date.fromisoformat(month + '-01')
+    except ValueError:
+        fail('Selecciona un mes válido en formato AAAA-MM.')
+    detail = accounting(c, visible, month)
+    people = [p for p in rows(c, 'users') if p['id'] in visible]
+    shown_groups = [g for g in rows(c, 'groups') if g['id'] in allowed_groups and (not group_id or g['id'] == group_id)]
+    if user_id:
+        shown_groups = [g for g in shown_groups if any(p['group_id'] == g['id'] for p in people)]
+    group_names = {g['id']: g['name'] for g in shown_groups}
+
+    def empty_totals():
+        return {**dict.fromkeys(ANALYTICS_TYPES, 0), 'ot_minutes': 0, 'total_minutes': 0}
+
+    def add(target, record):
+        category = record['capture_type']
+        if category not in ANALYTICS_TYPES:
+            fail('El registro tiene un tipo de captura no reconocido.', 409)
+        target[category] += record['minutes']
+        target['total_minutes'] += record['minutes']
+        if category != 'GUARD':
+            target['ot_minutes'] += record['minutes']
+
+    def rounded(totals):
+        return {key: round(value, 4) for key, value in totals.items()}
+
+    summary = empty_totals()
+    by_group = {g['id']: {'id': g['id'], 'code': g['code'], 'name': g['name'], 'user_count': sum(p['group_id'] == g['id'] for p in people), 'minutes': empty_totals()} for g in shown_groups}
+    by_user = {p['id']: {'id': p['id'], 'name': f"{p['first']} {p['last']}", 'employee_id': p['employee_id'], 'group_id': p['group_id'], 'group_name': group_names.get(p['group_id'], ''), 'minutes': empty_totals()} for p in people}
+    by_day = {}
+    for record in detail:
+        record['group_name'] = group_names.get(record['group_id'], '')
+        add(summary, record)
+        add(by_user[record['user_id']]['minutes'], record)
+        if record['group_id'] in by_group:
+            add(by_group[record['group_id']]['minutes'], record)
+        add(by_day.setdefault(record['date'], empty_totals()), record)
+    for item in [*by_group.values(), *by_user.values()]:
+        item['minutes'] = rounded(item['minutes'])
+    return {'month': month, 'timezone': str(TZ), 'basis': 'APPROVED_ACTUAL', 'filters': {'user_id': user_id, 'group_id': group_id},
+            'mode': 'PERSONAL' if personal else 'TEAM', 'summary': rounded(summary),
+            'groups': sorted(by_group.values(), key=lambda g: (-g['minutes']['total_minutes'], g['name'])),
+            'users': sorted(by_user.values(), key=lambda u: (-u['minutes']['total_minutes'], u['name'])),
+            'days': [{'date': day, 'minutes': rounded(values)} for day, values in sorted(by_day.items())], 'rows': detail}
+
+
+@app.get('/api/analytics')
+def analytics(month: str, user_id: str | None = None, group_id: str | None = None, actor=Depends(current_user)):
+    with connection() as c:
+        return analytics_report(c, actor, month, user_id, group_id)
+
+
+def personal_analytics_query(request):
+    if any(key in request.query_params for key in ('user_id', 'group_id')):
+        fail('Mi resumen sólo consulta al propietario de la sesión; no admite filtros de otras personas o Grupos.')
+
+
+@app.get('/api/my-analytics')
+def my_analytics(request: Request, month: str, actor=Depends(current_user)):
+    personal_analytics_query(request)
+    with connection() as c:
+        return analytics_report(c, actor, month, personal=True)
+
+
+@app.get('/api/analytics.xlsx')
+def analytics_excel(month: str, user_id: str | None = None, group_id: str | None = None, actor=Depends(current_user)):
+    with connection() as c:
+        report = analytics_report(c, actor, month, user_id, group_id)
+    return analytics_workbook(report)
+
+
+@app.get('/api/my-analytics.xlsx')
+def my_analytics_excel(request: Request, month: str, actor=Depends(current_user)):
+    personal_analytics_query(request)
+    with connection() as c:
+        report = analytics_report(c, actor, month, personal=True)
+    return analytics_workbook(report)
+
+
+def analytics_workbook(report):
+    month = report['month']
+    wb = Workbook()
+    safe = lambda value: "'" + str(value) if str(value).startswith(('=', '+', '-', '@')) else value
+    labels = ['OT de emergencia (h)', 'OT programada (h)', 'OT histórica (h)', 'Guardia neta (h)', 'Total aprobado (h)']
+    values = lambda totals: [round(totals[key] / 60, 4) for key in (*ANALYTICS_TYPES, 'total_minutes')]
+    summary = wb.active
+    summary.title = 'Resumen'
+    summary.append(['Mes', month]); summary.append(['Zona horaria', report['timezone']])
+    summary.append(['Criterio', 'Tiempo real aprobado; OT única y Guardia neta. Grupo actual del Técnico.'])
+    summary.append(['Tipo', 'Horas'])
+    for label, amount in zip(labels, values(report['summary'])):
+        summary.append([label, amount])
+    groups = wb.create_sheet('Por grupo'); groups.append(['Código', 'Grupo', 'Técnicos', *labels])
+    for group in report['groups']:
+        groups.append([safe(group['code']), safe(group['name']), group['user_count'], *values(group['minutes'])])
+    people = wb.create_sheet('Por técnico'); people.append(['Employee ID', 'Técnico', 'Grupo', *labels])
+    for user in report['users']:
+        people.append([safe(user['employee_id']), safe(user['name']), safe(user['group_name']), *values(user['minutes'])])
+    detail = wb.create_sheet('Detalle'); detail.append(['Fecha', 'Employee ID', 'Técnico', 'Grupo', 'Tipo', 'Inicio', 'Fin', 'Horas', 'Referencia'])
+    names = dict(zip(ANALYTICS_TYPES, ['OT de emergencia', 'OT programada', 'OT histórica', 'Guardia neta']))
+    for row in report['rows']:
+        detail.append([row['date'], safe(row['employee_id']), safe(row['name']), safe(row['group_name']), names[row['capture_type']], row['start'], row['end'], row['hours'], safe(row['reference'])])
+    for sheet in wb:
+        for cell in sheet[1]:
+            cell.font = Font(bold=True, color='FFFFFF'); cell.fill = PatternFill('solid', fgColor='1C5185')
+        sheet.freeze_panes = 'A2'
+        if sheet.title != 'Resumen':
+            sheet.auto_filter.ref = sheet.dimensions
+        for column in sheet.columns:
+            sheet.column_dimensions[column[0].column_letter].width = 25
+        for row in sheet.iter_rows(min_row=2):
+            for cell in row:
+                if isinstance(cell.value, float):
+                    cell.number_format = '0.00'
+    stream = io.BytesIO(); wb.save(stream); stream.seek(0)
+    return StreamingResponse(stream, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment; filename="Operational_Pulse_Analitica_{month}.xlsx"'})
 
 
 @app.get('/api/export.xlsx')

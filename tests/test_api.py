@@ -257,6 +257,169 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(uc.get('/api/state').status_code,401)
         self.login(uc,'T001','FinalPassword2026!')
 
+    def analytics_fixture(self):
+        a,g1,m,mc,u1,c1=self.organization()
+        g2=self.group(a,'G2')
+        result=self.client.put('/api/groups/'+g2,json={'account_id':a,'code':'G2','name':'Grupo G2','manager_id':m['id']})
+        self.assertEqual(result.status_code,200,result.text)
+        u2,c2,_=self.person('USER','T002',group=g2)
+        self.person('USER','T003',group=g1)
+        events=[(c1,'2026-01-05T23:00:00-06:00','2026-01-06T01:00:00-06:00','EMERGENCY'),
+                (c1,'2026-01-06T00:30:00-06:00','2026-01-06T02:30:00-06:00','PLANNED'),
+                (c1,'2026-01-06T03:00:00-06:00','2026-01-06T04:00:00-06:00','HISTORICAL'),
+                (c2,'2026-01-06T10:00:00-06:00','2026-01-06T13:00:00-06:00','HISTORICAL')]
+        # Known persisted categories in a disposable DB. Execution flows are tested separately.
+        for client,start,end,category in events:
+            identity=self.ot(client,start,end);self.approve(mc,'ot',identity)
+            with self.server.connection(True) as c:c.execute('UPDATE overtime SET capture_type=? WHERE id=?',(category,identity))
+        self.ot(c1,'2026-01-06T15:00:00-06:00','2026-01-06T16:00:00-06:00')  # pending, no hours
+        scheduled=self.ot(c1,'2026-01-07T10:00:00-06:00','2026-01-07T11:00:00-06:00');self.approve(mc,'ot',scheduled)
+        with self.server.connection(True) as c:c.execute("UPDATE overtime SET capture_type='PLANNED',execution='SCHEDULED',start_at=NULL,end_at=NULL WHERE id=?",(scheduled,))
+        rule=self.post('/api/rules',{'name':'Noche','effective_from':'2026-01-01','segments':[{'day':0,'start':'22:00','end':'06:00'}]},mc)['id']
+        guard=self.post('/api/guards',{'rule_id':rule,'start_date':'2026-01-05','end_date':'2026-01-05'},c1)['id'];self.approve(mc,'guard',guard)
+        return a,g1,g2,m,mc,u1,c1,u2,c2
+
+    def test_analytics_breakdown_reconciles_groups_users_and_payroll(self):
+        _,g1,g2,_,mc,u1,c1,u2,c2=self.analytics_fixture()
+        response=mc.get('/api/analytics?month=2026-01');self.assertEqual(response.status_code,200,response.text)
+        report=response.json();summary=report['summary']
+        self.assertEqual(summary,{'EMERGENCY':120,'PLANNED':90,'HISTORICAL':240,'GUARD':210,'ot_minutes':450,'total_minutes':660})
+        self.assertEqual(sum(g['minutes']['total_minutes'] for g in report['groups']),660)
+        self.assertEqual(sum(u['minutes']['total_minutes'] for u in report['users']),660)
+        self.assertEqual(sum(d['minutes']['total_minutes'] for d in report['days']),660)
+        self.assertEqual(len(report['users']),3)
+        self.assertEqual(next(g for g in report['groups'] if g['id']==g1)['minutes']['total_minutes'],480)
+        self.assertEqual(next(g for g in report['groups'] if g['id']==g2)['minutes']['total_minutes'],180)
+        accounting=mc.get('/api/accounting?month=2026-01').json()
+        self.assertEqual(summary['ot_minutes'],accounting['ot_minutes']);self.assertEqual(summary['GUARD'],accounting['guard_minutes'])
+        personal=c1.get('/api/my-analytics?month=2026-01').json()
+        self.assertEqual(personal['mode'],'PERSONAL');self.assertEqual(personal['summary']['total_minutes'],480)
+        self.assertEqual([u['id'] for u in personal['users']],[u1['id']])
+        self.assertTrue(all(r['user_id']==u1['id'] for r in personal['rows']))
+        filtered=mc.get('/api/analytics?month=2026-01&group_id='+g2).json()
+        self.assertEqual(filtered['summary']['total_minutes'],180);self.assertEqual(len(filtered['users']),1)
+        empty=mc.get('/api/analytics?month=2026-02').json();self.assertEqual(empty['summary']['total_minutes'],0);self.assertEqual(empty['rows'],[])
+        self.assertEqual(mc.get('/api/analytics?month=invalid').status_code,422)
+        self.assertEqual(mc.get('/api/analytics?month=').status_code,422)
+
+    def test_analytics_scope_export_delegation_expiry_and_revocation(self):
+        a,g1,g2,m,mc,u1,c1,u2,c2=self.analytics_fixture()
+        self.assertEqual(c1.get('/api/analytics?month=2026-01').status_code,403)
+        self.assertEqual(c1.get('/api/analytics.xlsx?month=2026-01').status_code,403)
+        self.assertEqual(self.client.get('/api/analytics?month=2026-01').status_code,403)
+        self.assertEqual(c1.get('/api/my-analytics?month=2026-01&user_id='+u2['id']).status_code,422)
+        self.assertEqual(c1.get('/api/my-analytics.xlsx?month=2026-01&group_id='+g2).status_code,422)
+        foreign=self.account('FOREIGN');foreign_group=self.group(foreign,'FG')
+        self.assertEqual(mc.get('/api/analytics?month=2026-01&group_id='+foreign_group).status_code,403)
+        lead,lc,_=self.person('USER','L001',group=g1,lead=True)
+        self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,403)
+        current=self.server.datetime.now(self.server.timezone.utc)
+        d=self.post('/api/delegations',{'lead_id':lead['id'],'group_ids':[g2],'start_at':(current-self.server.timedelta(minutes=1)).isoformat(),'end_at':(current+self.server.timedelta(hours=2)).isoformat()},mc)['id']
+        report=lc.get('/api/analytics?month=2026-01').json()
+        self.assertEqual([g['id'] for g in report['groups']],[g2]);self.assertEqual([u['id'] for u in report['users']],[u2['id']])
+        self.assertEqual(lc.get('/api/analytics?month=2026-01&group_id='+g1).status_code,403)
+        self.assertEqual(lc.get('/api/analytics?month=2026-01&user_id='+lead['id']).status_code,403)
+        self.assertEqual(lc.get('/api/my-analytics?month=2026-01').status_code,200)
+        with patch.object(self.server,'now',return_value=(current+self.server.timedelta(hours=3)).isoformat()):
+            self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,403)
+            self.assertEqual(lc.get('/api/analytics.xlsx?month=2026-01').status_code,403)
+            self.assertEqual(lc.get('/api/my-analytics?month=2026-01').status_code,200)
+        self.assertEqual(mc.delete('/api/delegations/'+d).status_code,200)
+        self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,403)
+        exported=mc.get('/api/analytics.xlsx?month=2026-01');self.assertEqual(exported.status_code,200)
+        wb=load_workbook(io.BytesIO(exported.content));self.assertEqual(wb.sheetnames,['Resumen','Por grupo','Por técnico','Detalle'])
+        self.assertEqual(sum(row[-1] for row in list(wb['Por grupo'].values)[1:]),11)
+        personal=c1.get('/api/my-analytics.xlsx?month=2026-01');self.assertEqual(personal.status_code,200)
+        wb=load_workbook(io.BytesIO(personal.content));values=list(wb['Por técnico'].values)[1:]
+        self.assertEqual(len(values),1);self.assertEqual(values[0][0],'T001');self.assertEqual(values[0][-1],8)
+
+    def test_analytics_respects_month_boundaries_and_zero_hours(self):
+        _,_,_,mc,u,uc=self.organization()
+        ot=self.ot(uc,'2026-01-31T23:00:00-06:00','2026-02-01T01:00:00-06:00');self.approve(mc,'ot',ot)
+        with self.server.connection(True) as c:c.execute("UPDATE overtime SET capture_type='EMERGENCY' WHERE id=?",(ot,))
+        rule=self.post('/api/rules',{'name':'Fin de mes','effective_from':'2026-01-01','segments':[{'day':5,'start':'22:00','end':'06:00'}]},mc)['id']
+        guard=self.post('/api/guards',{'rule_id':rule,'start_date':'2026-01-31','end_date':'2026-01-31'},uc)['id'];self.approve(mc,'guard',guard)
+        january=mc.get('/api/analytics?month=2026-01').json();february=mc.get('/api/analytics?month=2026-02').json()
+        self.assertEqual(january['summary']['EMERGENCY'],60);self.assertEqual(january['summary']['GUARD'],60)
+        self.assertEqual(february['summary']['EMERGENCY'],60);self.assertEqual(february['summary']['GUARD'],300)
+        self.assertEqual({r['date'] for r in january['rows']},{'2026-01-31'});self.assertEqual({r['date'] for r in february['rows']},{'2026-02-01'})
+
+    def test_only_admin_manages_people_and_team_roles_stay_operational(self):
+        a,g,m,mc,u,uc=self.organization()
+        data={'role':'USER','employee_id':'T009','first':'Persona','last':'Nueva','email':'new@example.test','group_id':g}
+        self.assertEqual(mc.post('/api/people',json=data).status_code,403)
+        self.assertEqual(mc.put('/api/people/'+u['id'],json={**data,'employee_id':'T001'}).status_code,403)
+        self.assertEqual(uc.put('/api/people/'+u['id'],json={**data,'employee_id':'T001'}).status_code,403)
+        self.assertEqual(self.client.put('/api/people/'+u['id'],json={**data,'employee_id':'T001'}).status_code,200)
+        # Personal contact details remain self-service; hierarchy and Employee ID are not profile fields.
+        self.assertEqual(uc.put('/api/profile',json={'first':'Mi','last':'Perfil','email':'own@example.test'}).status_code,200)
+        self.assertEqual(uc.get('/api/state').json()['user']['group_id'],g)
+
+    def test_recovery_routes_technicians_to_manager_managers_to_admin(self):
+        a,g,m,mc,u,uc=self.organization()
+        public=TestClient(self.server.app)
+        self.post('/api/recoveries',{'identity':'T001'},public)
+        tech_request=next(r for r in mc.get('/api/state').json()['recoveries'] if r['user_id']==u['id'])
+        self.assertNotIn(tech_request['id'],{r['id'] for r in self.client.get('/api/state').json()['recoveries']})
+        self.assertEqual(self.client.post('/api/recoveries/'+tech_request['id']+'/issue',json={}).status_code,403)
+        lead,lc,_=self.person('USER','L001',group=g,lead=True)
+        current=self.server.datetime.now(self.server.timezone.utc)
+        self.post('/api/delegations',{'lead_id':lead['id'],'group_ids':[g],'start_at':(current-self.server.timedelta(minutes=1)).isoformat(),'end_at':(current+self.server.timedelta(hours=2)).isoformat()},mc)
+        self.assertTrue(lc.get('/api/state').json()['can_approve'])
+        self.assertEqual(lc.get('/api/state').json()['recoveries'],[])
+        self.assertEqual(lc.post('/api/recoveries/'+tech_request['id']+'/issue',json={}).status_code,403)
+        self.post('/api/recoveries',{'identity':'M001'},public)
+        manager_request=next(r for r in self.client.get('/api/state').json()['recoveries'] if r['user_id']==m['id'])
+        self.assertNotIn(manager_request['id'],{r['id'] for r in mc.get('/api/state').json()['recoveries']})
+        self.post('/api/recoveries/'+manager_request['id']+'/issue',{},self.client)
+        self.assertEqual(mc.post('/api/recoveries/'+manager_request['id']+'/view',json={}).status_code,403)
+        self.post('/api/recoveries',{'identity':'admin1'},public)
+        admin2=TestClient(self.server.app);self.login(admin2,'admin2','admin22026')
+        own_request=next(r for r in admin2.get('/api/state').json()['recoveries'] if r['user_id']==self.client.get('/api/state').json()['user']['id'])
+        self.assertEqual(self.client.post('/api/recoveries/'+own_request['id']+'/issue',json={}).status_code,403)
+        self.post('/api/recoveries/'+own_request['id']+'/issue',{},admin2)
+        orphan_group=self.group(a,'UNASSIGNED')
+        orphan,_,_=self.person('USER','T099',group=orphan_group)
+        self.post('/api/recoveries',{'identity':'T099'},public)
+        orphan_request=next(r for r in self.client.get('/api/state').json()['recoveries'] if r['user_id']==orphan['id'])
+        self.post('/api/recoveries/'+orphan_request['id']+'/issue',{},self.client)
+
+    def test_recovery_code_view_regenerate_encryption_expiry_and_single_use(self):
+        _,_,_,mc,u,uc=self.organization();public=TestClient(self.server.app)
+        self.post('/api/recoveries',{'identity':'T001'},public)
+        r=mc.get('/api/state').json()['recoveries'][0];path='/api/recoveries/'+r['id']
+        first=self.post(path+'/issue',{},mc)
+        shown=self.post(path+'/view',{},mc)
+        self.assertEqual(first['code'],shown['code']);self.assertEqual(first['expires_at'],shown['expires_at'])
+        self.assertNotIn(first['code'],mc.get('/api/state').text)
+        self.assertTrue(mc.get('/api/state').json()['recoveries'][0]['code_available'])
+        self.assertEqual(uc.post(path+'/view',json={}).status_code,403)
+        self.assertEqual(self.client.post(path+'/view',json={}).status_code,403)
+        with self.server.connection() as c:
+            encrypted=c.execute('SELECT encrypted_code FROM recovery_code_vault WHERE recovery_id=?',(r['id'],)).fetchone()[0]
+            self.assertNotIn(first['code'].encode(),encrypted)
+        self.assertTrue(self.server.RECOVERY_KEY.is_file())
+        self.assertEqual(self.server.RECOVERY_KEY.stat().st_mode & 0o777,0o600)
+        self.post('/api/recoveries',{'identity':'T001'},public)
+        self.assertEqual(len(mc.get('/api/state').json()['recoveries']),1)
+        second=self.post(path+'/issue',{},mc);self.assertNotEqual(first['code'],second['code'])
+        self.assertEqual(public.post('/api/recoveries/complete',json={'identity':'T001','code':first['code'],'password':'NewPassword2026!'}).status_code,422)
+        self.assertEqual(self.post(path+'/view',{},mc)['code'],second['code'])
+        # Legacy codes remain usable by their owners but cannot be recovered from hashes.
+        with self.server.connection(True) as c:c.execute('DELETE FROM recovery_code_vault WHERE recovery_id=?',(r['id'],))
+        self.assertFalse(mc.get('/api/state').json()['recoveries'][0]['code_available'])
+        self.assertEqual(mc.post(path+'/view',json={}).status_code,409)
+        third=self.post(path+'/issue',{},mc)
+        with self.server.connection(True) as c:c.execute('UPDATE recoveries SET expires_at=? WHERE id=?',((self.server.datetime.now(self.server.timezone.utc)-self.server.timedelta(minutes=1)).isoformat(),r['id']))
+        self.assertEqual(mc.post(path+'/view',json={}).status_code,422)
+        fourth=self.post(path+'/issue',{},mc)
+        self.post('/api/recoveries/complete',{'identity':'T001','code':fourth['code'],'password':'NewPassword2026!'},public)
+        self.assertEqual(mc.post(path+'/view',json={}).status_code,422)
+        self.assertEqual(public.post('/api/recoveries/complete',json={'identity':'T001','code':fourth['code'],'password':'AnotherPassword2026!'}).status_code,422)
+        with self.server.connection() as c:self.assertEqual(c.execute('SELECT count(*) FROM recovery_code_vault').fetchone()[0],0)
+        self.assertEqual(uc.get('/api/state').status_code,401)
+        self.login(uc,'T001','NewPassword2026!')
+
     def test_authorization_no_state_overwrite_and_external_origin(self):
         a,g,m,mc,u,uc=self.organization()
         a2=self.account('SECRET');g2=self.group(a2,'SECRET-G')
@@ -266,7 +429,7 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(uc.put('/api/state',json={}).status_code,405)
         self.assertEqual(self.client.post('/api/accounts',json={'code':'BAD','name':'Bad'},headers={'origin':'https://evil.test'}).status_code,403)
         self.assertEqual(self.client.get('/').headers['x-frame-options'],'DENY')
-        for p in ['server.py','operational_pulse.db','requirements.txt']:
+        for p in ['server.py','operational_pulse.db','operational_pulse.key','requirements.txt']:
             self.assertEqual(self.client.get('/'+p).status_code,404)
 
 

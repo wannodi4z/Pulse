@@ -4,6 +4,12 @@ let state = null;
 let page = 'dashboard';
 let month = new Date().toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}).slice(0,7);
 let ledger = {rows:[],ot_minutes:0,guard_minutes:0};
+let analyticsReport = null;
+let analyticsDetailType = null;
+let reportSequence = 0;
+const analyticsTypes = ['EMERGENCY','PLANNED','HISTORICAL','GUARD'];
+const analyticsNames = {EMERGENCY:'OT emergente',PLANNED:'OT programada',HISTORICAL:'OT histórica',GUARD:'Guardia neta',ALL:'Todas las horas'};
+const analyticsColors = {EMERGENCY:'#2469cf',PLANNED:'#24a8ca',HISTORICAL:'#758cba',GUARD:'#25b4a4'};
 let filters = {group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};
 let delegationDraftLead = '';
 let busy = false;
@@ -22,8 +28,8 @@ const isAdmin = () => me()?.role==='ADMIN';
 const isManager = () => me()?.role==='MANAGER';
 const isTech = () => me()?.role==='USER';
 const roles = {ADMIN:'Administrador',MANAGER:'Manager',USER:'Técnico'};
-const statuses = {ACTIVE:'Activo',DISABLED:'Deshabilitado',PENDING_ACTIVATION:'Activación pendiente',SUBMITTED:'Pendiente',APPROVED:'Aprobado',REJECTED:'Rechazado',DOCUMENTATION:'Por documentar',RUNNING:'En curso',SCHEDULED:'Programado',COMPLETED:'Finalizado',PENDING:'Pendiente',ISSUED:'Código emitido',USED:'Recuperado'};
-const pageNames = {dashboard:'Panel',organization:'Organización',admins:'Administradores',recoveries:'Recuperación de acceso',profile:'Mi perfil',team:'Mi equipo',teamTime:'Tiempo del equipo',timeRules:'Reglas de guardia',time:'Mi tiempo',claim:'Claim',adp:'ADP'};
+const statuses = {ACTIVE:'Activo',DISABLED:'Deshabilitado',PENDING_ACTIVATION:'Activación pendiente',SUBMITTED:'Pendiente',APPROVED:'Aprobado',REJECTED:'Rechazado',DOCUMENTATION:'Por documentar',RUNNING:'En curso',SCHEDULED:'Programado',COMPLETED:'Finalizado',PENDING:'Pendiente',ISSUED:'Código emitido',USED:'Recuperado',CANCELLED:'Sustituida',EXPIRED:'Vencido'};
+const pageNames = {dashboard:'Panel',analytics:'Analítica del equipo',myAnalytics:'Mi resumen',organization:'Organización',admins:'Administradores',recoveries:'Recuperación de acceso',profile:'Mi perfil',team:'Mi equipo',teamTime:'Tiempo del equipo',timeRules:'Reglas de guardia',time:'Mi tiempo',claim:'Claim',adp:'ADP'};
 const icon = name => `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/static/icons.svg#${name}"></use></svg>`;
 const projectAuthors = ['Samuel Alejandro Díaz Chávez', 'Francisco Cervantes Marquez'];
 const kyndrylBrand = () => '<img class="kyndryl-logo" src="/static/kyndryl-logo.svg" alt="Kyndryl" width="80" height="24">';
@@ -47,7 +53,7 @@ const monthControl = () => `<div class="month-control">${btn('‹','month-prev',
 async function api(path,method='GET',data){
   const response=await fetch(path,{method,credentials:'same-origin',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});
   const result=await response.json().catch(()=>({}));
-  if(!response.ok){if(response.status===401&&state){state=null;render();}throw Error(typeof result.detail==='string'?result.detail:'No se pudo completar la operación. Revisa los datos.');}
+  if(!response.ok){if(response.status===401&&state){state=null;$('#modal').close();render();}const error=Error(typeof result.detail==='string'?result.detail:'No se pudo completar la operación. Revisa los datos.');error.status=response.status;throw error;}
   return result;
 }
 function toast(message,error=false){
@@ -63,15 +69,17 @@ function credentials(code,username,title='Datos de activación'){
   showModal(title,`<div class="form-body"><p>Entrega este código por un canal corporativo. La persona definirá su contraseña desde «Activar cuenta».</p>${username?`<p>Usuario: <strong>${esc(username)}</strong></p>`:''}<div class="secret-code">${esc(code)}</div><p class="muted">El código se muestra sólo al generar o regenerar el acceso.</p></div><footer class="dialog-footer">${btn('Listo','close','','primary')}</footer>`);
 }
 function login(){
-  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">CONTROL DE TIEMPO EXTRA</p><h1>Tu OT y guardias.<br> Bajo control.</h1><p>Registra tiempo extra, gestiona guardias<br>y consulta tus horas aprobadas.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.1.1</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">ACCESO A OPERATIONAL PULSE</p><h2>Control de OT y guardias</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}<label class="field" for="login-password"><span>Contraseña</span><span class="login-password-input"><input id="login-password" name="password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" data-action="password-visibility" data-id="login-password" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button></span></label><p class="form-error" role="alert"></p><button type="submit" class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Control de OT, guardias y aprobaciones.</small></p></div></div><footer>Operational Pulse · OT y guardias <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
+  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">CONTROL DE TIEMPO EXTRA</p><h1>Tu OT y guardias.<br> Bajo control.</h1><p>Registra tiempo extra, gestiona guardias<br>y consulta tus horas aprobadas.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.2.0</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">ACCESO A OPERATIONAL PULSE</p><h2>Control de OT y guardias</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}<label class="field" for="login-password"><span>Contraseña</span><span class="login-password-input"><input id="login-password" name="password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" data-action="password-visibility" data-id="login-password" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button></span></label><p class="form-error" role="alert"></p><button type="submit" class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Control de OT, guardias y aprobaciones.</small></p></div></div><footer>Operational Pulse · OT y guardias <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
 }
 function nav(){
-  const items=isAdmin()?['dashboard','organization','admins','recoveries','profile']:isManager()?['dashboard','team','teamTime','timeRules','recoveries','profile']:['dashboard','time','claim','adp',...(state.can_approve?['team','teamTime','recoveries']:[]),'profile'];
+  const items=isAdmin()?['dashboard','organization','admins','recoveries','profile']:isManager()?['dashboard','team','teamTime','analytics','timeRules','recoveries','profile']:['dashboard','time','myAnalytics','claim','adp',...(state.can_approve?['team','teamTime','analytics']:[]),'profile'];
   return `<aside class="sidebar"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><p class="nav-label">ESPACIO DE TRABAJO</p><nav aria-label="Navegación principal">${items.map(p=>`<button class="nav-item ${p===page?'active':''}" data-page="${p}" ${p===page?'aria-current="page"':''}><span aria-hidden="true">${icon(p)}</span>${pageNames[p]}${p==='teamTime'&&pendingCount()?`<b>${pendingCount()}</b>`:''}</button>`).join('')}</nav><div class="sidebar-bottom"><div class="sidebar-brand">${kyndrylBrand()}<span>Espacio de operación digital</span></div><div class="workspace-tag"><i></i>Operación conectada<small>Operational Pulse · v${esc(state.version)}</small></div>${btn(icon('arrow')+'Cerrar sesión','logout','','logout')}</div></aside>`;
 }
 function pendingCount(){return state?[...state.overtime,...state.guards].filter(r=>r.status==='SUBMITTED'&&r.user_id!==me().id).length:0;}
 function content(){
   switch(page){
+    case 'analytics':return analyticsPage(false);
+    case 'myAnalytics':return analyticsPage(true);
     case 'organization':return isAdmin()?organizationPage():dashboard();
     case 'admins':return isAdmin()?adminsPage():dashboard();
     case 'recoveries':return recoveriesPage();
@@ -93,11 +101,25 @@ function render(){
 }
 async function loadLedger(){
   if(!state)return;
-  const q=new URLSearchParams({month});
-  if(['time','claim','adp'].includes(page)&&isTech())q.set('user_id',me().id);
-  else{if(filters.group)q.set('group_id',filters.group);if(filters.person)q.set('user_id',filters.person);}
-  ledger=await api('/api/accounting?'+q);
+  const sequence=++reportSequence,reportPage=page,q=new URLSearchParams({month});
+  if(['dashboard','time','claim','adp'].includes(page)&&isTech())q.set('user_id',me().id);
+  else if(page!=='myAnalytics'){if(filters.group)q.set('group_id',filters.group);if(filters.person)q.set('user_id',filters.person);}
+  if(['analytics','myAnalytics'].includes(reportPage)){
+    try{
+      const report=await api((reportPage==='myAnalytics'?'/api/my-analytics?':'/api/analytics?')+q);
+      if(sequence!==reportSequence||page!==reportPage)return;
+      analyticsReport=report;ledger={rows:report.rows,ot_minutes:report.summary.ot_minutes,guard_minutes:report.summary.GUARD};
+    }catch(error){
+      if(error.status===403&&reportPage==='analytics'){
+        analyticsReport=null;analyticsDetailType=null;state=await api('/api/state');page=isTech()?'myAnalytics':'dashboard';filters={group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};await loadLedger();render();
+      }
+      throw error;
+    }
+  }else{
+    const result=await api('/api/accounting?'+q);if(sequence===reportSequence&&page===reportPage)ledger=result;
+  }
 }
+
 async function refresh(silent=false){
   const sequence=++refreshSequence;
   try{
@@ -105,17 +127,20 @@ async function refresh(silent=false){
     serverOffset=new Date(fresh.server_time).getTime()-Date.now();
     const previous=state?JSON.stringify({...state,server_time:''}):'';
     state=fresh;
+    const lostAnalytics=page==='analytics'&&!isManager()&&!fresh.can_approve;
+    if(lostAnalytics){page=isTech()?'myAnalytics':'dashboard';analyticsReport=null;analyticsDetailType=null;filters={group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};}
     await loadLedger();if(sequence!==refreshSequence)return;
-    if(!silent||previous!==JSON.stringify({...state,server_time:''})){
-      if(!silent||!$('#modal').open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))render();
+    if(!silent||lostAnalytics||previous!==JSON.stringify({...state,server_time:''})){
+      if(!silent||lostAnalytics||!$('#modal').open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))render();
     }
   }catch(error){if(!silent)throw error;}
 }
 async function navigate(next){
-  if(!state)return;page=next;filters={group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};delegationDraftLead='';
+  if(!state)return;page=next;filters={group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};delegationDraftLead='';analyticsDetailType=null;
   $('#modal').close();await loadLedger();render();$('#main')?.focus({preventScroll:true});
 }
 function tick(){
+  const code=$('[data-code-expires]');if(code&&new Date(code.dataset.codeExpires).getTime()<=Date.now()+serverOffset){code.textContent='Código vencido';code.removeAttribute('data-code-expires');}
   $$('[data-elapsed]').forEach(el=>{const total=Math.max(0,Math.floor((Date.now()+serverOffset-new Date(el.dataset.elapsed).getTime())/1000));el.textContent=[Math.floor(total/3600),Math.floor(total/60)%60,total%60].map(x=>String(x).padStart(2,'0')).join(':');});
   const clock=$('[data-local-clock]');if(clock)clock.textContent=new Date(Date.now()+serverOffset).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',timeZone:state.timezone});
 }
@@ -131,10 +156,10 @@ function dashboard(){
     <section class="kpis">${kpi('Cuentas',state.accounts.length,'La base de tu estructura','⌘')}${kpi('Managers',state.people.filter(p=>p.role==='MANAGER').length,'Responsables de la operación','♧')}${kpi('Grupos',state.groups.length,'Equipos conectados','▦')}${kpi('Técnicos',state.people.filter(p=>p.role==='USER').length,`${state.people.filter(p=>p.is_lead).length} con capacidad Lead`,'◎')}</section>
     <section class="two-columns"><article class="panel"><div class="section-heading"><div><p class="eyebrow">PRÓXIMOS PASOS</p><h2>Construye tu organización</h2></div></div><div class="step-row"><span>01</span><div><strong>Crea una Cuenta operativa</strong><small>Define el nombre y el código de tu operación.</small></div>${btn('Crear','account-new','','link')}</div><div class="step-row"><span>02</span><div><strong>Conecta Managers y Grupos</strong><small>Asigna responsabilidades dentro de cada Cuenta.</small></div><button class="link" data-page="organization">Organizar</button></div><div class="step-row"><span>03</span><div><strong>Incorpora a tus Técnicos</strong><small>Asigna su Grupo y, si corresponde, capacidad Lead.</small></div><button class="link" data-page="organization">Agregar</button></div></article><article class="panel"><div class="section-heading"><div><p class="eyebrow">ACCESOS</p><h2>Atención pendiente</h2></div></div><div class="attention-number">${state.recoveries.filter(r=>r.status==='PENDING').length}<small>solicitudes de recuperación</small></div><button class="secondary" data-page="recoveries">Revisar solicitudes →</button><p class="muted footnote">La información aparece cuando tu equipo comienza a trabajar. Sin datos de demostración.</p></article></section>`;
   }
-  const ownTimers=state.timers.filter(t=>t.user_id===me().id),reviewer=isManager()||state.can_approve;
+  const ownTimers=state.timers.filter(t=>t.user_id===me().id),reviewer=isManager();
   return heading('TU OPERACIÓN AL DÍA',`Hola, ${esc(me().first)}.`,isTech()?'Tu OT, tus guardias y sus aprobaciones del mes.':'Un vistazo al tiempo y las prioridades de tu equipo.',monthControl())+
   (ownTimers.length?timerPanel(ownTimers):'')+
-  `<section class="kpis">${kpi('Tiempo extra aprobado',`${hours(ledger.ot_minutes)} <em>h</em>`,'Tiempo real, sin duplicados','↗','',reviewer?'ot':'')}${kpi('Guardia neta',`${hours(ledger.guard_minutes)} <em>h</em>`,'Con OT descontada','◷','',reviewer?'guard':'')}${kpi('Por revisar',reviewer?pendingCount():state.overtime.filter(o=>o.user_id===me().id&&o.status==='SUBMITTED').length,'Solicitudes pendientes','≡','',reviewer?'pending':'')}${kpi('Timers activos',state.timers.length,'Actualización en tiempo real','●','accent',reviewer?'running':'')}</section>
+  `<section class="kpis">${kpi('Tiempo extra aprobado',`${hours(ledger.ot_minutes)} <em>h</em>`,'Tiempo real, sin duplicados','↗','',reviewer?'ot':'')}${kpi('Guardia neta',`${hours(ledger.guard_minutes)} <em>h</em>`,'Con OT descontada','◷','',reviewer?'guard':'')}${kpi('Por revisar',reviewer?pendingCount():state.overtime.filter(o=>o.user_id===me().id&&o.status==='SUBMITTED').length,'Solicitudes pendientes','≡','',reviewer?'pending':'')}${kpi('Timers activos',isTech()?ownTimers.length:state.timers.length,'Actualización en tiempo real','●','accent',reviewer?'running':'')}</section>
   <section class="two-columns"><article class="panel"><div class="section-heading"><div><p class="eyebrow">ANALÍTICA MENSUAL</p><h2>${esc(monthLabel(month))}</h2></div><span class="pill">Horas aprobadas</span></div>${analyticsChart()}<div class="legend"><span><i class="dot ot"></i>Tiempo extra</span><span><i class="dot guard"></i>Guardia neta</span></div></article><article class="panel"><div class="section-heading"><div><p class="eyebrow">REQUIERE TU ATENCIÓN</p><h2>${isTech()?'El siguiente paso':'Solicitudes para revisar'}</h2></div></div>${isTech()?`<div class="attention-number">${state.overtime.filter(o=>o.user_id===me().id&&o.status==='DOCUMENTATION').length}<small>registros por documentar</small></div><button class="secondary" data-page="time">Ir a Mi tiempo →</button>`:dashboardPriorities()}${isTech()?'<div class="quick-note">Claim, ADP y Excel se calculan sobre el mismo tiempo aprobado.</div>':''}</article></section>
   ${state.timers.length&&!isTech()?`<article class="panel"><div class="section-heading"><div><p class="eyebrow">AHORA</p><h2>Tu equipo en tiempo real</h2></div><span class="live-label"><i></i>En vivo</span></div>${timerPanel(state.timers)}</article>`:''}`;
 }
@@ -152,6 +177,49 @@ function analyticsChart(){
   let bars='';for(let d=1;d<=days;d++){const v=byDay.get(d)||{OT:0,GUARD:0},x=14+(d-1)*17,h1=v.OT/max*130,h2=v.GUARD/max*130;bars+=`<rect x="${x}" y="${150-h1}" width="10" height="${h1}" rx="2" fill="#2469cf"><title>${d}: ${v.OT.toFixed(2)} h OT</title></rect><rect x="${x}" y="${150-h1-h2}" width="10" height="${h2}" rx="2" fill="#28c7c5"><title>${d}: ${v.GUARD.toFixed(2)} h Guardia</title></rect>${d===1||d%5===0?`<text x="${x+5}" y="172" text-anchor="middle" fill="#536a85" font-size="10">${d}</text>`:''}`;}
   return `<div class="chart"><svg role="img" aria-label="Horas aprobadas por día, tiempo extra y Guardia neta" viewBox="0 0 545 185"><path d="M8 150H540" stroke="#e1e7e5"/>${bars}</svg></div>`;
 }
+function analyticsExportLink(personal){
+  const q=new URLSearchParams({month});if(!personal){if(filters.group)q.set('group_id',filters.group);if(filters.person)q.set('user_id',filters.person);}
+  return `<a class="secondary button" download href="${personal?'/api/my-analytics.xlsx?':'/api/analytics.xlsx?'}${esc(q.toString())}">${icon('download')} Exportar analítica</a>`;
+}
+function analyticsPage(personal){
+  const report=analyticsReport,correct=report&&report.month===month&&report.mode===(personal?'PERSONAL':'TEAM')&&(personal||report.filters.group_id===(filters.group||null)&&report.filters.user_id===(filters.person||null));
+  const header=heading(personal?'TU TIEMPO APROBADO':'HORAS Y DISTRIBUCIÓN',personal?'Mi resumen mensual':'Analítica del equipo',personal?'Tus horas de OT y Guardia, separadas por tipo y día.':'Horas por Grupo, Técnico y tipo de registro. Un mismo cálculo para toda la operación.',monthControl()+analyticsExportLink(personal));
+  if(!correct)return header+`<section class="panel">${empty('Cargando el desglose del mes…')}</section>`;
+  const groups=state.groups.filter(g=>state.scope.includes(g.id)),people=state.people.filter(p=>p.role==='USER'&&state.scope.includes(p.group_id)&&(!filters.group||p.group_id===filters.group));
+  const controls=personal?`<div class="analytics-personal-scope">${icon('profile')}<span>Resumen exclusivo de <strong>${esc(full(me()))}</strong> · ${esc(me().employee_id)}</span><span class="pill">Sólo tus horas</span></div>`:`<section class="panel analytics-filters"><div>${select('filter-group','Grupo',options(groups,filters.group,g=>g.code+' · '+g.name,'Todos mis Grupos'))}${select('filter-person','Técnico',options(people,filters.person,full,'Todos los Técnicos del alcance'))}</div><p>Se muestran únicamente los Grupos bajo tu responsabilidad${isTech()?' delegada y vigente':''}.</p></section>`;
+  const metrics=[['ALL','Total aprobado',report.summary.total_minutes],...analyticsTypes.map(type=>[type,analyticsNames[type],report.summary[type]])];
+  return header+controls+`<section class="analytics-metrics">${metrics.map(([type,label,minutes])=>`<button type="button" class="analytics-metric metric-${type.toLowerCase()} ${analyticsDetailType===type?'selected':''}" data-action="analytics-records" data-id="${type}" aria-expanded="${analyticsDetailType===type}" aria-controls="analytics-records"><span>${label}</span><strong>${hours(minutes)} <small>h</small></strong><em>Ver detalle ${icon('arrow')}</em></button>`).join('')}</section><div class="analytics-criteria">${icon('info')}<p><strong>Horas reales aprobadas.</strong> Las OT programadas aún sin ejecutar y las solicitudes pendientes no suman horas. Guardia neta descuenta la OT que se traslapa.</p></div><section class="two-columns analytics-charts"><article class="panel"><div class="section-heading"><div><p class="eyebrow">${personal?'COMPOSICIÓN':'DISTRIBUCIÓN POR GRUPO'}</p><h2>${personal?'¿En qué se distribuyen tus horas?':'Horas de tus Grupos'}</h2></div><span class="pill">${esc(monthLabel(month))}</span></div>${personal?analyticsComposition(report.summary):analyticsGroupChart(report.groups)}${analyticsLegend()}</article><article class="panel"><div class="section-heading"><div><p class="eyebrow">EVOLUCIÓN DEL MES</p><h2>Horas por día</h2></div></div>${analyticsDailyChart(report.days)}${analyticsLegend()}</article></section>${personal?'':analyticsGroupTable(report.groups)+analyticsUserTable(report.users)}${analyticsDetailType?analyticsDetailTable(report.rows):''}<p class="analytics-method">Zona operativa: ${esc(report.timezone)}. Los intervalos que cruzan medianoche se dividen por día. ${personal?'Tu resumen no incluye horas de otras personas.':'La agrupación usa el Grupo actual de cada Técnico.'}</p>`;
+}
+function analyticsLegend(){return `<div class="analytics-legend">${analyticsTypes.map(type=>`<span><i class="analytics-dot type-${type.toLowerCase()}"></i>${analyticsNames[type]}</span>`).join('')}</div>`;}
+function analyticsComposition(summary){
+  const total=summary.total_minutes;if(!total)return empty('Aún no hay horas aprobadas','Aquí aparecerá el desglose cuando se apruebe tu tiempo real.');
+  let x=0;const bars=analyticsTypes.map(type=>{const width=summary[type]/total*500;const rect=`<rect x="${x}" y="0" width="${width}" height="20" fill="${analyticsColors[type]}"><title>${analyticsNames[type]}: ${hours(summary[type])} h</title></rect>`;x+=width;return rect;}).join('');
+  return `<div class="composition-total"><strong>${hours(total)} <small>horas</small></strong><span>Tiempo aprobado del mes</span></div><svg class="analytics-composition" viewBox="0 0 500 20" role="img" aria-label="Composición de tus horas aprobadas">${bars}</svg><div class="composition-values">${analyticsTypes.map(type=>`<div><span>${analyticsNames[type]}</span><strong>${hours(summary[type])} h</strong></div>`).join('')}</div>`;
+}
+function analyticsGroupChart(groups){
+  const active=groups.filter(g=>g.minutes.total_minutes>0),max=Math.max(1,...active.map(g=>g.minutes.total_minutes));
+  if(!active.length)return empty('Sin horas aprobadas en este mes','Las horas aparecerán cuando el equipo finalice y apruebe sus registros.');
+  return `<div class="analytics-ranking">${active.map(g=>{let x=0;const bars=analyticsTypes.map(type=>{const width=g.minutes[type]/max*500;const rect=`<rect x="${x}" y="0" width="${width}" height="10" fill="${analyticsColors[type]}"></rect>`;x+=width;return rect;}).join('');return `<button type="button" data-action="analytics-group" data-id="${esc(g.id)}"><span><strong>${esc(g.code)} · ${esc(g.name)}</strong><small>${hours(g.minutes.total_minutes)} h ${icon('arrow')}</small></span><svg viewBox="0 0 500 10" role="img" aria-label="${esc(g.name)}: ${hours(g.minutes.total_minutes)} horas"><rect width="500" height="10" fill="#eef4fb"/>${bars}</svg></button>`;}).join('')}</div>`;
+}
+function analyticsDailyChart(days){
+  if(!days.length)return empty('El mes, día a día','Sólo el tiempo real aprobado forma parte de esta gráfica.');
+  const daily=new Map(days.map(d=>[Number(d.date.slice(-2)),d.minutes])),count=new Date(Number(month.slice(0,4)),Number(month.slice(5)),0).getDate(),max=Math.max(60,...days.map(d=>d.minutes.total_minutes)),step=540/count;
+  let bars='';for(let day=1;day<=count;day++){const item=daily.get(day),x=24+(day-1)*step;let y=164;if(item)for(const type of analyticsTypes){const height=item[type]/max*135;y-=height;bars+=`<rect x="${x}" y="${y}" width="${Math.max(5,step-6)}" height="${height}" fill="${analyticsColors[type]}"><title>${day}: ${analyticsNames[type]} ${hours(item[type])} h</title></rect>`;}if(day===1||day%5===0||day===count)bars+=`<text x="${x+4}" y="185" text-anchor="middle" fill="#587394" font-size="10">${day}</text>`;}
+  return `<svg class="analytics-daily" viewBox="0 0 580 200" role="img" aria-label="Horas aprobadas por día y tipo"><path d="M20 29H570M20 97H570M20 164H570" stroke="#e6eef7"/><text x="20" y="17" fill="#557293" font-size="10">${hours(max)} h</text>${bars}</svg>`;
+}
+function analyticsAmountCells(totals){return [...analyticsTypes,'total_minutes'].map(key=>`<td class="numeric ${key==='total_minutes'?'analytics-total':''}">${hours(totals[key])}</td>`).join('');}
+function analyticsColumnHeaders(){return analyticsTypes.map(type=>`<th class="numeric"><span class="analytics-dot type-${type.toLowerCase()}"></span>${analyticsNames[type]} <small>h</small></th>`).join('')+'<th class="numeric">Total <small>h</small></th>';}
+function analyticsGroupTable(groups){
+  return `<section class="panel table-panel"><div class="section-heading padded"><div><p class="eyebrow">POR GRUPO</p><h2>La distribución de tu operación</h2></div><span class="pill">${groups.length} Grupos</span></div><div class="table-scroll"><table class="analytics-table"><thead><tr><th>Grupo</th><th class="numeric">Técnicos</th>${analyticsColumnHeaders()}<th></th></tr></thead><tbody>${groups.map(g=>`<tr><td><strong>${esc(g.name)}</strong><small>${esc(g.code)}</small></td><td class="numeric">${g.user_count}</td>${analyticsAmountCells(g.minutes)}<td>${btn('Ver Técnicos','analytics-group',g.id,'link')}</td></tr>`).join('')}</tbody></table></div>${groups.length?'':empty('No hay Grupos en este alcance')}</section>`;
+}
+function analyticsUserTable(users){
+  return `<section class="panel table-panel" id="analytics-users"><div class="section-heading padded"><div><p class="eyebrow">POR TÉCNICO</p><h2>Las horas de cada persona</h2></div><span class="pill">${users.length} Técnicos</span></div><div class="table-scroll"><table class="analytics-table"><thead><tr><th>Técnico / Grupo</th>${analyticsColumnHeaders()}<th></th></tr></thead><tbody>${users.map(u=>`<tr><td><strong>${esc(u.name)}</strong><small>${esc(u.employee_id)} · ${esc(u.group_name)}</small></td>${analyticsAmountCells(u.minutes)}<td>${btn('Ver horas','analytics-user',u.id,'link')}</td></tr>`).join('')}</tbody></table></div>${users.length?'':empty('No hay Técnicos en este alcance')}</section>`;
+}
+function analyticsDetailTable(rows){
+  const selected=rows.filter(row=>analyticsDetailType==='ALL'||row.capture_type===analyticsDetailType);
+  return `<section class="panel table-panel" id="analytics-records"><div class="section-heading padded"><div><p class="eyebrow">DETALLE DE HORAS · ${esc(monthLabel(month))}</p><h2>${analyticsNames[analyticsDetailType]||'Todas las horas'}</h2><p class="muted">Los registros que cruzan medianoche se muestran en tramos por día.</p></div>${btn('Cerrar detalle','analytics-detail-close','','link')}</div><div class="table-scroll"><table><thead><tr><th>Fecha</th><th>Técnico / Grupo</th><th>Tipo</th><th>Horario</th><th>Referencia</th><th class="numeric">Horas</th></tr></thead><tbody>${selected.map(row=>`<tr><td>${fmtDate(row.date)}</td><td><strong>${esc(row.name)}</strong><small>${esc(row.employee_id)} · ${esc(row.group_name)}</small></td><td><span class="analytics-type-label type-${row.capture_type.toLowerCase()}">${analyticsNames[row.capture_type]}</span></td><td>${row.start} — ${row.end}</td><td>${esc(row.reference||'—')}</td><td class="numeric analytics-total">${hours(row.minutes)}</td></tr>`).join('')}</tbody></table></div>${selected.length?'':empty('Sin horas aprobadas de este tipo','Prueba otro mes, Grupo o tipo de registro.')}</section>`;
+}
+
 function organizationPage(){
   return heading('PERSONAS Y ESTRUCTURA','Organización','Cada Cuenta, sus Managers y los equipos que hacen que todo suceda.',btn('＋ Nueva cuenta','account-new','','primary'))+
   `<div class="organization-summary"><span><b>${state.accounts.length}</b> Cuentas</span><span><b>${state.people.filter(p=>p.role==='MANAGER').length}</b> Managers</span><span><b>${state.groups.length}</b> Grupos</span><span><b>${state.people.filter(p=>p.role==='USER').length}</b> Técnicos</span><span class="muted">Lead es una capacidad, no un nivel jerárquico.</span></div>`+
@@ -170,11 +238,11 @@ function groupCard(g){
 }
 function adminsPage(){return heading('GOBERNANZA','Administradores','Accesos con autoridad para administrar la estructura y las cuentas.',btn('＋ Administrador','admin-new','','primary'))+peopleTable(state.people.filter(p=>p.role==='ADMIN'));}
 function peopleTable(people){
-  return `<section class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Persona</th><th>Correo</th><th>Rol / Grupo</th><th>Estado</th><th class="right">Acciones</th></tr></thead><tbody>${people.map(p=>`<tr data-search-row="${esc(`${full(p)} ${p.employee_id||p.username} ${p.email}`.toLowerCase())}"><td><div class="table-identity">${identity(p)}${p.is_lead?'<span class="lead-pill">Lead</span>':''}</div></td><td>${esc(p.email)}</td><td>${esc(p.role==='USER'?group(p.group_id)?.name||'Sin Grupo':roles[p.role])}</td><td>${badge(p.status)}</td><td><div class="row-actions">${btn('Editar','person-edit',p.id,'link')}${isManager()&&p.is_lead&&p.status==='ACTIVE'?btn(currentDelegation()?.lead_id===p.id?'Editar delegación':'Delegar','delegation-inline',p.id,'secondary small'):''}${isAdmin()&&p.status==='PENDING_ACTIVATION'?btn('Activación','activation-code',p.id,'link'):''}</div></td></tr>`).join('')}</tbody></table></div>${!people.length?empty('Sin personas todavía','Los nuevos integrantes aparecerán aquí.'):''}</section>`;
+  return `<section class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Persona</th><th>Correo</th><th>Rol / Grupo</th><th>Estado</th><th class="right">Acciones</th></tr></thead><tbody>${people.map(p=>`<tr data-search-row="${esc(`${full(p)} ${p.employee_id||p.username} ${p.email}`.toLowerCase())}"><td><div class="table-identity">${identity(p)}${p.is_lead?'<span class="lead-pill">Lead</span>':''}</div></td><td>${esc(p.email)}</td><td>${esc(p.role==='USER'?group(p.group_id)?.name||'Sin Grupo':roles[p.role])}</td><td>${badge(p.status)}</td><td><div class="row-actions">${isAdmin()?btn('Editar','person-edit',p.id,'link'):''}${isManager()&&p.is_lead&&p.status==='ACTIVE'?btn(currentDelegation()?.lead_id===p.id?'Editar delegación':'Delegar','delegation-inline',p.id,'secondary small'):''}${isAdmin()&&p.status==='PENDING_ACTIVATION'?btn('Activación','activation-code',p.id,'link'):''}</div></td></tr>`).join('')}</tbody></table></div>${!people.length?empty('Sin personas todavía','Los nuevos integrantes aparecerán aquí.'):''}</section>`;
 }
 function teamPage(){
   const people=state.people.filter(p=>p.role==='USER'&&state.scope.includes(p.group_id)),current=isManager()?currentDelegation():null;
-  return heading('PERSONAS','Mi equipo','Técnicos de los Grupos bajo tu responsabilidad.',isManager()?btn('＋ Técnico','tech-new',state.groups[0]?.id||'','primary'):'')+
+  return heading('PERSONAS','Mi equipo','Consulta a tus Técnicos y administra la delegación temporal. Las altas y cambios de personas corresponden a Admin.')+
   (isManager()?`<section class="delegation-summary"><span class="delegation-summary-icon">${icon('team')}</span><div><p class="eyebrow">BACKUP DEL MANAGER · UNA PERSONA</p><h3>${current?esc(full(person(current.lead_id))):'Sin delegación asignada'}</h3><p>${current?`${range(current.start_at,current.end_at)} · ${current.group_ids.length} Grupos`:'Elige «Delegar» junto a un Lead activo de tu equipo.'}</p></div>${current?`<span class="pill">${new Date(current.start_at).getTime()>Date.now()+serverOffset?'Programada':'Activa'}</span>${btn('Revocar','delegation-revoke',current.id,'text-danger')}`:''}</section>`:'')+
   `<section class="panel compact"><label class="search"><span>${icon('search')}</span><input id="team-search" placeholder="Buscar por nombre, Employee ID o correo" aria-label="Buscar Técnicos"></label></section>`+peopleTable(people)+
   (isManager()&&delegationDraftLead?inlineDelegationForm(person(delegationDraftLead)):'')+
@@ -239,9 +307,13 @@ function capturePage(kind){
   ([...grouped].map(([week,rows])=>`<section class="panel table-panel"><div class="section-heading padded"><div><p class="eyebrow">SEMANA ${kind==='claim'?'CLAIM':'ADP'}</p><h2>Desde ${fmtDate(week)}</h2></div><span class="pill">${hours(rows.reduce((n,r)=>n+r.minutes,0))} h</span></div><div class="table-scroll"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Inicio</th><th>${kind==='claim'?'Horas decimales':'Duración HH:MM'}</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.kind==='OT'?'Onsite Overtime':'Stand-by'}</td><td>${esc(r.reference||'—')}</td><td>${r.start}</td><td><strong>${kind==='claim'?hours(r.minutes):hm(r.minutes)}</strong></td></tr>`).join('')}</tbody></table></div></section>`).join('')||empty('Sin tiempo aprobado en este mes','Tus registros aparecerán después de la aprobación de tu Manager o Lead delegado.'));
 }
 function recoveriesPage(){
-  return heading('ACCESO SEGURO','Recuperación de acceso','Valida la identidad de la persona antes de emitir un código de un solo uso.')+
-  `<section class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Persona</th><th>Solicitud</th><th>Estado</th><th>Vigencia</th><th class="right">Acción</th></tr></thead><tbody>${state.recoveries.map(r=>`<tr><td><strong>${esc(full(person(r.user_id)))}</strong><small>${esc(person(r.user_id)?.employee_id||person(r.user_id)?.username)}</small></td><td>${fmtDate(r.created_at)}</td><td>${badge(r.status)}</td><td>${r.expires_at?`${fmtDate(r.expires_at)} · ${fmtTime(r.expires_at)}`:'—'}</td><td class="right">${r.status!=='USED'&&r.user_id!==me().id?btn(r.status==='ISSUED'?'Reemitir código':'Emitir código','recovery-issue',r.id,'secondary small'):'—'}</td></tr>`).join('')}</tbody></table></div>${!state.recoveries.length?empty('Todo en orden','No hay solicitudes de recuperación en tu alcance.'):''}</section>`;
+  return heading('ACCESO SEGURO','Recuperación de acceso',isAdmin()?'Valida accesos de Managers, otros administradores y Técnicos sin Manager activo.':'Valida la identidad de los Técnicos de tus Grupos antes de emitir un código.')+
+  `<section class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Persona</th><th>Solicitud</th><th>Estado</th><th>Vigencia</th><th class="right">Acciones</th></tr></thead><tbody>${state.recoveries.map(r=>{const expired=r.status==='ISSUED'&&new Date(r.expires_at).getTime()<=Date.now()+serverOffset,closed=['USED','CANCELLED'].includes(r.status);return `<tr><td><strong>${esc(full(person(r.user_id)))}</strong><small>${esc(person(r.user_id)?.employee_id||person(r.user_id)?.username)}</small></td><td>${fmtDate(r.created_at)}</td><td>${badge(expired?'EXPIRED':r.status)}</td><td>${r.expires_at?`${fmtDate(r.expires_at)} · ${fmtTime(r.expires_at)}`:'—'}</td><td><div class="row-actions">${!closed?`${r.code_available?btn('Ver código','recovery-view',r.id,'link'):''}${btn(r.status==='ISSUED'?'Regenerar':'Generar código','recovery-issue',r.id,'secondary small')}`:'—'}</div></td></tr>`;}).join('')}</tbody></table></div>${!state.recoveries.length?empty('Todo en orden','No hay solicitudes asignadas a tu responsabilidad.'):''}</section>`;
 }
+function recoveryCodeModal(result,title,regenerated=false){
+  showModal(title,`<div class="form-body"><p>Acceso de <strong>${esc(result.username)}</strong>. Entrega el código únicamente después de validar su identidad.</p><div class="secret-code" data-code-expires="${esc(result.expires_at)}">${esc(result.code)}</div><p class="muted">Vence el ${fmtDate(result.expires_at)} a las ${fmtTime(result.expires_at)}. Sólo puede usarse una vez.${regenerated?' El código anterior ya no funciona.':' Consultarlo no extiende su vigencia.'}</p></div><footer class="dialog-footer">${btn('Listo','close','','primary')}</footer>`);
+}
+
 function profilePage(){
   const u=me();
   return heading('TU CUENTA','Mi perfil','Tu información personal y la seguridad de tu acceso.')+
@@ -337,7 +409,7 @@ function publicModal(kind){
     accessShell('Activa tu cuenta','Tu primer paso para conectar con tu equipo. Confirma tu acceso y crea una contraseña.', 'key',accessForm('activate',body,'Activar mi cuenta'),{wide:true});
   }
   if(kind==='request'){
-    const body=`${accessSteps(0)}<div class="access-copy"><h3>Vamos a ayudarte a volver.</h3><p>Ingresa tu usuario para solicitar la recuperación. Tu Manager o Administración validará tu identidad antes de entregarte un código.</p></div>${identity}<div class="access-assistance">${icon('info')}<p>El código se entrega por un canal corporativo; no se envía un correo automático.</p></div><button type="button" class="access-alternative" data-action="recovery-complete"><span class="alternative-icon">${icon('key')}</span><span><strong>¿Ya tienes un código?</strong><small>Continúa para crear tu nueva contraseña.</small></span>${icon('forward')}</button>`;
+    const body=`${accessSteps(0)}<div class="access-copy"><h3>Vamos a ayudarte a volver.</h3><p>Ingresa tu usuario para solicitar la recuperación. Tu Manager valida los accesos de Técnicos; Administración atiende a Managers y administradores.</p></div>${identity}<div class="access-assistance">${icon('info')}<p>El código se entrega por un canal corporativo; no se envía un correo automático.</p></div><button type="button" class="access-alternative" data-action="recovery-complete"><span class="alternative-icon">${icon('key')}</span><span><strong>¿Ya tienes un código?</strong><small>Continúa para crear tu nueva contraseña.</small></span>${icon('forward')}</button>`;
     accessShell('Recupera tu acceso','Un proceso sencillo para volver a tu espacio de trabajo.', 'recoveries',accessForm('recovery-request',body,'Solicitar recuperación'));
   }
   if(kind==='complete'){
@@ -366,6 +438,10 @@ async function perform(action,id,button){
   switch(action){
     case 'password-visibility':{const input=id==='login-password'?$('#login-password'):$('#'+id,$('#modal'));if(!input||!['password','confirm'].includes(input.name))return;const reveal=input.type==='password';input.type=reveal?'text':'password';button.setAttribute('aria-pressed',String(reveal));button.setAttribute('aria-label',reveal?'Ocultar contraseña':'Mostrar contraseña');button.innerHTML=icon(reveal?'eye-off':'eye');return;}
     case 'access-login':$('#modal').close();{const input=$('[data-form="login"] [name="identity"]');if(input){input.value=accessDraft.identity;$('[data-form="login"] [name="password"]')?.focus();}}return;
+    case 'analytics-records':analyticsDetailType=id;render();$('#analytics-records')?.scrollIntoView({block:'start'});return;
+    case 'analytics-detail-close':analyticsDetailType=null;render();return;
+    case 'analytics-group':filters.group=id;filters.person='';await loadLedger();render();$('#analytics-users')?.scrollIntoView({block:'start'});return;
+    case 'analytics-user':filters.person=id;analyticsDetailType='ALL';await loadLedger();render();$('#analytics-records')?.scrollIntoView({block:'start'});return;
     case 'about':aboutProject();return;
     case 'close':$('#modal').close();return;
     case 'logout':await api('/api/logout','POST',{});state=null;page='dashboard';$('#modal').close();render();return;
@@ -383,7 +459,8 @@ async function perform(action,id,button){
     case 'activate':publicModal('activate');return;
     case 'recovery-request':publicModal('request');return;
     case 'recovery-complete':publicModal('complete');return;
-    case 'recovery-issue':{const r=await api(`/api/recoveries/${id}/issue`,'POST',{});await refresh();showModal('Código de recuperación',`<div class="form-body"><p>Entrega este código después de validar la identidad de la persona.</p><div class="secret-code">${esc(r.code)}</div><p>Vence el ${fmtDate(r.expires_at)} a las ${fmtTime(r.expires_at)}. Sólo puede usarse una vez.</p></div><footer class="dialog-footer">${btn('Listo','close','','primary')}</footer>`);return;}
+    case 'recovery-view':{const result=await api(`/api/recoveries/${id}/view`,'POST',{});recoveryCodeModal(result,'Código vigente');return;}
+    case 'recovery-issue':{const previous=state.recoveries.find(r=>r.id===id),regenerated=previous?.status==='ISSUED';const result=await api(`/api/recoveries/${id}/issue`,'POST',{});await refresh();recoveryCodeModal(result,regenerated?'Código regenerado':'Código generado',regenerated);return;}
     case 'ot-new':otModal();return;
     case 'ot-edit':otModal(id);return;
     case 'guard-new':guardModal();return;
@@ -463,6 +540,7 @@ function bind(){
     }
     if(event.target.id==='team-search'){$$('[data-search-row]').forEach(row=>{row.hidden=!row.dataset.searchRow.includes(event.target.value.trim().toLowerCase());});}
   });
+  $('#modal').addEventListener('close',()=>{if(!$('#modal').open)$('#modal').replaceChildren();});
   $('#modal').addEventListener('click',event=>{if(event.target===$('#modal')){const rect=event.target.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)event.target.close();}});
 }
 bind();
@@ -471,5 +549,5 @@ setInterval(tick,1000);
 setInterval(()=>{if(state&&!busy&&!document.hidden&&!$('#modal').open&&!$('#delegation-editor')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))refresh(true);},5000);
 
 function aboutProject(){
-  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.1.1 · OT y guardias</span></div>${kyndrylBrand()}</div><p>Control de horas extra (OT) y guardias, con timers, aprobaciones, historial y reportes en un solo lugar.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
+  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.2.0 · OT y guardias</span></div>${kyndrylBrand()}</div><p>Control de horas extra (OT) y guardias, con timers, aprobaciones, historial y reportes en un solo lugar.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
 }

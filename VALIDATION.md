@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.1.1
+# Validación ejecutada · Operational Pulse 1.2.0
 
 Fecha: 26 de octubre de 2026. Implementación nueva desde cero; no se declara equivalencia binaria ni preservación del código del ZIP antiguo.
 
@@ -116,3 +116,20 @@ No se ejecutó esta versión en macOS físico ni Safari. Las pruebas usan bases 
 - Se agrega el botón de mostrar/ocultar contraseña del login, reutilizando el controlador existente: la prueba real de navegador verifica ambos tipos de campo, el valor conservado, etiquetas accesibles y que el botón no envíe el formulario.
 - La suite de navegador existente continúa con activación, recuperación, organización, reglas multintervalo, delegación inline, tarjetas, timers, aprobaciones, Excel, Claim y ADP. Resultado: PASS, sin errores JavaScript.
 - Sintaxis JavaScript y Python verificadas. El backend sólo cambia el número de versión; los once tests de lógica pasaron en v1.1.0 y no se repitieron para este ajuste de texto y control visual.
+
+## Analítica, roles y recuperaciones · v1.2.0
+
+**Suite completa: 17 tests aprobados, 0 fallidos, 0 omitidos.** Además de los once existentes:
+
+- `test_analytics_breakdown_reconciles_groups_users_and_payroll`: cuatro tipos, dos Grupos, usuarios con/sin horas, OT traslapada entre categorías, Guardia neta, pendientes/programados sin ejecutar excluidos, suma por Grupo/usuario/día y coincidencia con contabilidad. El caso produce 2 h emergentes + 1.5 h programadas + 4 h históricas + 3.5 h de Guardia neta = 11 h.
+- `test_analytics_scope_export_delegation_expiry_and_revocation`: Técnico sin acceso al equipo ni su Excel, resumen personal sin filtros ajenos, Admin sin analítica operativa, Lead limitado a un Grupo delegado, rechazo de su propio Grupo si no está delegado, bloqueo al vencer/revocar y lectura de Excel generado.
+- `test_analytics_respects_month_boundaries_and_zero_hours`: OT y Guardia que cruzan enero/febrero, divididas correctamente por fecha local.
+- `test_only_admin_manages_people_and_team_roles_stay_operational`: Manager y Técnico no crean ni editan personas por API; Admin sí; el perfil propio no cambia la pertenencia al Grupo.
+- `test_recovery_routes_technicians_to_manager_managers_to_admin`: bandejas por responsable, prohibición al Lead incluso delegado, recuperación de Manager atendida por Admin, otro Admin para el administrador y fallback para Técnico sin Manager.
+- `test_recovery_code_view_regenerate_encryption_expiry_and_single_use`: consulta sin renovar expiración, ausencia de código en state, valor cifrado distinto del código, archivo de clave 0600, deduplicación de solicitudes, regeneración invalida el anterior, legado sin valor recuperable, rechazo de vencidos/usados e invalidación de sesiones.
+
+Los fixtures de analítica usan registros de categorías conocidas en SQLite temporal; los flujos reales de ejecución programada/emergencia tienen sus pruebas independientes. No se precargan esos datos en la entrega.
+
+**Navegador real: PASS, cero errores JavaScript.** Se mantienen los flujos existentes y se agregan: consulta y regeneración del código desde la bandeja, rechazo del código anterior, ausencia de botones de edición/alta para Manager, navegación de analítica por tipo/Grupo/Técnico y mes, descarga del Excel y lectura de sus cuatro hojas, vista personal sin filtros de otras personas, acceso de Lead sólo al Grupo delegado y retorno al resumen personal al revocar. También se verificó el ancho del documento en escritorio y móvil y se inspeccionó una captura de analítica.
+
+Se agregó `cryptography` al entorno virtual y a requirements. La clave de recuperación y las bases temporales no forman parte del paquete. Se mantiene el límite de plataforma: Linux/Chromium; no se ejecutó macOS físico ni Safari, ni se probó un despliegue público.

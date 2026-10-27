@@ -1,4 +1,4 @@
-# Operational Pulse 1.1.1 · especificación de la implementación nueva
+# Operational Pulse 1.2.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -23,8 +23,8 @@ La lectura común se hace mediante `GET /api/state`. Las escrituras son transacc
 
 - Roles: ADMIN, MANAGER y USER. `is_lead` no es un rol adicional.
 - Nuevas personas: pendientes de activación con código mostrado una sola vez. Activación define contraseña de al menos diez caracteres.
-- ADMIN gestiona estructura, administradores y recuperación. Las aprobaciones operativas las realizan Manager y Lead delegado.
-- MANAGER sólo ve y gestiona su alcance operativo. Lead delegado sólo recibe los Grupos especificados y durante la vigencia; permanece Técnico para Mi tiempo, Claim y ADP.
+- ADMIN es el único que crea y edita estructura y personas; gestiona recuperaciones de Managers, otros administradores y Técnicos sin Manager activo. Las aprobaciones operativas las realizan Manager y Lead delegado.
+- MANAGER consulta a su equipo y gestiona tiempo, backup y recuperaciones de sus Técnicos; no modifica personas. Lead delegado sólo recibe los Grupos especificados y durante la vigencia; permanece Técnico para Mi tiempo, Claim y ADP.
 - Sesiones de ocho horas, almacenadas en SQLite, con cookie HttpOnly y SameSite estricto; Secure cuando se sirve por HTTPS. Cambio de contraseña o deshabilitación invalida sesiones. Limitación de intentos de login por identidad.
 - Contraseñas y códigos nunca se devuelven en `/api/state`. Almacenamiento PBKDF2-HMAC-SHA256, salt aleatorio, 260 000 iteraciones.
 - Recuperación: solicitud, validación por responsable distinto del solicitante, código emitido de quince minutos, uso único y anulación de sesiones.
@@ -65,3 +65,17 @@ Las reglas almacenan una lista de segmentos; se admiten días repetidos y cobert
 La asignación de backup se captura dentro de Mi equipo y mantiene vigencia, alcance y capacidad Lead independientes. El servidor impide una segunda asignación pendiente/activa salvo sustitución explícita; la revocación y nueva inserción comparten la transacción de escritura. Lecturas de bases antiguas eligen como máximo una delegación efectiva por Manager sin borrar registros. La revocación de una asignación vigente impide reactivar inadvertidamente una fila antigua.
 
 Las tarjetas del Manager son botones con navegación contextual. El estado «En curso» y el periodo «Todos los periodos» permiten localizar timers aunque se esté consultando otro mes. Los filtros de tipo, Técnico y Grupo se conservan en la pantalla de revisión hasta que se cambian o se navega a otra sección. El Excel sigue correspondiendo a tiempo aprobado del mes seleccionado, tal como indica la pantalla. Las solicitudes concretas del Panel reutilizan el detalle y los endpoints de aprobación existentes.
+
+## Analítica y separación de responsabilidades v1.2.0
+
+`GET /api/analytics` y `/api/analytics.xlsx` requieren Manager o Lead con delegación efectiva. El conjunto de usuarios se obtiene exclusivamente de los Grupos bajo su alcance; no se añade la identidad propia del Lead si su Grupo no está delegado. Admin y Técnicos sin delegación reciben 403.
+
+`GET /api/my-analytics` y `/api/my-analytics.xlsx` sólo admiten personas con rol USER, fijan el propietario desde la sesión y rechazan filtros de usuario o Grupo. Manager y Admin no usan esta ruta. Tanto JSON como Excel verifican autorización en cada solicitud.
+
+El motor de contabilidad conserva sus cálculos e incorpora el tipo de captura a cada tramo diario. La analítica agrega esos mismos tramos, no las duraciones brutas de registros traslapados. Los totales por Grupo, usuario, tipo y día reconcilian; los usuarios con cero horas pueden aparecer como parte del alcance. Las horas pendientes o programadas sin ejecutar no se contabilizan. Se valida el mes AAAA-MM incluso si el valor está vacío. La agrupación usa el Grupo actual, no una reconstrucción histórica de membresías.
+
+La administración organizacional de personas queda protegida por Admin en el endpoint de escritura, además de retirarse sus botones de Mi equipo. La edición del perfil propio no permite cambiar relaciones ni privilegios.
+
+Las recuperaciones de Técnicos se asignan a su Manager activo; las de Managers/administradores y los casos sin Manager activo se asignan a Admin distinto del solicitante. Lead no tiene permisos de recuperación. La misma regla se usa para filtrar la bandeja, emitir y ver el código.
+
+El código conserva su hash verificador y se agrega un valor cifrado con Fernet en una tabla separada. La clave local se crea con permisos 0600, permanece fuera de SQLite y no se entrega en el ZIP ni Git. Sólo se revela el valor a su responsable autorizado por un endpoint POST auditado. Ver no renueva vigencia; regenerar invalida el anterior; consumir elimina el valor cifrado e invalida sesiones anteriores. Las solicitudes abiertas duplicadas se evitan y los códigos de otras solicitudes del mismo usuario se invalidan al emitir/consumir. Los códigos de versiones previas sin valor cifrado requieren regeneración para consulta.

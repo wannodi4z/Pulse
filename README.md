@@ -1,4 +1,4 @@
-# Operational Pulse · 1.1.1
+# Operational Pulse · 1.2.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.1`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.2.0`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -78,7 +78,7 @@ Una Cuenta con Grupos no se puede eliminar. Si tiene Managers, primero deben mov
 
 Ser Lead no da permisos de aprobación. Desde **Mi equipo**, el Manager elige **Delegar** junto a un Lead activo y define, dentro de la misma página, los Grupos y las fechas. Sólo puede haber una persona delegada por Manager. Al sustituirla, la asignación anterior se revoca de forma atómica y se conserva su historial. El Lead delegado no puede aprobar sus propios registros. Revocar la delegación no quita la capacidad Lead. Cambiar la propiedad del Grupo o mover/quitar la capacidad del Lead revoca las delegaciones afectadas.
 
-En el login, **¿Olvidaste tu contraseña?** registra una solicitud. El Manager, Lead delegado dentro de su alcance o un administrador valida la identidad y emite un código de 15 minutos. Nadie emite su propio código. El código es de un solo uso y cambiar la contraseña invalida las sesiones anteriores. No se envían correos automáticamente.
+En el login, **¿Olvidaste tu contraseña?** registra una solicitud. El Manager valida a sus Técnicos; Administración valida a Managers, otros administradores y Técnicos sin Manager activo. Un Lead no emite ni consulta códigos, aunque tenga delegación operativa. Nadie emite su propio código. El código es de un solo uso y cambiar la contraseña invalida las sesiones anteriores. No se envían correos automáticamente.
 
 ## Zona horaria y datos locales
 
@@ -96,7 +96,7 @@ Puedes usar otra base para pruebas manuales sin tocar la principal:
 PULSE_DB_PATH="$PWD/pruebas.db" python -m uvicorn server:app --host 127.0.0.1 --port 5511
 ```
 
-No cambies la zona operativa de una base con registros sin revisar el impacto en los límites diarios. Para una copia de respaldo local, detén el servidor y copia `operational_pulse.db` a una ubicación segura. Conserva tu copia antes de sustituir carpetas entre versiones. Esta versión no importa automáticamente bases de la implementación anterior.
+No cambies la zona operativa de una base con registros sin revisar el impacto en los límites diarios. Para una copia de respaldo local, detén el servidor y copia `operational_pulse.db` y, si existe, `operational_pulse.key` a una ubicación segura. La clave permite volver a consultar códigos de recuperación vigentes; no debe subirse a GitHub ni compartirse con usuarios. Conserva tu copia antes de sustituir carpetas entre versiones. No se importa automáticamente el esquema del ZIP original v1.4.5. Las bases de esta nueva línea v1.0.x y v1.1.x se conservan al actualizar el código.
 
 ## Pruebas
 
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.1.1/
+Operational_Pulse_v1.2.0/
   index.html
   server.py
   requirements.txt
@@ -151,7 +151,7 @@ Operational_Pulse_v1.1.1/
     browser_smoke.py
 ```
 
-`/api/state` entrega el estado compartido según la sesión y el alcance autorizado. El servidor valida cada cambio mediante endpoints específicos; la interfaz no sobrescribe toda la base con un JSON global. Las contraseñas y los códigos se almacenan mediante PBKDF2 con salt aleatorio. Las sesiones usan cookies HttpOnly y SameSite; los permisos se verifican en el backend. El API local se documenta automáticamente en `/docs`.
+`/api/state` entrega el estado compartido según la sesión y el alcance autorizado. El servidor valida cada cambio mediante endpoints específicos; la interfaz no sobrescribe toda la base con un JSON global. Las contraseñas y verificadores de códigos se almacenan mediante PBKDF2 con salt aleatorio. Para consultar un código de recuperación vigente, su valor se guarda además cifrado con Fernet; la clave local se conserva fuera de SQLite y del repositorio. Las sesiones usan cookies HttpOnly y SameSite; los permisos se verifican en el backend. El API local se documenta automáticamente en `/docs`.
 
 ## Más adelante: servidor
 
@@ -185,3 +185,42 @@ Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders,
 ## Enfoque de la herramienta · v1.1.1
 
 Los textos del acceso y Mi tiempo se centran en el control de horas extra (OT), Guardias y sus aprobaciones. Se retiran las referencias a comenzar una jornada; la herramienta no se presenta como un control de asistencia. También se incluye el botón del ojo para mostrar u ocultar la contraseña en el login. No cambia la lógica operativa.
+
+## Analítica mensual · v1.2.0
+
+- **Manager:** «Analítica del equipo» muestra sus Grupos y Técnicos.
+- **Lead:** «Mi resumen» contiene sus horas; «Analítica del equipo» sólo aparece y funciona con delegación vigente y exclusivamente para los Grupos delegados. Revocar o dejar vencer la delegación bloquea las consultas y exportaciones del equipo en el servidor.
+- **Técnico:** «Mi resumen» consulta únicamente al propietario de la sesión; no ofrece filtros de otras personas o Grupos.
+- **Admin:** administra estructura y accesos; no tiene acceso a esta analítica operativa.
+
+El desglose separa **OT emergente, OT programada, OT histórica y Guardia neta**, con totales por Grupo, Técnico y día. Usa sólo tiempo real aprobado: una OT programada sin ejecutar y las solicitudes pendientes no suman horas. Los traslapes se deduplican antes de agrupar y la Guardia descuenta la OT aprobada que se traslapa. Los totales coinciden con el cálculo de Claim, ADP y Excel. Los registros que cruzan medianoche o fin de mes se dividen en la zona operativa. La agrupación por Grupo usa la asignación actual del Técnico.
+
+Elige el mes; en el equipo, selecciona Grupo y/o Técnico. Las tarjetas abren el detalle por tipo, las filas de Grupo llevan a sus Técnicos y cada Técnico permite abrir sus horas diarias. Excel exporta **Resumen, Por grupo, Por técnico y Detalle**, respetando los mismos filtros y permisos.
+
+## Administración y recuperación · v1.2.0
+
+Las altas y los cambios organizacionales de Cuentas, Managers, Grupos y Técnicos corresponden exclusivamente a Admin. Manager consulta Mi equipo, gestiona el tiempo y asigna/revoca su backup; no crea, mueve ni edita personas. Cada usuario conserva Mi perfil para sus propios datos personales y contraseña, sin poder cambiar allí Employee ID, Grupo, rol ni capacidad Lead.
+
+Las solicitudes se muestran al responsable: **Técnico → su Manager activo; Manager o administrador → otro administrador**. Si un Técnico no tiene Manager activo, lo atiende Administración. Nadie puede emitir o consultar su propio código. Lead no recibe estas solicitudes. No se envía correo automáticamente.
+
+Después de validar identidad, el responsable puede:
+
+- **Generar código:** crea un código de 15 minutos.
+- **Ver código:** muestra el mismo código vigente sin extender su plazo.
+- **Regenerar:** invalida el anterior y comienza un plazo nuevo.
+
+Usar el código invalida la solicitud y las sesiones anteriores. No se crean solicitudes abiertas duplicadas para la misma persona. Los códigos de versiones anteriores siguen siendo verificables si no vencieron, pero no pueden recuperarse de su hash: deben regenerarse una vez para disponer de «Ver código». La base nueva agrega sólo una tabla de valores cifrados; no borra datos ni reinicia cuentas.
+
+### Actualizar una instalación local
+
+1. Detén el servidor con Control+C y respalda tu `.db` y su `.key`, si existe.
+2. Actualiza los archivos del proyecto conservando esos archivos. Si usas una carpeta nueva, lleva allí tu base y su clave antes de iniciar.
+3. En la carpeta del proyecto ejecuta:
+
+   ```bash
+   source .venv/bin/activate
+   python -m pip install -r requirements.txt
+   bash start.command
+   ```
+
+Si la carpeta no tiene `.venv`, sigue primero la instalación inicial. Esta versión agrega `cryptography`; hay que actualizar dependencias aunque ya tuvieras una versión anterior funcionando. La clave local se genera al emitir el primer código y queda excluida del código fuente y del ZIP. Con `PULSE_DB_PATH`, la clave usa la misma ubicación y nombre base, con extensión `.key`; puede configurarse otra ubicación con `PULSE_RECOVERY_KEY_PATH`.
