@@ -1,4 +1,4 @@
-# Operational Pulse 1.2.1 · especificación de la implementación nueva
+# Operational Pulse 1.2.2 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -33,7 +33,7 @@ La lectura común se hace mediante `GET /api/state`. Las escrituras son transacc
 
 - OT: PLANNED, HISTORICAL o EMERGENCY. Estados de revisión: SUBMITTED, APPROVED, REJECTED, DOCUMENTATION. Ejecución: SCHEDULED, RUNNING o COMPLETED.
 - PLANNED: aprobación de ventana individual antes de Timer; actual final se reenvía.
-- Ventanas compartidas: creadas por Manager o Lead delegado. Una participación por Técnico y ventana, con Timer individual.
+- El Manager y Lead delegado revisan y autorizan; no publican actividades. Cada Técnico solicita su propia OT programada. Se conservan las ventanas previas y sus participaciones individuales por compatibilidad histórica; la API rechaza nuevas publicaciones.
 - HISTORICAL: intervalo ya terminado, referencia CHG/INC y envío a revisión.
 - EMERGENCY: Timer inmediato, detener primero y documentar después.
 - Un Timer activo por Técnico, garantizado por índice único en SQLite. Sólo su propietario puede detenerlo. El servidor fija el periodo real.

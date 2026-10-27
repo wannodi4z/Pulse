@@ -22,7 +22,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.2.1'
+VERSION = '1.2.2'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -940,15 +940,7 @@ def add_guard(data: dict = Body(...), actor=Depends(current_user)):
 
 @app.post('/api/windows')
 def add_window(data: dict = Body(...), actor=Depends(current_user)):
-    a, b = interval(data, 'scheduled_start', 'scheduled_end')
-    gid = text(data, 'group_id')
-    with connection(True) as c:
-        if gid not in scope(c, actor) or actor['role'] == 'ADMIN':
-            fail('Sólo el Manager o Lead delegado del Grupo puede programar OT compartida.', 403)
-        identity = uid()
-        c.execute('INSERT INTO windows VALUES(?,?,?,?,?,?,?,?,?)', (identity, gid, actor['id'], a, b, valid_reference(data), text(data, 'description'), 'APPROVED', now()))
-        audit(c, actor, 'SHARED_WINDOW', identity)
-    return {'id': identity}
+    fail('La programación se solicita desde Mi tiempo por cada Técnico; el responsable revisa y autoriza.', 403)
 
 
 def insert_ot(c, actor, data, window=None):

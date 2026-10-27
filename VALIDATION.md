@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.2.1
+# Validación ejecutada · Operational Pulse 1.2.2
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -100,3 +100,9 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 - Ejecutados nuevamente `tests/browser_smoke.py` y `tests/layout_smoke.py` en Chromium: ambos PASS, 54 combinaciones de pantalla y cero errores JavaScript.
 - Validadas sintaxis de app.js/layout.js y compilación de server.py.
 - Cambios limitados a presentación, terminología y versión; conserva la participación individual en actividades programadas. Mac/Safari no ejecutados.
+
+## Flujo operativo v1.2.2
+
+- 25 pruebas API PASS, incluida denegación de nuevas publicaciones para Manager, Técnico y Admin, y conservación de participaciones históricas con Timers individuales.
+- Prueba funcional completa `tests/browser_smoke.py` en Chromium PASS, cero errores JavaScript; incluye aprobaciones, Timer emergente, recuperación, administración y analítica.
+- Sintaxis JavaScript y compilación de server.py correctas. Mac/Safari no ejecutados.

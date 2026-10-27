@@ -244,7 +244,14 @@ class PulseTests(unittest.TestCase):
         u2,c2,_=self.person('USER','T002',group=gid)
         current=self.server.datetime.now(self.server.timezone.utc)
         a=(current-self.server.timedelta(minutes=5)).isoformat();b=(current+self.server.timedelta(hours=1)).isoformat()
-        w=self.post('/api/windows',{'group_id':gid,'scheduled_start':a,'scheduled_end':b,'reference':'CHG9000','description':'Cambio compartido'},mc)['id']
+        # Existing publications remain usable after removing Manager programming authority.
+        payload={'group_id':gid,'scheduled_start':a,'scheduled_end':b,'reference':'CHG9000','description':'Cambio previo'}
+        for client in (mc,uc,self.client):
+            self.assertEqual(client.post('/api/windows',json=payload).status_code,403)
+        w=self.server.uid()
+        with self.server.connection(True) as c:
+            owner=mc.get('/api/state').json()['user']['id']
+            c.execute('INSERT INTO windows VALUES(?,?,?,?,?,?,?,?,?)',(w,gid,owner,a,b,'CHG9000','Cambio previo','APPROVED',self.server.now()))
         one=self.post(f'/api/windows/{w}/join',{},uc)['id'];two=self.post(f'/api/windows/{w}/join',{},c2)['id'];self.assertNotEqual(one,two)
         self.assertEqual(uc.post(f'/api/windows/{w}/join',json={}).status_code,409)
         t1=self.post('/api/timers/start',{'overtime_id':one},uc)['id'];t2=self.post('/api/timers/start',{'overtime_id':two},c2)['id']

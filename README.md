@@ -1,4 +1,4 @@
-# Operational Pulse · 1.2.1
+# Operational Pulse · 1.2.2
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.2.1`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.2.2`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -65,7 +65,7 @@ Una Cuenta con Grupos no se puede eliminar. Si tiene Managers, primero deben mov
 
 - **OT programada individual:** la persona define el periodo y referencia CHG/INC. Debe aprobarse antes de iniciar. El botón Iniciar está disponible durante la ventana aprobada. Al detenerse, el tiempo real vuelve a aprobación.
 - **OT histórica:** registra tiempo que ya terminó y envíalo a aprobación.
-- **Actividad programada del Grupo:** el Manager o Lead delegado publica una ventana para un Grupo. Cada Técnico participa una sola vez y tiene su propio Timer. La publicación autoriza la programación; el tiempo real de cada participante se aprueba después de ejecutarse.
+- **OT programada:** cada Técnico solicita su propia OT desde Mi tiempo. El Manager o Lead delegado revisa y autoriza; no publica actividades ni captura OT propia. Las participaciones de publicaciones anteriores se conservan.
 - **Emergencia:** Iniciar emergencia crea el Timer inmediatamente. Detener genera un registro pendiente de documentación sin exigir un formulario en ese momento. Luego completa CHG/INC, descripción, justificación, impacto y motivo de no usar tiempo compensatorio para enviarlo.
 - Sólo hay un Timer activo por Técnico. El propietario es quien lo detiene. Manager y Lead delegado pueden monitorear los timers de su alcance.
 - **Guardias:** cada solicitud es independiente por ID y conserva una copia de la regla aplicable. Las reglas contienen segmentos semanales y fecha de vigencia. Un segmento cuyo fin es igual o anterior al inicio termina al día siguiente.
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.2.1/
+Operational_Pulse_v1.2.2/
   index.html
   server.py
   requirements.txt
