@@ -95,6 +95,22 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(len([g for g in state['groups'] if g['manager_id']==m['id']]),2)
         self.assertEqual(mc.post('/api/accounts',json={'name':'Bad','code':'BAD'}).status_code,403)
 
+    def test_delegation_has_no_expiry_and_requires_manual_revocation(self):
+        _,gid,_,mc,_,_=self.organization()
+        lead,lc,_=self.person('USER','BACKUP',group=gid,lead=True)
+        d=self.post('/api/delegations',{'lead_id':lead['id'],'group_ids':[gid]},mc)['id']
+        row=mc.get('/api/state').json()['delegations'][0]
+        self.assertEqual(row['end_at'],'')
+        with self.server.connection() as c:
+            self.assertEqual(len(self.server.effective_delegations(c)),1)
+        with patch.object(self.server,'now',return_value='2030-01-01T00:00:00+00:00'):
+            with self.server.connection() as c:
+                self.assertEqual(len(self.server.effective_delegations(c)),1)
+        self.assertTrue(lc.get('/api/state').json()['can_approve'])
+        self.assertEqual(mc.delete('/api/delegations/'+d).status_code,200)
+        self.assertFalse(lc.get('/api/state').json()['can_approve'])
+        self.assertTrue(lc.get('/api/state').json()['user']['is_lead'])
+
     def test_one_lead_moves_and_independent_delegation(self):
         a=self.account();g1=self.group(a);g2=self.group(a,'G2')
         m,mc,_=self.person('MANAGER','M001',account=a,groups=[g1,g2])
@@ -319,7 +335,7 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(mc.get('/api/analytics?month=invalid').status_code,422)
         self.assertEqual(mc.get('/api/analytics?month=').status_code,422)
 
-    def test_analytics_scope_export_delegation_expiry_and_revocation(self):
+    def test_analytics_scope_export_delegation_manual_revocation(self):
         a,g1,g2,m,mc,u1,c1,u2,c2=self.analytics_fixture()
         self.assertEqual(c1.get('/api/analytics?month=2026-01').status_code,403)
         self.assertEqual(c1.get('/api/analytics.xlsx?month=2026-01').status_code,403)
@@ -338,8 +354,8 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(lc.get('/api/analytics?month=2026-01&user_id='+lead['id']).status_code,403)
         self.assertEqual(lc.get('/api/my-analytics?month=2026-01').status_code,200)
         with patch.object(self.server,'now',return_value=(current+self.server.timedelta(hours=3)).isoformat()):
-            self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,403)
-            self.assertEqual(lc.get('/api/analytics.xlsx?month=2026-01').status_code,403)
+            self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,200)
+            self.assertEqual(lc.get('/api/analytics.xlsx?month=2026-01').status_code,200)
             self.assertEqual(lc.get('/api/my-analytics?month=2026-01').status_code,200)
         self.assertEqual(mc.delete('/api/delegations/'+d).status_code,200)
         self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,403)

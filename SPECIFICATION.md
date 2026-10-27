@@ -1,4 +1,4 @@
-# Operational Pulse 1.2.4 · especificación de la implementación nueva
+# Operational Pulse 1.0.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -11,7 +11,7 @@ Aplicación local para macOS y VS Code. HTML, CSS y JavaScript sin compilación,
 - Grupo: una Cuenta y, opcionalmente, un Manager de la misma Cuenta. Una columna de propietario evita asignaciones simultáneas a dos Managers.
 - Técnico: persona con rol USER, un Grupo y una capacidad opcional `is_lead`. Sólo puede haber un Lead entre todos los Grupos de un Manager. El Lead permanece dentro de su Grupo. La validación se ejecuta dentro de la transacción SQLite al designar, transferir un Técnico, reasignar un Grupo o transferir los equipos durante una baja. Un Grupo sin Manager no admite nuevas designaciones Lead.
 - Jerarquía visual: Cuenta contiene bloques de Managers; cada Manager contiene sólo sus Grupos; cada Grupo contiene sus Técnicos. Los Grupos libres aparecen bajo `Grupos sin Manager`.
-- Lead y Técnico comparten una identidad. La delegación temporal es una entidad independiente con Manager, Lead, alcance por Grupos, inicio, fin y revocación. No se permite autoaprobación.
+- Lead y Técnico comparten una identidad. La delegación es independiente: Manager, Lead, alcance por Grupos, inicio automático y revocación manual; no tiene vencimiento. No se permite autoaprobación.
 
 ## Navegación y estado
 
@@ -62,7 +62,7 @@ Los modales públicos usan un marco visual propio y accesible, dentro del mismo 
 
 Las reglas almacenan una lista de segmentos; se admiten días repetidos y cobertura 00:00–00:00 para 24 horas. La captura muestra un bloque por día, permite agregar/quitar intervalos y valida horas antes de guardar. El motor común de contabilidad no cambia.
 
-La asignación de backup se captura dentro de Mi equipo y mantiene vigencia, alcance y capacidad Lead independientes. El servidor impide una segunda asignación pendiente/activa salvo sustitución explícita; la revocación y nueva inserción comparten la transacción de escritura. Lecturas de bases antiguas eligen como máximo una delegación efectiva por Manager sin borrar registros. La revocación de una asignación vigente impide reactivar inadvertidamente una fila antigua.
+La asignación de backup se captura dentro de Mi equipo y mantiene alcance y capacidad Lead independientes, inicia al guardar y permanece hasta revocación manual. El servidor impide una segunda asignación pendiente/activa salvo sustitución explícita; la revocación y nueva inserción comparten la transacción de escritura. Lecturas de bases antiguas eligen como máximo una delegación efectiva por Manager sin borrar registros. La revocación de una asignación vigente impide reactivar inadvertidamente una fila antigua.
 
 Las tarjetas del Manager son botones con navegación contextual. El estado «En curso» y el periodo «Todos los periodos» permiten localizar timers aunque se esté consultando otro mes. Los filtros de tipo, Técnico y Grupo se conservan en la pantalla de revisión hasta que se cambian o se navega a otra sección. El Excel sigue correspondiendo a tiempo aprobado del mes seleccionado, tal como indica la pantalla. Las solicitudes concretas del Panel reutilizan el detalle y los endpoints de aprobación existentes.
 

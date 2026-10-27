@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.2.4
+# Validación ejecutada · Operational Pulse 1.0.0
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -117,3 +117,10 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 - Prueba funcional completa `tests/browser_smoke.py` en Chromium PASS, cero errores JavaScript.
 - Medición visual de la opción Generar código de activación con CSS real a 1440, 1280, 390 y 320 px: sin desbordamiento, con espacio interior derecho.
 - Sintaxis de app.js y compilación de server.py correctas. Mac/Safari pendientes.
+
+## Estabilización v1.0.0 · delegación manual
+
+- 26 pruebas API: se comprueba delegación sin fechas, vigencia sin vencimiento automático, revocación que retira permisos y conserva Lead.
+- Prueba funcional completa en Chromium PASS y 54 combinaciones de pantalla PASS; formulario sin campos de fecha.
+- Migración de delegaciones comprobada en SQLite aislado: vigente pasa a manual, vencida/revocada no se reactiva; reinicio no duplica auditoría.
+- Sintaxis JavaScript y compilación Python correctas. Mac/Safari pendientes.

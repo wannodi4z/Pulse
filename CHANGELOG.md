@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## v1.0.0 · estabilización · 27 de octubre de 2026
+
+- Versión fijada en v1.0.0 por solicitud del usuario hasta autorización expresa para pasar a v1.1.x.
+- Delegación inmediata sin fechas: permanece hasta revocación manual. Se conserva el alcance, Lead independiente y un backup por Manager.
+- Las delegaciones antiguas actualmente efectivas pasan a revocación manual con auditoría; las vencidas o revocadas no se reactivan.
+
+
 ## v1.2.4 · 27 de octubre de 2026
 
 - Menús de acciones más amplios y con mayor espacio interior; etiquetas largas se ajustan sin tocar el borde y el menú respeta el ancho de pantallas pequeñas.

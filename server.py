@@ -22,7 +22,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.2.4'
+VERSION = '1.0.0'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -97,6 +97,18 @@ def init_db():
         CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY, actor_id TEXT REFERENCES users(id), action TEXT NOT NULL, entity_id TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
+        # Adopt manual revocation for the latest currently effective legacy backup.
+        # Expired, revoked and future assignments are never reactivated.
+        stamp = now()
+        legacy = c.execute("SELECT d.* FROM delegations d JOIN users m ON m.id=d.manager_id WHERE d.revoked_at IS NULL AND d.start_at<=? AND (d.end_at='' OR d.end_at>?) AND m.status='ACTIVE' ORDER BY d.rowid DESC", (stamp, stamp)).fetchall()
+        migrated = set()
+        for d in legacy:
+            if d['manager_id'] in migrated:
+                continue
+            migrated.add(d['manager_id'])
+            if d['end_at']:
+                c.execute("UPDATE delegations SET end_at='' WHERE id=?", (d['id'],))
+                c.execute('INSERT INTO audit VALUES(?,?,?,?,?,?)', (uid(), None, 'DELEGATION_MANUAL_REVOCATION', d['id'], json.dumps({'previous_end_at':d['end_at']}), stamp))
         # Only a genuinely new database receives bootstrap administrators. Existing data is never reset.
         if c.execute('SELECT count(*) FROM users').fetchone()[0] == 0 and c.execute('SELECT count(*) FROM audit').fetchone()[0] == 0:
             for n, surname in [(1, 'Principal'), (2, 'Respaldo')]:
@@ -150,7 +162,7 @@ def effective_delegations(c):
     """
     stamp = now()
     selected = {}
-    for row in c.execute("SELECT d.* FROM delegations d JOIN users m ON m.id=d.manager_id WHERE d.revoked_at IS NULL AND d.start_at<=? AND d.end_at>? AND m.status='ACTIVE' ORDER BY d.rowid DESC", (stamp, stamp)):
+    for row in c.execute("SELECT d.* FROM delegations d JOIN users m ON m.id=d.manager_id WHERE d.revoked_at IS NULL AND d.start_at<=? AND (d.end_at='' OR d.end_at>?) AND m.status='ACTIVE' ORDER BY d.rowid DESC", (stamp, stamp)):
         selected.setdefault(row['manager_id'], dict(row))
     return list(selected.values())
 
@@ -341,7 +353,7 @@ def revoke_authority(c, actor, reason, *, group_ids=(), manager_ids=(), lead_ids
     group_ids, manager_ids, lead_ids = set(group_ids), set(manager_ids), set(lead_ids)
     stamp = now()
     for d in rows(c, 'delegations'):
-        if d['revoked_at'] or parse_at(d['end_at']) <= parse_at(stamp):
+        if d['revoked_at'] or (d['end_at'] and parse_at(d['end_at']) <= parse_at(stamp)):
             continue
         if d['manager_id'] in manager_ids or d['lead_id'] in lead_ids or group_ids.intersection(json.loads(d['group_ids'])):
             c.execute('UPDATE delegations SET revoked_at=? WHERE id=?', (stamp, d['id']))
@@ -384,7 +396,7 @@ def admin_person_impact(c, identity):
         if snapshot.get('coverage_end_at') and parse_at(snapshot['coverage_end_at']) <= parse_at(stamp):
             continue
         guards.append(r)
-    delegations = [r for r in rows(c, 'delegations') if not r['revoked_at'] and parse_at(r['end_at']) > parse_at(stamp) and (r['manager_id'] == identity or r['lead_id'] == identity)]
+    delegations = [r for r in rows(c, 'delegations') if not r['revoked_at'] and (not r['end_at'] or parse_at(r['end_at']) > parse_at(stamp)) and (r['manager_id'] == identity or r['lead_id'] == identity)]
     issued = security_issued_by(c, identity)
     payload = {'person': public_user(user), 'groups': owned, 'timers': timers, 'documents': documents, 'scheduled': scheduled, 'guards': guards, 'delegations': delegations, 'issued_codes': [{'id': r['id'], 'user_id': r['user_id']} for r in issued],
                'pending_time': sum(r['status']=='SUBMITTED' for r in overtime) + c.execute("SELECT count(*) FROM guards WHERE user_id=? AND status='SUBMITTED'", (identity,)).fetchone()[0]}
@@ -824,18 +836,16 @@ def complete_recovery(data: dict = Body(...)):
 def delegate(data: dict = Body(...), actor=Depends(current_user)):
     if actor['role'] != 'MANAGER':
         fail('Sólo el Manager puede delegar su autoridad.', 403)
-    start, end = interval(data, 'start_at', 'end_at')
+    start, end = now(), ''
     ids = list(dict.fromkeys(data.get('group_ids', [])))
     with connection(True) as c:
         lead = get(c, 'users', text(data, 'lead_id'))
         allowed = scope(c, actor)
         if not lead['is_lead'] or lead['status'] != 'ACTIVE' or lead['group_id'] not in allowed or not ids or not set(ids).issubset(allowed):
             fail('Selecciona un Lead activo de tu equipo y Grupos bajo tu autoridad.')
-        if parse_at(end) <= datetime.now(timezone.utc):
-            fail('La delegación debe terminar en el futuro.')
         # The write transaction serializes concurrent assignments. Changing backup
         # explicitly revokes the existing active/scheduled assignment atomically.
-        outstanding = c.execute('SELECT * FROM delegations WHERE manager_id=? AND revoked_at IS NULL AND end_at>?', (actor['id'], now())).fetchall()
+        outstanding = c.execute("SELECT * FROM delegations WHERE manager_id=? AND revoked_at IS NULL AND (end_at='' OR end_at>?)", (actor['id'], now())).fetchall()
         if outstanding and data.get('replace_current') is not True:
             fail('Ya hay una persona delegada. Usa la asignación del equipo para sustituirla.', 409)
         for previous in outstanding:
@@ -853,10 +863,10 @@ def revoke(identity: str, actor=Depends(current_user)):
         d = get(c, 'delegations', identity)
         if d['manager_id'] != actor['id']:
             fail('Sólo el Manager que delegó puede revocar.', 403)
-        if not d['revoked_at'] and parse_at(d['end_at']) > datetime.now(timezone.utc):
+        if not d['revoked_at'] and (not d['end_at'] or parse_at(d['end_at']) > datetime.now(timezone.utc)):
             # Older versions could save multiple backups. Explicit revocation must
             # not reactivate an older row when the current one is revoked.
-            targets = c.execute('SELECT id FROM delegations WHERE manager_id=? AND revoked_at IS NULL AND end_at>?', (actor['id'], now())).fetchall()
+            targets = c.execute("SELECT id FROM delegations WHERE manager_id=? AND revoked_at IS NULL AND (end_at='' OR end_at>?)", (actor['id'], now())).fetchall()
         else:
             targets = [{'id': identity}]
         for target in targets:
