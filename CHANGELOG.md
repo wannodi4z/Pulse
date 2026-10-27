@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v1.1.0 · 27 de octubre de 2026
+
+- Nueva interfaz Enterprise luminosa: sidebar blanco y compacto, navegación azul profundo con acentos turquesa y marca Kyndryl en la cabecera corporativa.
+- Identidad, cabecera, estados, tablas, menús, acceso y diálogos rediseñados con una hoja visual dedicada: static/design.css.
+- Jerarquía organizativa más ligera: Cuenta como contenedor, Managers sobre fondo blanco y Grupos con guía de relación y acento suave.
+- Menús de acciones en lista con iconos y sin botones enmarcados; se conservan foco, flechas, Escape y confirmaciones.
+- Cuenta nueva: guía breve de incorporación; Agregar Manager es la acción principal inicial. Los Grupos sin Manager siguen pudiendo crearse desde el menú.
+- Se conserva SQLite, permisos, recuperación, reglas de Guardia, OT, timers, aprobaciones, analítica, Claim/ADP y Excel. Backend sin cambios de lógica en esta entrega.
+
+
 ## v1.0.1 · 26 de octubre de 2026
 
 - Acabados de interfaz: niveles de Cuenta, Manager y Grupo con superficies, contraste, tipografía, bordes y acentos diferenciados; tablas, formularios, navegación y botones con el mismo lenguaje visual.

@@ -1,6 +1,6 @@
-# Validación ejecutada · Operational Pulse 1.0.1
+# Validación ejecutada · Operational Pulse 1.1.0
 
-Fecha: 26 de octubre de 2026, zona de referencia America/Mexico_City.
+Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
 ## Entorno y comandos
 
@@ -76,3 +76,12 @@ Se ejecutaron nuevamente las 23 pruebas de backend, la suite general de Chromium
 Prueba adicional de menú: apertura desde la Cuenta, primer botón enfocado, ArrowDown hacia Editar Cuenta, límites dentro de viewport, Escape con devolución de foco y cierre al pulsar fuera. Se mantiene la comprobación de Organización combinada, acceso desde Panel, reglas de Guardia editables, OT, timers, guardias, aprobaciones, Claim/ADP, Excel, analítica y recuperaciones. Sintaxis de ambos módulos JS y compilación Python verificadas. Inspección visual de captura real de Organización, con jerarquía y acciones reagrupadas.
 
 Las pruebas siguen realizándose en Chromium/Linux; no se ejecutaron en una Mac física o Safari. El ZIP excluye bases y claves; importar el servidor extraído con una SQLite nueva verifica la versión v1.0.1 y los dos administradores iniciales.
+
+
+## Nueva interfaz Enterprise luminosa v1.1.0
+
+Se volvieron a ejecutar las 23 pruebas de backend, la suite funcional Chromium y las 54 combinaciones de rol/ruta/viewport de layout_smoke (1440×780, 1366×700 y 1280×650). Se comprobaron páginas y formularios con datos reales aislados, límites de controles, paginación y conservación de documentación al avanzar por pasos.
+
+La suite verifica ahora explícitamente que el sidebar es blanco, el texto de navegación activa es azul profundo y Kyndryl aparece en la cabecera, sin marca flotante en el sidebar. También comprueba menús con teclado, recuperación, navegación entre roles, altas/traspasos/bajas/reactivación, reglas editables, OT, timers, guardias, aprobaciones, Excel, Claim, ADP y analítica. La creación de Grupos antes de crear Manager se ejecutó mediante el menú de la Cuenta; la incorporación del primer Manager sigue disponible como acción principal.
+
+Se inspeccionaron capturas de la Cuenta vacía, su menú y la estructura poblada. La instalación y el empaquetado no incluyen datos de esas pruebas; las imágenes de documentación son sólo vistas de referencia. Validación de sintaxis de ambos módulos JavaScript y compilación Python completadas. No se ejecutó una prueba física en MacBook Air M1 ni Safari: se utilizó Chromium/Linux con las dimensiones indicadas.

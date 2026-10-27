@@ -103,10 +103,10 @@ def run():
                     assert page.locator('#modal').evaluate('(el)=>el.getBoundingClientRect().height<=innerHeight'),'Access dialog vertical overflow'
                 page.set_viewport_size({'width':1440,'height':1000})
                 if os.environ.get('PULSE_SCREENSHOT_DIR'):
-                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.0.1.png'))
+                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.1.0.png'))
                 page.keyboard.press('Escape');expect(page.locator('#modal')).not_to_be_visible()
                 action('recovery-request');fill('identity','admin2')
-                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.0.1.png'))
+                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.1.0.png'))
                 save();expect(page.locator('.access-result-body')).to_contain_text('Si tu cuenta está activa')
                 expect(page.locator('#modal h2')).to_have_text('Solicitud recibida')
                 action('recovery-complete');expect(page.locator('#modal [name=identity]')).to_have_value('admin2')
@@ -114,7 +114,7 @@ def run():
                 action('close')
                 # Branding and credits work before and after authentication.
                 action('about');expect(page.locator('.about-project')).to_contain_text('Francisco Cervantes Marquez')
-                expect(page.locator('.about-project')).to_contain_text('Versión 1.0.1')
+                expect(page.locator('.about-project')).to_contain_text('Versión 1.1.0')
                 expect(page.locator('.author-list')).to_contain_text('Samuel Alejandro Díaz Chávez')
                 expect(page.locator('.author-list article')).to_have_count(2)
                 page.set_viewport_size({'width':390,'height':844})
@@ -124,7 +124,7 @@ def run():
                 assert page.locator('.about-project img.kyndryl-logo').evaluate('(img)=>img.complete&&img.naturalWidth>0')
                 action('close')
                 login('admin1','admin12026')
-                expect(page.locator('.footer-version')).to_contain_text('v1.0.1')
+                expect(page.locator('.footer-version')).to_contain_text('v1.1.0')
                 expect(page.locator('.sidebar [data-page=analytics]')).to_have_count(0)
                 action('about');expect(page.locator('.author-list')).to_contain_text('Francisco Cervantes Marquez');action('close')
                 go('recoveries');action('recovery-issue')
@@ -144,6 +144,13 @@ def run():
                 expect(page.locator('h1')).to_have_text('Organización')
                 action('account-new');fill('code','MX');fill('name','Operación México');save();expect(page.locator('.account-block')).to_have_count(1)
                 account_id=page.locator('.account-block').get_attribute('data-account')
+                if os.environ.get('PULSE_SCREENSHOT_DIR'):
+                    preview=Path(os.environ['PULSE_SCREENSHOT_DIR']);preview.mkdir(parents=True,exist_ok=True)
+                    page.wait_for_function('()=>Number(getComputedStyle(document.querySelector("#toast")).opacity)===0')
+                    page.screenshot(path=str(preview/'enterprise-empty-account.png'))
+                    page.locator('[data-action=entity-menu][data-id="account:'+account_id+'"]:visible').click()
+                    page.screenshot(path=str(preview/'enterprise-account-menu.png'))
+                    page.keyboard.press('Escape')
                 for code in ['G1','G2','G3']:
                     action('group-new');fill('code',code);fill('name','Grupo '+code);save();expect(page.locator('.group-card')).to_have_count(int(code[-1]))
                 gids=page.locator('.group-card').evaluate_all('(nodes)=>nodes.map(n=>n.dataset.group)')
@@ -190,7 +197,10 @@ def run():
                 expect(page.locator('.organization-summary')).to_be_visible()
                 expect(page.locator('.account-block')).to_be_visible()
                 expect(page.locator('.viewport-sections')).not_to_be_visible()
-                expect(page.locator('.product-signature .kyndryl-logo')).to_be_visible()
+                expect(page.locator('.topbar .corporate-signature .kyndryl-logo')).to_be_visible()
+                expect(page.locator('.sidebar .product-signature')).to_have_count(0)
+                assert page.locator('.sidebar').evaluate('(el)=>getComputedStyle(el).backgroundColor')=='rgb(255, 255, 255)'
+                assert page.locator('.sidebar .nav-item.active .nav-text').evaluate('(el)=>getComputedStyle(el).color')=='rgb(39, 89, 186)'
                 expect(page.locator('.nav-settings summary use')).to_have_attribute('href','/static/icons.svg#settings')
                 go('dashboard');expect(page.locator('h1')).to_have_text('Panel de administración')
                 expect(page.locator('.welcome-banner')).to_have_count(0)
@@ -205,7 +215,7 @@ def run():
                 page.set_viewport_size({'width':1440,'height':1000})
                 screenshot=os.environ.get('PULSE_SCREENSHOT_DIR')
                 if screenshot:
-                    Path(screenshot).mkdir(parents=True,exist_ok=True);page.screenshot(path=str(Path(screenshot)/'organization.png'),full_page=True)
+                    Path(screenshot).mkdir(parents=True,exist_ok=True);page.wait_for_function('()=>Number(getComputedStyle(document.querySelector("#toast")).opacity)===0');page.screenshot(path=str(Path(screenshot)/'organization.png'),full_page=True)
                 action('logout');activate('L001',codes['L001']);activate('L002',codes['L002']);activate('T001',codes['T001']);activate('M001',manager_code);login('M001')
                 go('team');expect(page.locator('h1')).to_have_text('Mi equipo')
                 expect(page.locator('[data-action=tech-new]')).to_have_count(0);expect(page.locator('[data-action=person-edit]')).to_have_count(0)
@@ -216,7 +226,7 @@ def run():
                     action('delegation-inline',row);expect(page.locator('#modal')).not_to_be_visible()
                     expect(page.locator('#delegation-editor')).to_contain_text(employee)
                     if employee=='L002':expect(page.locator('#delegation-editor')).to_contain_text('sustituirá')
-                    if screenshot and employee=='L001':page.screenshot(path=str(Path(screenshot)/'inline-delegation-v1.0.1.png'),full_page=True)
+                    if screenshot and employee=='L001':page.screenshot(path=str(Path(screenshot)/'inline-delegation-v1.1.0.png'),full_page=True)
                     page.locator('#delegation-editor button[type=submit]').click()
                     expect(page.locator('#delegation-editor')).to_have_count(0)
                     expect(page.locator('.delegation-summary')).to_contain_text(employee)
@@ -244,7 +254,7 @@ def run():
                 expect(sunday.locator('.rule-full-note')).to_be_visible()
                 page.set_viewport_size({'width':390,'height':844});assert page.locator('#modal').evaluate('(el)=>el.scrollWidth<=el.clientWidth')
                 page.set_viewport_size({'width':1440,'height':1000})
-                if screenshot:page.locator('#modal').evaluate('(el)=>el.scrollTop=0');page.screenshot(path=str(Path(screenshot)/'weekly-intervals-v1.0.1.png'))
+                if screenshot:page.locator('#modal').evaluate('(el)=>el.scrollTop=0');page.screenshot(path=str(Path(screenshot)/'weekly-intervals-v1.1.0.png'))
                 save();expect(page.locator('.rules-grid')).to_contain_text('24 horas')
                 assert len(page.request.get(base+'/api/state').json()['rules'][0]['segments'])==13
                 # Independent technician session provides a real active event for Manager drilldowns.
@@ -295,7 +305,7 @@ def run():
                 for width,height in [(1440,1000),(390,844)]:
                     page.set_viewport_size({'width':width,'height':height});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
                 page.set_viewport_size({'width':1440,'height':1000})
-                if screenshot:page.evaluate('window.scrollTo(0,0)');page.screenshot(path=str(Path(screenshot)/'analytics-team-v1.0.1.png'),full_page=True)
+                if screenshot:page.evaluate('window.scrollTo(0,0)');page.screenshot(path=str(Path(screenshot)/'analytics-team-v1.1.0.png'),full_page=True)
                 with page.expect_download() as analytics_download:page.locator('a[download]').click()
                 analytics_file=Path(tmp)/'analytics.xlsx';analytics_download.value.save_as(analytics_file)
                 workbook=load_workbook(analytics_file);assert workbook.sheetnames==['Resumen','Por grupo','Por técnico','Detalle']
@@ -367,7 +377,7 @@ def run():
                     assert geometry['height']<=height
                     assert geometry['bodyScroll']<=geometry['bodyClient']+1,'Baja requires scrolling at 100%'
                 page.set_viewport_size({'width':1440,'height':760})
-                if screenshot:page.screenshot(path=str(Path(screenshot)/'manager-offboard-v1.0.1.png'))
+                if screenshot:page.screenshot(path=str(Path(screenshot)/'manager-offboard-v1.1.0.png'))
                 save();expect(page.locator('#modal')).not_to_be_visible()
                 final=page.request.get(base+'/api/state').json()
                 assert next(x for x in final['people'] if x['id']==manager1['id'])['status']=='DISABLED'
@@ -377,7 +387,7 @@ def run():
                 fill('reason','Nuevo acceso con código de activación');save();expect(page.locator('.secret-code')).to_be_visible();action('close')
                 assert next(x for x in page.request.get(base+'/api/state').json()['people'] if x['id']==manager1['id'])['status']=='PENDING_ACTIVATION'
                 assert errors==[],errors
-                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.0.1','login password visibility and OT/guard copy','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','13 weekly intervals and full Sunday','inline unique Manager Lead delegation/revocation','dashboard running/pending drilldowns and detail approvals','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','team analytics group/user/type/month drilldowns and Excel','personal analytics cannot request other users','delegated analytics scoped and revoked live','Admin-only people management','view/regenerate recovery codes','Claim/ADP rows','Lead has no implicit approval authority','one Lead across all Manager groups','guided expanded confirmation dialogs','active Technician and Group transfers','Manager offboard and reactivation via UI','edit/delete guard rules with preserved request snapshots','simplified sidebar and user menu','native viewport sections and list pagination','organization summary combined with hierarchy','actionable Admin dashboard opens selected Account','integrated Kyndryl signature and distinct configuration gear','release version 1.0.1','premium hierarchy and secondary action menus','action menu keyboard focus/arrows/Escape and outside dismissal'],'javascript_errors':errors},ensure_ascii=False,indent=2))
+                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.1.0','login password visibility and OT/guard copy','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','13 weekly intervals and full Sunday','inline unique Manager Lead delegation/revocation','dashboard running/pending drilldowns and detail approvals','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','team analytics group/user/type/month drilldowns and Excel','personal analytics cannot request other users','delegated analytics scoped and revoked live','Admin-only people management','view/regenerate recovery codes','Claim/ADP rows','Lead has no implicit approval authority','one Lead across all Manager groups','guided expanded confirmation dialogs','active Technician and Group transfers','Manager offboard and reactivation via UI','edit/delete guard rules with preserved request snapshots','simplified sidebar and user menu','native viewport sections and list pagination','organization summary combined with hierarchy','actionable Admin dashboard opens selected Account','corporate header Kyndryl and distinct configuration gear','release version 1.1.0','Enterprise light shell, hierarchy and secondary action menus','action menu keyboard focus/arrows/Escape and outside dismissal'],'javascript_errors':errors},ensure_ascii=False,indent=2))
                 browser.close()
         except Exception:
             log.flush();log.seek(0);print(log.read()[-7000:]);raise

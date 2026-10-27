@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.1 · especificación de la implementación nueva
+# Operational Pulse 1.1.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -123,3 +123,10 @@ El login dice **Planea. Trabaja. Controla.** Los diálogos se ampliaron, los for
 ### Presentación y acciones v1.0.1
 
 Los menús de entidades conservan los identificadores data-action y los controladores existentes. Se montan sobre el documento con posicionamiento fijo, ajustado a los límites del viewport, para evitar recortes por los contenedores de tarjetas. Se cierran al navegar, volver a renderizar, redimensionar, pulsar Escape o hacer clic fuera. La navegación de teclado recorre los botones y Escape devuelve foco al disparador. Las acciones finales pasan por las mismas validaciones y confirmaciones de la aplicación. El servidor sólo cambia su constante de versión en esta entrega.
+
+
+### Interfaz Enterprise luminosa v1.1.0
+
+La estructura de navegación se renueva en nav() y app(), conservando una única implementación por función y los mismos data-page/data-action. El sidebar blanco contiene marca de producto, funciones por rol, Configuración y Acerca del proyecto; Kyndryl pasa a la cabecera corporativa. static/design.css es la fuente visual de esta dirección y se carga después de los contratos de estructura de app.css. No se añaden frameworks, dependencias ni servicios externos.
+
+Las opciones de los menús usan los mismos controladores y un icono local. La acción principal de una Cuenta sin Manager es su incorporación; la creación de Grupos permanece disponible en el menú. Los formularios, tablas y acceso utilizan el mismo lenguaje visual. El backend sólo cambia la constante VERSION, sin cambios en el esquema o la lógica de negocio.
