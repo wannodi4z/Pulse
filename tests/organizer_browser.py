@@ -57,7 +57,7 @@ try:
   page.locator('#organizer-reason').fill('Cambio de especialidad probado por Admin');page.locator('[data-action=organizer-save]').click();expect(page.locator('#modal')).not_to_be_visible();page.wait_for_function('()=>!busy')
   assert next(u for u in context.request.get(base+'/api/state').json()['people'] if u['id']==samuel['id'])['group_id']==target
   assert not errors,errors
-  print('PASS: two Accounts/Managers/Leads and named Samuel; four visible Groups at 1440/1280; Lead header/edit/add; native drag preview and cancel without writes; keyboard/click fallback; cross-account review/confirm; board/review fit 1440/1280/390; zero JS errors')
+  print('PASS: two Accounts/four Managers/four Leads and named Samuel; four visible Groups at 1440/1280; Lead header/edit/add; native drag preview and cancel without writes; keyboard/click fallback; cross-account review/confirm; board/review fit 1440/1280/390; zero JS errors')
   browser.close()
 finally:
  if process:process.terminate();process.wait(timeout=10)

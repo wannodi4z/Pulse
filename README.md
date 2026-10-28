@@ -1,10 +1,10 @@
-# Operational Pulse · 1.1.3
+# Operational Pulse · 1.1.4
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Proyecto completo de pruebas · v1.1.3
+## Proyecto completo de pruebas · v1.1.4
 
-Descomprime en una **carpeta nueva**, instala dependencias e inicia con `bash start.command`, F5 o uvicorn. La primera apertura prepara automáticamente **dos Cuentas, dos Managers, dos Leads directos y doce Técnicos** desde la base incluida en `fixtures/banorte_pruebas.sqlite3`.
+Descomprime en una **carpeta nueva**, instala dependencias e inicia con `bash start.command`, F5 o uvicorn. La primera apertura prepara automáticamente **dos Cuentas, dos Managers por Cuenta (cuatro en total), cuatro Leads directos y doce Técnicos** desde la base incluida en `fixtures/banorte_pruebas.sqlite3`.
 
 | Cuenta | Employee ID | Contraseña | Perfil |
 | --- | --- | --- | --- |
@@ -15,12 +15,25 @@ Descomprime en una **carpeta nueva**, instala dependencias e inicia con `bash st
 | Acme México · MX-ACME | MGR0002 | manager22026 | Mariana Torres · Manager |
 | Acme México · MX-ACME | SL0002 | lead220261 | Luis Navarro · Lead |
 | Acme México · MX-ACME | TEC0007–TEC0012 | tecnico12026 | Seis Técnicos adicionales |
+| Banorte · MX-BNTE | MGR0003 | manager32026 | Roberto Salinas · Segundo Manager |
+| Banorte · MX-BNTE | SL0003 | lead320261 | Valeria Mendoza · Lead de MGR0003 |
+| Acme México · MX-ACME | MGR0004 | manager42026 | Patricia Ramos · Segundo Manager |
+| Acme México · MX-ACME | SL0004 | lead420261 | Diego Ortega · Lead de MGR0004 |
 
-Hay nueve Grupos: seis en Banorte y tres en Acme. Todos los usuarios de ejemplo están activos; no hay OT, Guardias, Timers, delegaciones ni sesiones precreadas. admin1/admin2 conservan sus accesos iniciales. Cada Lead está directamente bajo su Manager, sin Grupo, sólo con OT y autoridad de aprobación únicamente al delegar.
+Hay quince Grupos: nueve en Banorte y seis en Acme. Cada Cuenta tiene dos Managers de ejemplo; **no es un límite**, puedes agregar tantos Managers, Grupos y Técnicos como necesites. Todos los usuarios de ejemplo están activos; no hay OT, Guardias, Timers, delegaciones ni sesiones precreadas. admin1/admin2 conservan sus accesos iniciales. Cada Lead está directamente bajo su Manager, sin Grupo, sólo con OT y autoridad de aprobación únicamente al delegar.
 
 Una base existente **nunca se sustituye al iniciar**. Para incorporar los ejemplos en tu carpeta anterior, detén el servidor y ejecuta `bash configurar_banorte.command`; ahora prepara ambos equipos. Ese configurador explícito conserva a los demás usuarios y sus registros; establece las tres contraseñas originales solicitadas y el nombre de Samuel para 951357. Los accesos adicionales ya existentes conservan sus contraseñas, estado y pertenencia. Los reinicios normales no restauran ejemplos borrados ni restablecen contraseñas.
 
 Una instalación limpia sin ejemplos sigue disponible definiendo `PULSE_DB_PATH` a otra ruta o retirando `fixtures` antes de iniciar. Se crean sólo admin1/admin2.
+
+## Agregar Managers, Grupos y Leads
+
+1. En **Organización**, abre la Cuenta y pulsa **Agregar Manager**, visible en su cabecera. Crea y activa su acceso. Al terminar, la vista selecciona automáticamente al nuevo Manager.
+2. En la cabecera del Manager pulsa **Agregar Lead**. El formulario ya trae ese Manager seleccionado y no pide Grupo. Guarda y comparte el código de activación. Puede registrar OT; no solicita Guardias y sólo aprueba al equipo con delegación.
+3. Si aparece **Editar Lead**, ese Manager ya tiene uno. Los cuatro Managers de ejemplo lo tienen asignado. El máximo es un Lead vigente por Manager, no dos. Admin puede editarlo o gestionar su baja/cambio con historial conservado; un Manager sin Lead muestra Agregar Lead.
+4. **Agregar Grupo** dentro del Manager abre el formulario con Cuenta y Manager seleccionados. El botón de la Cuenta permite elegir el responsable al crear el Grupo.
+
+El selector **Manager / equipo** de la Cuenta permite abrir cualquier Manager directamente. Los botones Editar Manager y Editar Lead tienen etiquetas distintas y espacio propio; se muestra el nombre completo del Lead.
 
 ## Organización con cuatro Grupos y organizador por arrastres
 
@@ -52,7 +65,7 @@ Las descripciones de ciclos anteriores más abajo son históricas; esta sección
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.3`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.4`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -173,7 +186,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.1.3/
+Operational_Pulse_v1.1.4/
   index.html
   server.py
   requirements.txt

@@ -2,6 +2,13 @@
 
 La entrega vigente es la primera entrada. Las versiones repetidas en entradas antiguas corresponden a reinicios de numeración solicitados durante el diseño.
 
+## v1.1.4 · 28 de octubre de 2026
+
+- Corrige los ejemplos a dos Managers por Cuenta: cuatro Managers y cuatro Leads, manteniendo los tres accesos originales y a Samuel Alejandro Díaz Chávez como 951357.
+- Agregar Manager siempre visible en Cuenta; selector directo de Manager, nombres de Lead completos y botones Editar Manager/Editar Lead diferenciados y alineados.
+- Agregar Lead visible en Managers sin backup; al crear una persona se abre su bloque. Agregar Grupo desde Manager preselecciona correctamente su propietario.
+- Probada la creación de un tercer Manager y su Lead para verificar que dos Managers es sólo un ejemplo, no un límite.
+
 ## v1.1.3 · 28 de octubre de 2026
 
 - Ejemplos ampliados a dos Cuentas, dos Managers, sus dos Leads, doce Técnicos y nueve Grupos; 951357 es Samuel Alejandro Díaz Chávez. Se conservan los tres accesos originales.

@@ -1,4 +1,4 @@
-# Operational Pulse 1.1.3 · especificación de la implementación nueva
+# Operational Pulse 1.1.4 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -195,3 +195,9 @@ Vista inicial de cuatro Grupos en 2×2, probada a 1440×780 y 1280×650. Detalle
 Organizador Admin con origen/destino, búsqueda de personas, arrastre nativo y alternativa por botones, cambios temporales deshacibles y revisión con motivo. POST /api/admin/organization/transfers valida de uno a cien movimientos únicos en una transacción SQLite: Admin, Técnico vigente sin capacidad Lead, origen actual, destino con Manager activo y sin Timer en ejecución. Si falla uno no se aplica ninguno. Preserva los registros y sus snapshots, actualiza pertenencia, revoca autoridad anterior, reabre recuperaciones cuando cambia responsable, invalida sesiones y registra auditoría por persona y lote. No decide automáticamente solicitudes administrativas anteriores; una solicitud desactualizada se revisa/rechaza explícitamente.
 
 La base de ejemplo contiene Banorte y Acme México, un Manager y un Lead directo por Cuenta, doce Técnicos y nueve Grupos. 951357 corresponde a Samuel Alejandro Díaz Chávez. scripts/prepare_example_teams.py es un configurador explícito para instalaciones anteriores, usado por configurar_banorte.command. El inicio ordinario sólo copia el fixture si no existe la base predeterminada y no se especificó PULSE_DB_PATH.
+
+## Altas visibles y ejemplos v1.1.4
+
+Dos Cuentas de ejemplo, dos Managers por Cuenta, un Lead directo por Manager: cuatro Managers, cuatro Leads, doce Técnicos y quince Grupos. No hay límite de dos Managers en código: es sólo la composición del fixture. Credenciales originales conservadas; nuevos MGR0003/SL0003 en Banorte y MGR0004/SL0004 en Acme.
+
+Agregar Manager y Agregar Grupo visibles en Cuenta. Selector Manager/equipo sincronizado con la navegación interna y búsqueda; no hay otra página ni otra sesión. Cabecera de Manager con Editar Manager y Agregar Grupo contextual; Lead sin elipsis, con Editar Lead, o Agregar Lead si está libre. Crear Manager/Lead revela automáticamente el bloque correspondiente. El alta contextual de Grupo preselecciona Cuenta y Manager correctos. La unicidad de Lead sigue validada por servidor.

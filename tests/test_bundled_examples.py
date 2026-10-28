@@ -16,14 +16,17 @@ class BundledExamplesTests(unittest.TestCase):
         self.run_code('''import server
 from fastapi.testclient import TestClient
 c=TestClient(server.app)
-for emp,pw in [('MGR0001','manager12026'),('SL0001','lead120261'),('951357','tecnico12026'),('MGR0002','manager22026'),('SL0002','lead220261'),('TEC0012','tecnico12026')]:
+for emp,pw in [('MGR0001','manager12026'),('SL0001','lead120261'),('951357','tecnico12026'),('MGR0002','manager22026'),('SL0002','lead220261'),('TEC0012','tecnico12026'),('MGR0003','manager32026'),('MGR0004','manager42026'),('SL0003','lead320261'),('SL0004','lead420261')]:
  r=c.post('/api/login',json={'identity':emp,'password':pw});assert r.status_code==200,r.text
  assert r.json()['user']['status']=='ACTIVE'
  if emp=='SL0001':assert r.json()['user']['group_id'] is None and r.json()['user']['is_lead']
 with server.connection() as db:
- assert db.execute('SELECT count(*) FROM groups').fetchone()[0]==9
+ assert db.execute('SELECT count(*) FROM groups').fetchone()[0]==15
  assert tuple(db.execute("SELECT first,last FROM users WHERE employee_id='951357'").fetchone())==('Samuel Alejandro','Díaz Chávez')
  assert db.execute('SELECT count(*) FROM accounts').fetchone()[0]==2
+ for aid, in db.execute('SELECT id FROM accounts'):
+  assert db.execute("SELECT count(*) FROM users WHERE role='MANAGER' AND account_id=?",(aid,)).fetchone()[0]==2
+ assert db.execute("SELECT count(*) FROM users WHERE is_lead=1 AND group_id IS NULL").fetchone()[0]==4
  for t in ['overtime','guards','timers','recoveries','delegations']:assert db.execute('SELECT count(*) FROM '+t).fetchone()[0]==0
 ''')
     def test_restart_keeps_changed_password_and_manual_data(self):

@@ -1,4 +1,13 @@
-# Validación ejecutada · Operational Pulse 1.1.3
+# Validación ejecutada · Operational Pulse 1.1.4
+
+## Entrega v1.1.4 · 28 de octubre de 2026
+
+- **59 pruebas API PASS**. El fixture incluye dos Managers por cada Cuenta y cuatro Leads sin Grupo, con login de MGR0001–MGR0004, SL0001–SL0004 y Técnicos de ejemplo. Mantiene registros vacíos y los accesos originales.
+- `tests/admin_creation_browser.py`: PASS en Chromium real. Botones de Cuenta/Manager alineados y dentro del área visible, sin superposición, y nombre de Lead sin elipsis a 1440×780, 1366×700 y 1280×650. Creación real de un tercer Manager en Banorte, selección automática del nuevo bloque, Agregar Lead con Manager correcto y sin Grupo, activación, Editar Lead después de asignarlo y Agregar Grupo contextual guardando el propietario correcto. Cero errores JavaScript.
+- `tests/organizer_browser.py`: PASS con los cuatro Managers y cuatro Leads. Cuatro Grupos visibles a 1440/1280, alta Lead disponible en Manager vacío, arrastre nativo/borrador/cancelación, alternativa de botones, revisión y traslado entre Cuentas. Diálogos a 1440/1280/390; cero errores JavaScript.
+- `tests/layout_smoke.py`: PASS en 54 combinaciones de pantalla/rol/vista, incluyendo arrastre, cancelación, teclado y bloqueo con Timer. Sintaxis JavaScript y compilación Python correctas.
+- `tests/browser_smoke.py`: flujo completo PASS, cero errores JavaScript; incluye menús de acciones por teclado, navegación, altas/activaciones, Lead, delegación, OT/Guardias/Timers, aprobaciones, analítica/Excel/Claim/ADP, traslados y baja/reactivación de Manager.
+- Linux/Python 3.12/Chromium headless; no se probó físicamente en MacBook Air M1 ni Safari. Los dos Managers por Cuenta son ejemplos; la prueba de un tercero confirma que no es un límite funcional.
 
 ## Entrega v1.1.3 · 28 de octubre de 2026
 
