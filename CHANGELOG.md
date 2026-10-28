@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v1.0.5 · 28 de octubre de 2026
+
+- Confirmaciones, activación/recuperación y resultados de acceso con tamaño compacto; formularios breves de Guardia y Acerca del proyecto con ancho intermedio.
+- OT sin selector de tipo: servidor clasifica periodos finalizados como históricos y futuros como programados. Periodos en curso requieren Timer; se conserva la aprobación y la documentación. Al editar una programación sin ejecutar se recalcula el tipo según las fechas corregidas.
+- Programadas futuras indican cuándo estará disponible el Timer. El Manager ve Técnico, Employee ID, Grupo y actividad de todos sus Timers activos.
+- Extensiones de OT: solicitud motivada, autorización/rechazo por Manager o Lead delegado, pausa automática exacta al fin autorizado y reanudación manual. Si se autoriza antes del límite, el mismo Timer continúa.
+- El registro conserva los tramos y excluye la espera de OT, Guardia neta, analítica, Excel, Claim y ADP. Finalizar cancela las extensiones pendientes y envía sólo el trabajo real a revisión.
+- Modo de pruebas explícito y separado con MGR0001, SL0001 y 951357 activos; se conserva la base principal y no se generan registros operativos ni delegaciones.
+
+
 ## v1.0.4 · 28 de octubre de 2026
 
 - Buscador de Grupos por nombre, código, Cuenta y Manager, con resultados directos, búsqueda sin acentos y navegación con teclado. Abre la Cuenta y las páginas necesarias y resalta el Grupo sin alterar su jerarquía.

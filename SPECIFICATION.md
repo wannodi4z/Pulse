@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.4 · especificación de la implementación nueva
+# Operational Pulse 1.0.5 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -145,3 +145,17 @@ La ruta interna teamTime se presenta como Aprobaciones y abre pendientes de todo
 ### Localizador de Grupos v1.0.4
 
 Búsqueda local sobre el estado autorizado de Admin, sin endpoints nuevos. Coincide por tokens sin distinción de acentos en nombre/código de Grupo, Cuenta y nombre/Employee ID del Manager. Hasta cinco resultados visibles según el espacio disponible; si hay más se solicita precisar el texto. Al seleccionar se usa PulseLayout.reveal para abrir Cuenta, Manager y página de Grupos conservando la estructura. Soporta flechas, Enter y Escape y no vuelve a renderizar la aplicación al escribir.
+
+### OT automática y pruebas explícitas v1.0.5
+
+El servidor usa su reloj y fechas conscientes de zona para clasificar nuevos periodos no emergentes y programaciones sin ejecutar que se editan. El cliente sólo anticipa el resultado; no se confía en capture_type enviado por cliente para elegir histórica/programada. Un periodo en curso no se trata como tiempo completado. Los registros ejecutados por Timer conservan sus intervalos reales.
+
+Los usuarios de pruebas únicamente se crean mediante iniciar_pruebas.command/scripts/prepare_test_users.py en una SQLite separada. El inicio normal sigue conteniendo sólo los dos administradores; no se modifican los datos manuales ni se activa autoridad implícita para el Lead.
+
+### Ventanas y extensiones de OT programada
+
+`ot_extensions` conserva fin anterior, fin solicitado, motivo, solicitante y decisión; índice único para una solicitud SUBMITTED por OT. La autorización usa el alcance actual del Manager/Lead delegado y bloquea autoaprobación, Admin operativo, usuarios en baja y decisiones duplicadas o ventanas obsoletas. El nuevo límite debe ser futuro, posterior al anterior y no superar 31 días desde el inicio original.
+
+El ciclo del Timer planificado es SCHEDULED → RUNNING → PAUSED → RUNNING, o COMPLETED al finalizar. Un reloj de servidor y la reconciliación transaccional cierran el tramo exactamente en scheduled_end. Una extensión autorizada actualiza ese límite, pero no reanuda una OT pausada. Se conserva la primera fecha de inicio y cada tramo en timers; la contabilidad une los tramos cerrados, no el intervalo exterior. Históricas y emergencias conservan su cálculo previo. El tiempo real completo requiere aprobación posterior.
+
+API: POST /api/overtime/{id}/extensions, POST /api/extensions/{id}/decision, DELETE /api/extensions/{id}, POST /api/overtime/{id}/finish. El estado filtra extensiones y segmentos por la autoridad vigente. Detener/finalizar revoca solicitudes pendientes; una baja administrativa conserva el trabajo pausado y cierra solicitudes.

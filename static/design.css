@@ -264,3 +264,27 @@ dialog.entity-dialog{width:min(680px,calc(100vw - 32px))!important}dialog.accoun
 .group-search-popup .ui-icon{width:16px;height:16px;flex:none;color:#6d8fbb}.group-result-icon{display:grid;place-items:center;width:32px;min-width:32px;height:32px;background:#f2f6fd;border-radius:8px}
 .viewport-stage .group-card.group-located{outline:2px solid #2eafa9;outline-offset:3px;box-shadow:0 0 0 5px #e3f7f4}
 @media(max-width:700px){.organization-finder>span{display:none}.organization-finder>label{width:100%}.entity-dialog .form-body{padding:15px 17px!important;gap:15px!important}.entity-form-fields{grid-template-columns:1fr;gap:13px}.entity-form-context{padding:10px}.entity-form-context p{font-size:12px}}
+
+/* Confirmation and result sizes follow their small amount of content. */
+dialog.compact-dialog{width:min(540px,calc(100vw - 32px))!important}
+dialog.access-modal.access-success{width:min(540px,calc(100vw - 32px))!important}
+.compact-dialog .dialog-header{padding:17px 21px}.compact-dialog .dialog-header h2{font-size:20px}
+.compact-dialog .form-body{display:flex!important;flex-direction:column;align-items:stretch;padding:20px 21px!important;gap:14px!important}
+.compact-dialog .form-instructions{margin:0;padding:13px 15px;line-height:1.6}
+.compact-dialog .secret-code{font-size:23px;letter-spacing:1px;overflow-wrap:anywhere;padding:17px 12px}
+.compact-dialog .dialog-footer{padding:13px 21px}
+.access-success .access-header{padding:20px 23px}.access-success .access-result-body{padding:20px 23px}
+.access-success .access-intro{gap:12px}.access-success .access-subtitle{font-size:13px;line-height:1.6}
+.access-success .access-result-account{padding:13px}.access-success .access-result-body>p{font-size:13px;line-height:1.7}
+.ot-type-preview{grid-column:1/-1}
+
+dialog.medium-dialog{width:min(720px,calc(100vw - 32px))!important}.medium-dialog [data-form=guard]>.form-body>.field{grid-column:1/-1}
+
+.ot-availability{color:#285d9e!important;background:#edf4ff;border-radius:6px;padding:7px 10px;margin-top:7px}
+.badge.paused{color:#97631d;background:#fff5de}
+.extension-history{font-size:12px;color:#637c97;margin-top:8px;line-height:1.7}
+.extension-alert{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;font-size:13px}
+.extension-review .record-card{align-items:flex-start}.extension-review .entity-actions{flex-wrap:wrap;justify-content:flex-end}
+.timer-card>div:first-of-type{min-width:0}.timer-card small{display:block;overflow-wrap:anywhere}
+
+.worked-segments{grid-column:1/-1}.timer-segment-list>p{font-size:13px;padding:8px 0;border-bottom:1px solid #edf1f6;color:#57718f}

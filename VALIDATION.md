@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.4
+# Validación ejecutada · Operational Pulse 1.0.5
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -153,3 +153,21 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 - `tests/layout_smoke.py`: PASS en 57 combinaciones de pantalla/vista/rol, con arrastre, cancelación y bloqueo por Timer activo.
 - `tests/organization_browser.py`: PASS con SQLite aislado y 26 Grupos. Búsqueda por código, nombre sin acentos y Manager; salto entre Cuentas/páginas; resultados vacíos; Escape; teclado y ratón. Comprobación de modales y creación real a 1440×780, 1280×650 y 390×844, sin controles recortados.
 - Sintaxis de app.js/layout.js y compilación Python correctas. Mac/Safari no ejecutados. Las capturas sólo contienen datos de prueba aislados.
+
+## OT automática y diálogos v1.0.5
+
+- 34 pruebas API PASS (incluye extensiones): tipo inferido según periodo aunque el cliente envíe el contrario; edición de programación pasada convierte a histórica y devuelve a revisión; periodo en curso rechazado.
+- `tests/ot_browser.py` PASS en Chromium: diálogos de confirmación, código y resultados de acceso a 1440×780, 1280×650 y 390×844 sin desbordamiento del modal ni controles recortados; previsualización pasada/futura/en curso en navegador con otra zona horaria; guardado real de histórica sin selector de tipo.
+- Usuarios MGR0001, SL0001 y 951357 creados y login API verificado con las contraseñas solicitadas. Repetir el inicializador conserva datos y hashes. Lead sin aprobación implícita; tablas operativas de la base de pruebas vacías.
+- `tests/layout_smoke.py` PASS: 57 combinaciones de pantalla/rol/vista, arrastre y bloqueos por Timer.
+- `tests/browser_smoke.py` completo PASS en Chromium, cero errores JavaScript; incluye recuperación, activación, Guardia, OT, aprobaciones, Excel, Claim/ADP, analítica y administración.
+- Sintaxis de app.js/layout.js, compilación Python y sintaxis de iniciar_pruebas.command correctas. Mac/Safari no ejecutados.
+
+### Extensiones y disponibilidad · pruebas ejecutadas
+
+- `unittest discover -s tests -p 'test_*.py'`: **34 pruebas PASS**. Incluye rechazo, autorización por Manager/Lead delegado, bloqueo de otros Managers/Admin y autoaprobación, revocación de delegación, solicitudes duplicadas, cancelación al finalizar o dar de baja y continuidad si se autoriza antes del límite.
+- Regresión de cálculo: 60 minutos antes de la pausa + 30 minutos después = **90 minutos OT**; una hora de espera no se factura como OT. Guardia de 360 minutos queda en **270 minutos netos**, no 210. Excel y analítica reconcilian.
+- `tests/extensions_browser.py`: PASS en Chromium. Disponibilidad futura y habilitación al llegar el horario; dos Técnicos/Grupos simultáneos visibles para Manager; todas las páginas cerradas al límite y comprobación directa SQLite de pausa exacta, sin depender de otra petición API. Solicitud, autorización, reanudación y cierre mediante interfaz; dos segmentos y espera excluida.
+- Prueba funcional completa `tests/browser_smoke.py` PASS y `tests/layout_smoke.py` PASS en **57 combinaciones** de pantalla/rol/vista; cero errores JavaScript.
+
+- Si la pausa se recibe con un diálogo abierto, se conserva la captura y la vista pendiente se actualiza al cerrarlo; regresión comprobada mediante la interfaz.

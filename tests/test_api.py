@@ -159,6 +159,25 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(self.client.put('/api/people/'+lead['id'],json={**d1,'is_lead':False}).status_code,200)
         self.assertEqual(self.client.put('/api/people/'+tech['id'],json={**d3,'is_lead':True}).status_code,200)
 
+    def test_ot_type_is_derived_from_period_on_create_and_edit(self):
+        _,_,_,_,_,tc=self.organization()
+        current=self.server.datetime.now(self.server.timezone.utc)
+        past_start=(current-self.server.timedelta(hours=4)).isoformat()
+        past_end=(current-self.server.timedelta(hours=3)).isoformat()
+        future_start=(current+self.server.timedelta(hours=3)).isoformat()
+        future_end=(current+self.server.timedelta(hours=4)).isoformat()
+        past=self.ot(tc,past_start,past_end,capture_type='PLANNED')
+        future=self.ot(tc,future_start,future_end,capture_type='HISTORICAL')
+        records={o['id']:o for o in tc.get('/api/state').json()['overtime']}
+        self.assertEqual(records[past]['capture_type'],'HISTORICAL');self.assertEqual(records[past]['execution'],'COMPLETED')
+        self.assertEqual(records[future]['capture_type'],'PLANNED');self.assertIsNone(records[future]['start_at'])
+        data={'scheduled_start':(current-self.server.timedelta(hours=2)).isoformat(),'scheduled_end':(current-self.server.timedelta(hours=1)).isoformat(),'reference':'CHGAUTO','description':'Periodo corregido','justification':'Servicio','impact':'Continuidad','in_lieu':'No aplica'}
+        self.assertEqual(tc.put('/api/overtime/'+future,json=data).status_code,200)
+        changed=next(o for o in tc.get('/api/state').json()['overtime'] if o['id']==future)
+        self.assertEqual(changed['capture_type'],'HISTORICAL');self.assertEqual(changed['execution'],'COMPLETED');self.assertEqual(changed['status'],'SUBMITTED')
+        invalid=tc.post('/api/overtime',json={**data,'scheduled_start':(current-self.server.timedelta(minutes=5)).isoformat(),'scheduled_end':future_end})
+        self.assertEqual(invalid.status_code,422);self.assertIn('Timer',invalid.json()['detail'])
+
     def test_guard_rule_effective_date_is_compared_with_requested_start(self):
         _,_,_,mc,_,tc=self.organization()
         rule=self.post('/api/rules',{'name':'Reglas_Mainframe_v1','effective_from':'2026-10-26','segments':[{'day':0,'start':'02:00','end':'04:00'},{'day':0,'start':'20:00','end':'00:00'}]},mc)['id']

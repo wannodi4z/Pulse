@@ -1,4 +1,4 @@
-# Operational Pulse · 1.0.4
+# Operational Pulse · 1.0.5
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.4`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.5`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.4/
+Operational_Pulse_v1.0.5/
   index.html
   server.py
   requirements.txt
@@ -331,3 +331,45 @@ En Organización, escribe el nombre o código del Grupo, Cuenta o Manager. Selec
 Los diálogos de Cuenta y Grupo usan anchos proporcionales y botones Crear Cuenta/Crear Grupo. La administración continúa siendo exclusiva de Admin.
 
 [Ver capturas de la búsqueda y los diálogos](docs/interface-v1.0.4.md).
+
+## Probar con los usuarios solicitados · v1.0.5
+
+Después de instalar las dependencias, detén la instancia local actual y ejecuta en la terminal de VS Code:
+
+```bash
+bash iniciar_pruebas.command
+```
+
+Abre http://127.0.0.1:5510. El primer inicio crea una base separada en `pruebas/operational_pulse.db`, con estos accesos activos:
+
+| Employee ID | Contraseña inicial | Perfil |
+| --- | --- | --- |
+| MGR0001 | manager12026 | Manager |
+| SL0001 | lead120261 | Técnico con capacidad Lead |
+| 951357 | tecnico12026 | Técnico |
+
+Los tres pertenecen a la Cuenta y Grupo de pruebas. Los administradores admin1/admin2 conservan sus contraseñas iniciales. El Lead sólo podrá aprobar cuando el Manager active Delegar. No se crean OT, Guardias, reglas, Timers ni delegaciones. Los inicios posteriores conservan los cambios hechos en esta base; no vuelven a crear ni reinician usuarios. `start.command` sigue usando la base principal y nunca crea estos accesos.
+
+El ZIP de código no contiene una base de datos ni claves. El lanzador de pruebas crea los accesos directamente activos, sin activación manual. El script explícito `scripts/prepare_test_users.py` es idempotente: si un usuario ya existe, conserva sus datos y contraseña.
+
+## Tipo de OT automático
+
+Al capturar inicio y fin, el formulario muestra el tipo detectado usando la zona operativa. El servidor vuelve a determinarlo al guardar:
+
+- Si el periodo terminó, es OT histórica y se envía a revisión con esas horas reales.
+- Si comienza en el futuro, es OT programada y requiere aprobación antes del Timer.
+- Si está en curso, se indica usar el Timer de emergencia o registrar el histórico después de terminar.
+
+La documentación de una OT ejecutada conserva los tiempos reales de su Timer.
+
+## Ventana autorizada y extensión del Timer · v1.0.5
+
+Una OT programada indica la fecha y hora en que estará disponible su Timer; necesita aprobación antes de iniciar. El Panel y Aprobaciones del Manager muestran los Timers de todos sus Grupos, con Técnico, Employee ID, Grupo y actividad.
+
+1. El Técnico puede **Solicitar extensión** antes o después del fin autorizado, indicando un motivo y la nueva fecha/hora de fin.
+2. El Manager o Lead delegado la autoriza o rechaza en **Aprobaciones → Extensiones pendientes**. No se permite autoaprobación.
+3. Si llega el fin autorizado, el servidor **pausa exactamente en ese límite**, incluso con el navegador cerrado. El contador no sigue sumando.
+4. Si se autoriza después de la pausa, el Técnico pulsa **Reanudar**; no arranca automáticamente. Si se autoriza antes del límite, el Timer continúa hasta el nuevo fin.
+5. Si no necesita continuar, puede **Finalizar tiempo trabajado**. Si rechazan la extensión, puede finalizar o solicitar otra. Detener/finalizar cancela las extensiones aún pendientes.
+
+Cada reanudación crea un tramo real separado. **La espera no suma OT ni se descuenta de Guardia**. Analítica, Excel, Claim y ADP usan esos mismos tramos. La programación y la extensión no aprueban automáticamente el tiempo real: éste vuelve a revisión al finalizar. En Detalle/Ver tramos queda la trazabilidad.

@@ -74,7 +74,7 @@ window.PulseLayout=(()=>{
   function fitCollection(root,budget,key){
     all('.group-card',root).forEach(card=>{const footer=q(':scope > footer',card),actions=q(':scope > header .entity-actions',card);if(footer&&actions){[...footer.children].forEach(node=>actions.append(node));footer.remove();}});
     // Table and repeated-card pagination retains every row, header and delegated action.
-    const selectors='tbody,.technicians,.group-grid,.account-body,.record-list,.rules-grid,.priority-list,.analytics-ranking,.audit-list,.rule-intervals,.rule-segments,.offboard-transfers,.delegation-group-options,#group-checks,.delegation-list,.admin-account-list';
+    const selectors='.timer-list,.timer-segment-list,tbody,.technicians,.group-grid,.account-body,.record-list,.rules-grid,.priority-list,.analytics-ranking,.audit-list,.rule-intervals,.rule-segments,.offboard-transfers,.delegation-group-options,#group-checks,.delegation-list,.admin-account-list';
     const lists=all(selectors,root).reverse();
     if(root.matches(selectors))lists.push(root);
     lists.forEach((list,li)=>{
@@ -88,7 +88,7 @@ window.PulseLayout=(()=>{
       let size=table?Math.max(1,Math.floor((budget-overhead)/Math.max(45,height/children.length))):list.matches('.organization-board')&&innerWidth>=1050?2:1;
       size=Math.min(size,children.length);if(size>=children.length)return;
       const count=Math.ceil(children.length/size),id=key+':list:'+li;
-      const label=table?'Filas':list.matches('.technicians')?'Técnicos':list.matches('.group-grid')?'Grupos':list.matches('.account-body')?'Managers':list.matches('.rule-intervals')?'Intervalos':list.matches('.rule-segments')?'Días':list.matches('.rules-grid')?'Reglas':'Elementos';
+      const label=table?'Filas':list.matches('.timer-list')?'Timers':list.matches('.timer-segment-list')?'Tramos':list.matches('.technicians')?'Técnicos':list.matches('.group-grid')?'Grupos':list.matches('.account-body')?'Managers':list.matches('.rule-intervals')?'Intervalos':list.matches('.rule-segments')?'Días':list.matches('.rules-grid')?'Reglas':'Elementos';
       const control=pager(count,Math.min(memory.get(id)||0,count-1),id,label,value=>children.forEach((n,i)=>n.classList.toggle('viewport-off',Math.floor(i/size)!==value)));
       list._viewport={children,size,control};
       if(table){const wrapper=list.closest('.table-scroll')||list.parentElement;wrapper.after(control);}else list.after(control);

@@ -1,6 +1,7 @@
-"""Operational Pulse 2.0: server-owned authorization, SQLite transactions and time accounting."""
+"""Operational Pulse: server-owned authorization, SQLite transactions and time accounting."""
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -10,7 +11,7 @@ import os
 import secrets
 import sqlite3
 import uuid
-from contextlib import contextmanager
+from contextlib import contextmanager, asynccontextmanager, suppress
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -22,13 +23,28 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.4'
+VERSION = '1.0.5'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
 TZ = ZoneInfo(os.environ.get('PULSE_TIMEZONE', 'America/Mexico_City'))
 SESSION_SECONDS = 8 * 3600
-app = FastAPI(title='Operational Pulse', version=VERSION)
+@asynccontextmanager
+async def lifespan(app):
+    async def clock_loop():
+        while True:
+            await asyncio.to_thread(reconcile_planned_timers)
+            await asyncio.sleep(1)
+    task = asyncio.create_task(clock_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+
+
+app = FastAPI(title='Operational Pulse', version=VERSION, lifespan=lifespan)
 
 
 def now():
@@ -65,6 +81,9 @@ def connection(write=False):
     try:
         if write:
             c.execute('BEGIN IMMEDIATE')
+            reconcile=globals().get('pause_due_timers')
+            if reconcile:
+                reconcile(c,now())
         yield c
         c.commit()
     except Exception:
@@ -90,6 +109,8 @@ def init_db():
         CREATE UNIQUE INDEX IF NOT EXISTS unique_actual_ot ON overtime(user_id,start_at,end_at) WHERE start_at IS NOT NULL AND end_at IS NOT NULL;
         CREATE UNIQUE INDEX IF NOT EXISTS unique_participation ON overtime(user_id,window_id) WHERE window_id IS NOT NULL;
         CREATE TABLE IF NOT EXISTS timers(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), overtime_id TEXT NOT NULL REFERENCES overtime(id), start_at TEXT NOT NULL, end_at TEXT);
+        CREATE TABLE IF NOT EXISTS ot_extensions(id TEXT PRIMARY KEY, overtime_id TEXT NOT NULL REFERENCES overtime(id), requested_by TEXT NOT NULL REFERENCES users(id), previous_end TEXT NOT NULL, requested_end TEXT NOT NULL, reason TEXT NOT NULL, status TEXT NOT NULL, decided_by TEXT REFERENCES users(id), decision_reason TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, decided_at TEXT);
+        CREATE UNIQUE INDEX IF NOT EXISTS one_pending_extension ON ot_extensions(overtime_id) WHERE status='SUBMITTED';
         CREATE UNIQUE INDEX IF NOT EXISTS one_active_timer ON timers(user_id) WHERE end_at IS NULL;
         CREATE TABLE IF NOT EXISTS guards(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), start_date TEXT NOT NULL, end_date TEXT NOT NULL, rule_snapshot TEXT NOT NULL, status TEXT NOT NULL, approved_by TEXT REFERENCES users(id), created_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS recoveries(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), status TEXT NOT NULL, code_hash TEXT, expires_at TEXT, created_at TEXT NOT NULL);
@@ -244,6 +265,8 @@ async def security_headers(request: Request, call_next):
             return Response('Origen no permitido.', status_code=403)
         if request.headers.get('sec-fetch-site') == 'cross-site':
             return Response('Origen no permitido.', status_code=403)
+    if request.url.path.startswith('/api/'):
+        await asyncio.to_thread(reconcile_planned_timers)
     response = await call_next(request)
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -315,6 +338,36 @@ def activate(data: dict = Body(...)):
     return {'ok': True}
 
 
+def pause_due_timers(c, stamp):
+    query = "SELECT t.id,t.overtime_id,o.scheduled_end FROM timers t JOIN overtime o ON o.id=t.overtime_id WHERE t.end_at IS NULL AND o.capture_type='PLANNED' AND o.scheduled_end<=?"
+    for t in c.execute(query,(stamp,)).fetchall():
+        c.execute('UPDATE timers SET end_at=? WHERE id=?',(t['scheduled_end'],t['id']))
+        c.execute("UPDATE overtime SET end_at=?,execution='PAUSED',updated_at=? WHERE id=?",(t['scheduled_end'],stamp,t['overtime_id']))
+        audit(c,None,'PAUSE_PLANNED_WINDOW',t['overtime_id'],{'timer_id':t['id'],'authorized_end':t['scheduled_end']})
+
+
+def reconcile_planned_timers():
+    stamp = now()
+    query = "SELECT 1 FROM timers t JOIN overtime o ON o.id=t.overtime_id WHERE t.end_at IS NULL AND o.capture_type='PLANNED' AND o.scheduled_end<=?"
+    with connection() as c:
+        if not c.execute(query,(stamp,)).fetchone():
+            return
+    with connection(True) as c:
+        pause_due_timers(c,stamp)
+
+
+def cancel_pending_extensions(c, actor, overtime_id, reason):
+    for e in c.execute("SELECT id FROM ot_extensions WHERE overtime_id=? AND status='SUBMITTED'",(overtime_id,)).fetchall():
+        c.execute("UPDATE ot_extensions SET status='CANCELLED',decided_at=?,decision_reason=? WHERE id=?",(now(),reason,e['id']))
+        audit(c,actor,'CANCEL_OT_EXTENSION',overtime_id,{'extension_id':e['id'],'reason':reason})
+
+
+def finish_paused(c, actor, o):
+    cancel_pending_extensions(c,actor,o['id'],'El registro de tiempo trabajado fue finalizado.')
+    c.execute("UPDATE overtime SET execution='COMPLETED',status='SUBMITTED',approved_by=NULL,updated_at=? WHERE id=?",(now(),o['id']))
+    audit(c,actor,'FINISH_PAUSED_OT',o['id'])
+
+
 @app.get('/api/state')
 def state(user=Depends(current_user)):
     with connection() as c:
@@ -334,11 +387,15 @@ def state(user=Depends(current_user)):
                   'overtime': [r for r in rows(c, 'overtime') if r['user_id'] in visible],
                   'guards': [r for r in rows(c, 'guards') if r['user_id'] in visible],
                   'timers': [r for r in rows(c, 'timers') if r['user_id'] in visible and not r['end_at']],
+                  'timer_segments': [r for r in rows(c,'timers') if r['user_id'] in visible],
+                  'extensions': [e for e in rows(c,'ot_extensions') if get(c,'overtime',e['overtime_id'])['user_id'] in visible],
                   'windows': [r for r in rows(c, 'windows') if user['role'] == 'ADMIN' or r['group_id'] in own_ids],
                   'rules': [dict(r, segments=json.loads(r['segments'])) for r in rows(c, 'rules') if user['role'] == 'ADMIN' or r['manager_id'] == user['id'] or any(g['manager_id'] == r['manager_id'] for g in shown_groups)],
                   'delegations': [dict(d, group_ids=[g['id'] for g in rows(c, 'groups') if g['manager_id']==d['manager_id']] if not d['revoked_at'] else json.loads(d['group_ids'])) for d in rows(c, 'delegations') if user['role'] == 'ADMIN' or d['manager_id'] == user['id'] or d['lead_id'] == user['id']],
                   'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
                   'audit': [a for a in rows(c, 'audit') if user['role'] == 'ADMIN' or a['actor_id'] in visible or a['entity_id'] in visible_entities][-300:]}
+        for o in result['overtime']:
+            o['worked_seconds']=sum(max(0,(parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds()) for t in result['timer_segments'] if t['overtime_id']==o['id'] and t['end_at'])
         actor_ids={event['actor_id'] for event in result['audit']}
         result['audit_people']=[{key:person[key] for key in ('id','first','last','employee_id','role')} for person in people if person['id'] in actor_ids]
         for g in result['guards']:
@@ -457,14 +514,19 @@ def offboard_person(identity: str, data: dict=Body(...), actor=Depends(admin)):
         validate_manager_leads(c,list(transfers.values()))
         for t in impact['timers']:
             o = get(c,'overtime',t['overtime_id'])
-            c.execute('UPDATE timers SET end_at=? WHERE id=?',(stamp,t['id']))
+            closed_at=o['scheduled_end'] if o['capture_type']=='PLANNED' and parse_at(stamp)>parse_at(o['scheduled_end']) else stamp
+            c.execute('UPDATE timers SET end_at=? WHERE id=?',(closed_at,t['id']))
             status = 'DOCUMENTATION' if o['capture_type']=='EMERGENCY' else 'SUBMITTED'
-            c.execute("UPDATE overtime SET end_at=?,execution='COMPLETED',status=?,approved_by=NULL,updated_at=? WHERE id=?",(stamp,status,stamp,o['id']))
+            c.execute("UPDATE overtime SET end_at=?,execution='COMPLETED',status=?,approved_by=NULL,updated_at=? WHERE id=?",(closed_at,status,stamp,o['id']))
+            cancel_pending_extensions(c,actor,o['id'],'Baja administrativa del solicitante.')
             audit(c,actor,'ADMIN_STOP_TIMER_ON_OFFBOARD',o['id'],{'timer_id':t['id'],'user_id':identity,'reason':reason})
+        for paused in c.execute("SELECT * FROM overtime WHERE user_id=? AND execution='PAUSED'",(identity,)).fetchall():
+            finish_paused(c,actor,dict(paused))
         for oid,d in prepared.items():
             c.execute("UPDATE overtime SET reference=?,description=?,justification=?,impact=?,in_lieu=?,status='SUBMITTED',approved_by=NULL,revision=revision+1,updated_at=? WHERE id=?",(d['reference'],d['description'],d['justification'],d['impact'],d['in_lieu'],stamp,oid))
             audit(c,actor,'ADMIN_DOCUMENT_ON_OFFBOARD',oid,{'user_id':identity,'reason':reason})
         for o in impact['scheduled']:
+            cancel_pending_extensions(c,actor,o['id'],'Baja administrativa del solicitante.')
             c.execute("UPDATE overtime SET status='CANCELLED',approved_by=NULL,updated_at=? WHERE id=?",(stamp,o['id']))
             audit(c,actor,'CANCEL_SCHEDULE_ON_OFFBOARD',o['id'],{'previous_status':o['status'],'reason':reason})
         for guard in impact['guards']:
@@ -955,6 +1017,16 @@ def add_window(data: dict = Body(...), actor=Depends(current_user)):
     fail('La programación se solicita desde Mi tiempo por cada Técnico; el responsable revisa y autoriza.', 403)
 
 
+def classify_ot_period(start, end):
+    """Classify on the server clock; in-progress work requires an actual Timer."""
+    current = datetime.now(timezone.utc)
+    if parse_at(end) <= current:
+        return 'HISTORICAL'
+    if parse_at(start) > current:
+        return 'PLANNED'
+    fail('El periodo está en curso. Inicia el Timer de OT de emergencia para registrar tiempo real, o captura la OT histórica cuando termine.')
+
+
 def insert_ot(c, actor, data, window=None):
     identity = uid()
     capture = data.get('capture_type', 'PLANNED')
@@ -966,6 +1038,7 @@ def insert_ot(c, actor, data, window=None):
         ref, description = window['reference'], window['description']
     elif capture != 'EMERGENCY':
         a, b = interval(data, 'scheduled_start', 'scheduled_end')
+        capture = classify_ot_period(a, b)
         ref, description = valid_reference(data), text(data, 'description')
     else:
         a = b = None
@@ -1009,12 +1082,13 @@ def edit_ot(identity: str, data: dict = Body(...), actor=Depends(current_user)):
         o = get(c, 'overtime', identity)
         if o['user_id'] != actor['id']:
             fail('Sólo el Técnico propietario puede editar su OT.', 403)
-        if o['execution'] == 'RUNNING':
-            fail('Detén el Timer antes de documentar.')
+        if o['execution'] in ('RUNNING','PAUSED'):
+            fail('Detén o finaliza el Timer antes de documentar.')
         ref = valid_reference(data)
         if o['execution'] == 'SCHEDULED':
             a, b = interval(data, 'scheduled_start', 'scheduled_end')
-            c.execute('UPDATE overtime SET scheduled_start=?,scheduled_end=? WHERE id=?', (a, b, identity))
+            capture = classify_ot_period(a, b)
+            c.execute('UPDATE overtime SET scheduled_start=?,scheduled_end=?,capture_type=?,execution=?,start_at=?,end_at=? WHERE id=?', (a, b, capture, 'COMPLETED' if capture=='HISTORICAL' else 'SCHEDULED', a if capture=='HISTORICAL' else None, b if capture=='HISTORICAL' else None, identity))
         c.execute("UPDATE overtime SET reference=?,description=?,justification=?,impact=?,in_lieu=?,status='SUBMITTED',approved_by=NULL,revision=revision+1,updated_at=? WHERE id=?", (ref, text(data, 'description'), text(data, 'justification'), text(data, 'impact'), text(data, 'in_lieu'), now(), identity))
         audit(c, actor, 'EDIT_OT_REOPEN_APPROVAL', identity, {'previous_status': o['status'], 'revision': o['revision'] + 1})
     return {'ok': True}
@@ -1029,17 +1103,19 @@ def start_timer(data: dict = Body(...), actor=Depends(current_user)):
         otid = data.get('overtime_id')
         if otid:
             o = get(c, 'overtime', otid)
-            if o['user_id'] != actor['id'] or o['status'] != 'APPROVED' or o['execution'] != 'SCHEDULED':
+            if o['user_id'] != actor['id'] or o['status'] != 'APPROVED' or o['execution'] not in ('SCHEDULED','PAUSED'):
                 fail('La OT debe ser tuya, estar aprobada y pendiente de iniciar.')
-            if parse_at(o['scheduled_start']) > datetime.now(timezone.utc):
-                fail('La ventana programada todavía no inicia.')
-            if parse_at(o['scheduled_end']) <= datetime.now(timezone.utc):
-                fail('La ventana programada ya terminó.')
+            if parse_at(o['scheduled_start']) > parse_at(now()):
+                fail('El Timer estará disponible desde '+o['scheduled_start']+'.')
+            if parse_at(o['scheduled_end']) <= parse_at(now()):
+                fail('La ventana autorizada terminó. Solicita una extensión antes de iniciar o reanudar.')
         else:
             otid = insert_ot(c, actor, {'capture_type': 'EMERGENCY'})
         identity, stamp = uid(), now()
+        if data.get('overtime_id') and parse_at(stamp)>=parse_at(o['scheduled_end']):
+            fail('La ventana autorizada terminó. Solicita una extensión.')
         c.execute('INSERT INTO timers VALUES(?,?,?,?,NULL)', (identity, actor['id'], otid, stamp))
-        c.execute("UPDATE overtime SET execution='RUNNING',start_at=?,updated_at=? WHERE id=?", (stamp, stamp, otid))
+        c.execute("UPDATE overtime SET execution='RUNNING',start_at=COALESCE(start_at,?),end_at=NULL,updated_at=? WHERE id=?", (stamp, stamp, otid))
         audit(c, actor, 'START_TIMER', otid)
     return {'id': identity}
 
@@ -1051,14 +1127,91 @@ def stop_timer(identity: str, actor=Depends(current_user)):
         if t['user_id'] != actor['id']:
             fail('Sólo el Técnico propietario puede detener el Timer.', 403)
         if t['end_at']:
+            o=get(c,'overtime',t['overtime_id'])
+            if o['execution']=='PAUSED':
+                finish_paused(c,actor,o)
+                return {'ok':True}
             fail('El Timer ya está detenido.')
         stamp = now()
-        c.execute('UPDATE timers SET end_at=? WHERE id=?', (stamp, identity))
         o = get(c, 'overtime', t['overtime_id'])
+        if o['capture_type']=='PLANNED' and parse_at(stamp)>parse_at(o['scheduled_end']):
+            stamp=o['scheduled_end']
+        c.execute('UPDATE timers SET end_at=? WHERE id=?', (stamp, identity))
         status = 'DOCUMENTATION' if o['capture_type'] == 'EMERGENCY' else 'SUBMITTED'
         c.execute("UPDATE overtime SET end_at=?,execution='COMPLETED',status=?,approved_by=NULL,updated_at=? WHERE id=?", (stamp, status, stamp, o['id']))
+        cancel_pending_extensions(c,actor,o['id'],'El Técnico detuvo el Timer.')
         audit(c, actor, 'STOP_TIMER', o['id'])
     return {'ok': True}
+
+
+@app.post('/api/overtime/{identity}/finish')
+def finish_overtime(identity: str, actor=Depends(current_user)):
+    with connection(True) as c:
+        o=get(c,'overtime',identity)
+        if o['user_id']!=actor['id']:
+            fail('Sólo el Técnico propietario finaliza su OT.',403)
+        if o['execution']!='PAUSED':
+            fail('La OT no está pausada.')
+        finish_paused(c,actor,o)
+    return {'ok':True}
+
+
+@app.post('/api/overtime/{identity}/extensions')
+def request_extension(identity: str, data: dict=Body(...), actor=Depends(current_user)):
+    operational(actor)
+    end=parse_at(text(data,'requested_end'))
+    with connection(True) as c:
+        o=get(c,'overtime',identity)
+        if o['user_id']!=actor['id']:
+            fail('Sólo el Técnico propietario solicita la extensión.',403)
+        if o['capture_type']!='PLANNED' or o['status']!='APPROVED' or o['execution'] not in ('SCHEDULED','RUNNING','PAUSED'):
+            fail('La extensión requiere una OT programada aprobada y no finalizada.')
+        if end<=parse_at(o['scheduled_end']) or end<=parse_at(now()) or end-parse_at(o['scheduled_start'])>timedelta(days=31):
+            fail('El nuevo fin debe ser futuro, posterior al autorizado y dentro de 31 días del inicio.')
+        if c.execute("SELECT 1 FROM ot_extensions WHERE overtime_id=? AND status='SUBMITTED'",(identity,)).fetchone():
+            fail('Ya existe una extensión pendiente para esta OT.',409)
+        ext=uid()
+        c.execute('INSERT INTO ot_extensions VALUES(?,?,?,?,?,?,?,NULL,?,?,NULL)',(ext,identity,actor['id'],o['scheduled_end'],end.isoformat(),text(data,'reason'),'SUBMITTED','',now()))
+        audit(c,actor,'REQUEST_OT_EXTENSION',identity,{'extension_id':ext,'from':o['scheduled_end'],'to':end.isoformat(),'reason':text(data,'reason')})
+    return {'id':ext}
+
+
+@app.post('/api/extensions/{identity}/decision')
+def decide_extension(identity: str, data: dict=Body(...), actor=Depends(current_user)):
+    decision=text(data,'decision')
+    if decision not in ('APPROVED','REJECTED'):
+        fail('Decisión inválida.')
+    reason=text(data,'reason',False)
+    if decision=='REJECTED' and not reason:
+        fail('Agrega el motivo del rechazo.')
+    with connection(True) as c:
+        e=get(c,'ot_extensions',identity);o=get(c,'overtime',e['overtime_id']);target=get(c,'users',o['user_id'])
+        authorized_target(c,actor,target,approval=True)
+        if actor['role']=='ADMIN' or target['status']!='ACTIVE':
+            fail('La extensión corresponde al Manager o Lead delegado de un Técnico activo.',403)
+        if e['status']!='SUBMITTED' or o['status']!='APPROVED' or o['execution'] not in ('SCHEDULED','RUNNING','PAUSED'):
+            fail('La extensión ya no está pendiente.',409)
+        if o['scheduled_end']!=e['previous_end']:
+            fail('La ventana autorizada cambió. Solicita una extensión nueva.',409)
+        if decision=='APPROVED':
+            if parse_at(e['requested_end'])<=parse_at(now()):
+                fail('La extensión solicitada ya terminó. Se necesita una solicitud nueva.')
+            c.execute('UPDATE overtime SET scheduled_end=?,updated_at=? WHERE id=?',(e['requested_end'],now(),o['id']))
+        c.execute('UPDATE ot_extensions SET status=?,decided_by=?,decision_reason=?,decided_at=? WHERE id=?',(decision,actor['id'],reason,now(),identity))
+        audit(c,actor,'DECIDE_OT_EXTENSION',o['id'],{'extension_id':identity,'decision':decision,'reason':reason,'from':e['previous_end'],'to':e['requested_end']})
+    return {'ok':True}
+
+
+@app.delete('/api/extensions/{identity}')
+def cancel_extension(identity: str, actor=Depends(current_user)):
+    with connection(True) as c:
+        e=get(c,'ot_extensions',identity)
+        if e['requested_by']!=actor['id']:
+            fail('Sólo el solicitante cancela la extensión.',403)
+        if e['status']!='SUBMITTED':
+            fail('La extensión ya no está pendiente.',409)
+        cancel_pending_extensions(c,actor,e['overtime_id'],'Cancelada por el Técnico.')
+    return {'ok':True}
 
 
 @app.post('/api/approvals/{kind}/{identity}')
@@ -1074,7 +1227,7 @@ def decide(kind: str, identity: str, data: dict = Body(...), actor=Depends(curre
         authorized_target(c, actor, get(c, 'users', r['user_id']), approval=True)
         if actor['role'] == 'ADMIN':
             fail('Las aprobaciones corresponden al Manager o Lead delegado.', 403)
-        if r['status'] != 'SUBMITTED' or kind == 'ot' and r['execution'] == 'RUNNING':
+        if r['status'] != 'SUBMITTED' or kind == 'ot' and r['execution'] in ('RUNNING','PAUSED'):
             fail('El registro no está pendiente de aprobación.')
         if decision == 'REJECTED' and not text(data, 'reason', False):
             fail('Agrega el motivo del rechazo.')
@@ -1123,8 +1276,14 @@ def accounting(c, visible, month=None):
     people = {u['id']: u for u in rows(c, 'users')}
     approved = [o for o in rows(c, 'overtime') if o['user_id'] in visible and o['status'] == 'APPROVED' and o['execution'] == 'COMPLETED' and o['start_at'] and o['end_at']]
     ots = {}
+    segments={}
+    for t in rows(c,'timers'):
+        if t['end_at']:
+            segments.setdefault(t['overtime_id'],[]).append((parse_at(t['start_at']),parse_at(t['end_at'])))
+    def actual_parts(o):
+        return union_intervals(segments.get(o['id'],[(parse_at(o['start_at']),parse_at(o['end_at']))])) if o['capture_type']=='PLANNED' else [(parse_at(o['start_at']),parse_at(o['end_at']))]
     for o in approved:
-        ots.setdefault(o['user_id'], []).append((parse_at(o['start_at']), parse_at(o['end_at'])))
+        ots.setdefault(o['user_id'], []).extend(actual_parts(o))
     output = []
 
     def append_parts(user_id, kind, a, b, ref, description, entity_id, capture_type=''):
@@ -1144,10 +1303,10 @@ def accounting(c, visible, month=None):
     for user_id, intervals in ots.items():
         prior = []
         for o in sorted([o for o in approved if o['user_id'] == user_id], key=lambda o: (o['start_at'], o['id'])):
-            a, b = parse_at(o['start_at']), parse_at(o['end_at'])
-            for pa, pb in subtract_intervals(a, b, prior):
-                append_parts(user_id, 'OT', pa, pb, o['reference'], o['description'], o['id'], o['capture_type'])
-            prior.append((a, b))
+            for a,b in actual_parts(o):
+                for pa, pb in subtract_intervals(a, b, prior):
+                    append_parts(user_id, 'OT', pa, pb, o['reference'], o['description'], o['id'], o['capture_type'])
+                prior.append((a, b))
     guard_intervals = {}
     for g in rows(c, 'guards'):
         if g['user_id'] not in visible or g['status'] != 'APPROVED':
