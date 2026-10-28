@@ -87,7 +87,6 @@ try:
         # The direct locator also finds a Group created from the redesigned dialog.
         page.set_viewport_size({'width':1280,'height':650})
         page.locator('[data-account="'+other_account+'"] [data-action=group-new]').click()
-        page.locator('#modal [name=platform_code]').select_option('OPEN')
         page.locator('#modal [name=service_key]').fill('CREATED-UI')
         page.locator('#modal [name=name]').fill('Grupo creado en interfaz')
         page.locator('#modal [name=manager_id]').select_option(other_manager['id'])

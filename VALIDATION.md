@@ -1,4 +1,18 @@
-# Validación ejecutada · Operational Pulse 1.1.0
+# Validación ejecutada · Operational Pulse 1.1.1
+
+## Entrega v1.1.1 · 28 de octubre de 2026
+
+Linux, Python 3.12 y Chromium real headless `/usr/bin/chromium`, zoom nativo. No se probó físicamente en MacBook Air M1 ni Safari.
+
+- Sintaxis app.js/layout.js y compilación servidor/scripts correctas.
+- **53 pruebas API aprobadas**: incluye las regresiones operativas anteriores, Lead directo sin Grupo, OT propia aprobada por Manager, nuevas Guardias bloqueadas, delegación entre Grupos, autoaprobación bloqueada, recuperación sólo por Manager propio, traslado de Lead con registros y origen conservados, migración idempotente de Lead anterior y catálogo personalizado sin Plataforma.
+- `tests/direct_lead_browser.py`: PASS con los tres usuarios solicitados. OT del Lead revisada por Manager en interfaz, Guardia ausente/bloqueada para Lead y disponible para Técnico, delegación real desde Mi equipo, Lead fuera de tarjetas de Grupo. Nuevo Grupo personalizado persiste en catálogo y código MX-BNTE-LINUX-Y-ORACLE. Modales medidos a 1440×780, 1280×650 y 390×844; solicitudes vacías compactas; cero errores JavaScript.
+- `tests/browser_smoke.py`: flujo completo PASS, cero errores JavaScript; incluye altas y activaciones, Lead directo, delegación, Guardia/OT, Excel/Claim/ADP, analítica y baja de Manager con traslado de backup.
+- `tests/layout_smoke.py`: 54 combinaciones PASS; arrastre nativo hacia la bandeja de destinos entre páginas, cancelación, alternativa por teclado, bloqueo con Timer y límites de pantalla a 1440×780, 1366×700 y 1280×650.
+- `tests/analytics_browser.py`: PASS; búsqueda con totales y Excel equivalentes, comparación de tres meses y permisos. `tests/ot_browser.py`: PASS; clasificación temporal y modales de acceso/códigos en tres tamaños, inicializador de pruebas idempotente.
+- La base normal de desarrollo tiene los accesos Banorte preparados con el configurador explícito. La base de tu Mac se actualiza al ejecutar `bash configurar_banorte.command` allí; no se distribuyen bases ni claves.
+
+Las validaciones de v1.1.0 siguientes corresponden a la entrega anterior. Los apartados de Lead dentro de Grupo quedan sustituidos por la especificación de v1.1.1. Los datos anteriores se conservan; las Guardias heredadas siguen disponibles para consulta, sin autorizar solicitudes nuevas del Lead.
 
 ## Entrega v1.1.0 · 28 de octubre de 2026
 

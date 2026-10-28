@@ -1,12 +1,30 @@
-# Operational Pulse · 1.1.0
+# Operational Pulse · 1.1.1
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Cambios de esta entrega · v1.1.1
+
+- **Lead directo del Manager, sin Grupo.** Máximo uno por Manager. Puede registrar OT, usar Timer y consultar sus propias horas, Claim y ADP; **no puede solicitar Guardias**. Sólo aprueba/rechaza solicitudes de los Grupos del Manager mientras éste mantenga activa la delegación; nunca su propia OT. El Manager autoriza la OT del Lead.
+- Admin crea/edita al Lead desde Organización, bajo su Manager. Puede cambiarlo de Manager con motivo, conservando sus registros y revocando la autoridad anterior. Antes de moverlo debe detenerse su Timer. La baja del Manager exige asignar destino para el Lead además de sus Grupos.
+- Las designaciones Lead anteriores dentro de un Grupo pasan a relación directa con el mismo Manager al actualizar. No se eliminan OT, Guardias anteriores, tramos, códigos ni historial. Las Guardias anteriores se conservan para consulta; no habilitan nuevas solicitudes de Guardia del Lead.
+- **Nuevo Grupo** tiene Cuenta, Manager, Especialidad y Nombre. Busca una especialidad o escribe una nueva: se incorpora al catálogo de esa Cuenta. Plataforma deja de ser un campo obligatorio visible. Ejemplo: especialidad «Linux y Oracle», Grupo «Distribuidos · Producción», código automático `MX-BNTE-LINUX-Y-ORACLE`. Los códigos existentes conservan su identidad.
+- Solicitudes de cambio vacías usan un diálogo compacto. Formularios de Grupo con ancho reducido y código como referencia pequeña.
+
+Para preparar los accesos de ejemplo en la **base principal**, instala dependencias, detén la instancia anterior y ejecuta:
+
+```bash
+bash configurar_banorte.command
+```
+
+Se reutiliza Banorte/MX-BNTE, con MGR0001 (`manager12026`), Lead directo SL0001 (`lead120261`) y Técnico 951357 (`tecnico12026`), activos, además de seis Grupos de prueba. No se crea delegación automática ni registros operativos. **Conserva tu `operational_pulse.db` y su `.key` al actualizar**; el ZIP no los sustituye. Los inicios normales siguen creando únicamente admin1/admin2 en una base vacía. El configurador explícito establece las contraseñas solicitadas para esos tres accesos; los demás datos y usuarios se conservan.
+
+Las descripciones de ciclos anteriores más abajo son históricas; esta sección y la especificación actual definen el comportamiento vigente del Lead.
 
 ## Ejecutarla en tu Mac
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.0`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.1`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -76,7 +94,7 @@ Una Cuenta con Grupos no se puede eliminar. Si tiene Managers, primero deben mov
 
 ### Delegación y recuperación
 
-Ser Lead no da permisos de aprobación. Desde **Mi equipo**, el Manager elige **Delegar** junto a un Lead activo y define, dentro de la misma página, los Grupos y las fechas. Sólo puede haber una persona delegada por Manager. Al sustituirla, la asignación anterior se revoca de forma atómica y se conserva su historial. El Lead delegado no puede aprobar sus propios registros. Revocar la delegación no quita la capacidad Lead. Cambiar la propiedad del Grupo o mover/quitar la capacidad del Lead revoca las delegaciones afectadas.
+Ser Lead no da permisos de aprobación. Desde **Mi equipo**, el Manager elige **Delegar** junto a su Lead activo; cubre todos sus Grupos, inicia al guardar y termina por revocación manual. Sólo puede haber una persona delegada por Manager. Al sustituirla, la asignación anterior se revoca de forma atómica y se conserva su historial. El Lead delegado no puede aprobar sus propios registros. Revocar la delegación no quita la capacidad Lead. Cambiar la propiedad del Grupo o mover/quitar la capacidad del Lead revoca las delegaciones afectadas.
 
 En el login, **¿Olvidaste tu contraseña?** registra una solicitud. El Manager valida a sus Técnicos; Administración valida a Managers, otros administradores y Técnicos sin Manager activo. Un Lead no emite ni consulta códigos, aunque tenga delegación operativa. Nadie emite su propio código. El código es de un solo uso y cambiar la contraseña invalida las sesiones anteriores. No se envían correos automáticamente.
 
@@ -127,7 +145,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.1.0/
+Operational_Pulse_v1.1.1/
   index.html
   server.py
   requirements.txt
@@ -345,7 +363,7 @@ El comando configura la **base principal**, conserva los datos existentes y abre
 | Employee ID | Contraseña inicial | Perfil |
 | --- | --- | --- |
 | MGR0001 | manager12026 | Manager |
-| SL0001 | lead120261 | Técnico con capacidad Lead |
+| SL0001 | lead120261 | Lead directo del Manager, sin Grupo; sólo OT |
 | 951357 | tecnico12026 | Técnico |
 
 Primero crea o reutiliza Banorte (clave BNTE, país MX). Dentro de esa Cuenta crea o reutiliza el Manager y seis Grupos de prueba: z/OS, CICS/MQ, Db2, Linux, Unix y Oracle. Asigna los Técnicos a sus Grupos; si ya pertenecen a ese equipo, conserva su pertenencia, nombres e historial. El Lead requiere que su Manager active Delegar para aprobar.
@@ -356,11 +374,11 @@ El ZIP contiene código y este configurador, **no tu base ni sesiones**. Para ac
 
 ## Cuentas y especialidades internacionales
 
-Orden de creación: **Cuenta → Managers → Grupos por especialidad → Técnicos**. País es un dato de la Cuenta; puede haber muchas Cuentas en el mismo país. Mainframe y OPEN / Distribuidos clasifican los Grupos y no añaden otra capa de personas.
+**Cuenta → Managers → Grupos por especialidad → Técnicos**, con un Lead como backup directo de cada Manager. País es un dato de la Cuenta; puede haber varias Cuentas en el mismo país.
 
-Elige país y clave al crear la Cuenta: `MX-BNTE`. Al crear un Grupo, elige Cuenta, Manager, plataforma y especialidad; el código se genera automáticamente: `MX-BNTE-MF-ZOS`, `MX-BNTE-MF-CICS-MQ`, `MX-BNTE-MF-DB2`, `MX-BNTE-OPEN-LINUX`, `MX-BNTE-OPEN-UNIX`, `MX-BNTE-OPEN-ORACLE`. Puedes escribir otra especialidad; si se repite recibe `-02`, `-03`, etc. Un Manager puede tener Grupos de ambas plataformas dentro de la misma Cuenta.
+Elige país y clave al crear la Cuenta: `MX-BNTE`. Al crear un Grupo, selecciona Cuenta, Manager, especialidad (busca o escribe una nueva) y nombre. El código se genera automáticamente: `MX-BNTE-LINUX-Y-ORACLE`, y recibe `-02`, `-03` si se repite. El catálogo guarda las especialidades por Cuenta. Mainframe/OPEN ya no se exige en el formulario; las clasificaciones y códigos anteriores se mantienen para compatibilidad. Un Manager puede tener cualquier combinación de especialidades de su Cuenta.
 
-Se conservan IDs, claves antiguas, integrantes e historial. Si una Cuenta anterior no tiene país, edítala una vez para asignarlo antes de crear Grupos con códigos automáticos. Un cambio de Manager dentro de la Cuenta conserva la clave del Grupo.
+Se conservan IDs, claves anteriores, integrantes e historial. Una Cuenta anterior sin país debe editarse para asignarlo antes de crear Grupos con códigos automáticos. Un cambio de Manager dentro de la Cuenta conserva la clave del Grupo.
 
 ## Analítica e historial en un mismo lugar
 

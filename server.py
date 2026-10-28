@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -128,13 +128,24 @@ def init_db():
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
         # Add metadata without renaming legacy keys or changing hierarchy/records.
-        for table,columns in {'accounts':{'country_code':"TEXT NOT NULL DEFAULT ''",'base_code':"TEXT NOT NULL DEFAULT ''"},'groups':{'platform_code':"TEXT NOT NULL DEFAULT ''",'service_key':"TEXT NOT NULL DEFAULT ''",'standard_code':"TEXT NOT NULL DEFAULT ''"}}.items():
+        for table,columns in {'accounts':{'country_code':"TEXT NOT NULL DEFAULT ''",'base_code':"TEXT NOT NULL DEFAULT ''"},'users':{'manager_id':'TEXT REFERENCES users(id)'},'groups':{'platform_code':"TEXT NOT NULL DEFAULT ''",'service_key':"TEXT NOT NULL DEFAULT ''",'standard_code':"TEXT NOT NULL DEFAULT ''"}}.items():
             present={row['name'] for row in c.execute('PRAGMA table_info('+table+')')}
             for column,definition in columns.items():
                 if column not in present:c.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+definition)
         c.execute("UPDATE accounts SET base_code=code WHERE base_code=''")
         c.execute("CREATE UNIQUE INDEX IF NOT EXISTS country_account_key ON accounts(country_code,base_code COLLATE NOCASE) WHERE country_code!='' AND base_code!=''")
         c.execute("CREATE UNIQUE INDEX IF NOT EXISTS global_group_key ON groups(standard_code COLLATE NOCASE) WHERE standard_code!=''")
+        c.execute("CREATE TABLE IF NOT EXISTS specialties(id TEXT PRIMARY KEY,account_id TEXT NOT NULL REFERENCES accounts(id),key TEXT NOT NULL,name TEXT NOT NULL,UNIQUE(account_id,key))")
+        c.execute('DROP INDEX IF EXISTS one_direct_lead')
+        # Upgrade the previous Group Lead into the Manager's direct backup once.
+        for lead in c.execute("SELECT u.*,g.manager_id AS owner FROM users u JOIN groups g ON g.id=u.group_id WHERE u.is_lead=1 AND g.manager_id IS NOT NULL").fetchall():
+            for table in ('overtime','guards'):
+                for record in c.execute('SELECT id FROM '+table+' WHERE user_id=?',(lead['id'],)).fetchall():
+                    g=dict(c.execute('SELECT * FROM groups WHERE id=?',(lead['group_id'],)).fetchone())
+                    a=dict(c.execute('SELECT * FROM accounts WHERE id=?',(g['account_id'],)).fetchone())
+                    c.execute('INSERT OR IGNORE INTO record_origins VALUES(?,?)',(record['id'],json.dumps({'group_id':g['id'],'group_name':g['name'],'group_code':g['code'],'account_name':a['name'],'account_code':a['code'],'manager_id':lead['owner'],'inferred':True})))
+            c.execute('UPDATE users SET manager_id=?,group_id=NULL WHERE id=?',(lead['owner'],lead['id']))
+
         # Adopt manual revocation for the latest currently effective legacy backup.
         # Expired, revoked and future assignments are never reactivated.
         stamp = now()
@@ -235,8 +246,7 @@ def scope(c, user):
             if d['lead_id'] != user['id']:
                 continue
             allowed = {r[0] for r in c.execute('SELECT id FROM groups WHERE manager_id=?', (d['manager_id'],))}
-            own = c.execute('SELECT manager_id FROM groups WHERE id=?', (user['group_id'],)).fetchone()
-            if own and own[0] == d['manager_id']:
+            if user['manager_id'] == d['manager_id']:
                 ids.update(allowed)
     return ids
 
@@ -246,10 +256,21 @@ def operational(user):
         fail('Esta función es para Técnicos.', 403)
 
 
+def owner_manager(c,user):
+    if user.get('is_lead') and user.get('manager_id'):return user['manager_id']
+    row=c.execute('SELECT manager_id FROM groups WHERE id=?',(user.get('group_id'),)).fetchone()
+    return row[0] if row else None
+
+
+def visible_users(c,actor):
+    managers={actor['id']} if actor['role']=='MANAGER' else {d['manager_id'] for d in effective_delegations(c) if d['lead_id']==actor['id'] and actor['is_lead'] and actor['manager_id']==d['manager_id']}
+    return {p['id'] for p in rows(c,'users') if actor['role']=='ADMIN' or p['id']==actor['id'] or p['role']=='USER' and owner_manager(c,p) in managers}
+
+
 def authorized_target(c, actor, target, approval=False):
     if actor['role'] == 'ADMIN' and not approval:
         return
-    if target['group_id'] not in scope(c, actor) or (approval and target['id'] == actor['id']):
+    if target['id'] not in visible_users(c,actor) or (approval and target['id'] == actor['id']) or (approval and actor['role']=='ADMIN'):
         fail('No tienes autoridad sobre este registro.', 403)
 
 
@@ -409,7 +430,7 @@ def state(user=Depends(current_user)):
     with connection() as c:
         group_ids = scope(c, user)
         people = rows(c, 'users')
-        visible = {p['id'] for p in people if p['id'] == user['id'] or p['group_id'] in group_ids}
+        visible = visible_users(c,user)
         if user['role'] == 'ADMIN':
             visible = {p['id'] for p in people}
         groups = rows(c, 'groups')
@@ -418,16 +439,16 @@ def state(user=Depends(current_user)):
         accounts = rows(c, 'accounts')
         visible_entities = visible | {r['id'] for table in ('overtime', 'guards', 'timers') for r in rows(c, table) if r['user_id'] in visible}
         result = {'user': public_user(user), 'can_approve': user['role'] == 'MANAGER' or bool(group_ids) and user['role'] == 'USER', 'scope': list(group_ids), 'version': VERSION, 'timezone': str(TZ), 'server_time': now(),
-                  'country_codes':sorted(COUNTRY_CODES),'platforms':PLATFORMS,'service_catalog':SERVICE_CATALOG,
-                  'accounts': accounts if user['role'] == 'ADMIN' else [a for a in accounts if any(g['account_id'] == a['id'] for g in shown_groups)],
-                  'groups': shown_groups, 'people': [public_user(p) for p in people if p['id'] in visible or p['role'] == 'MANAGER' and any(g['manager_id'] == p['id'] for g in shown_groups)],
+                  'specialties':[r for r in rows(c,'specialties') if user['role']=='ADMIN' or any(g['account_id']==r['account_id'] for g in shown_groups)],'country_codes':sorted(COUNTRY_CODES),'platforms':PLATFORMS,'service_catalog':SERVICE_CATALOG,
+                  'accounts': accounts if user['role'] == 'ADMIN' else [a for a in accounts if any(g['account_id'] == a['id'] for g in shown_groups) or user['is_lead'] and get(c,'users',user['manager_id'])['account_id']==a['id']],
+                  'groups': shown_groups, 'people': [public_user(p) for p in people if p['id'] in visible or p['role'] == 'MANAGER' and (any(g['manager_id'] == p['id'] for g in shown_groups) or user['manager_id']==p['id'])],
                   'overtime': [r for r in rows(c, 'overtime') if r['user_id'] in visible],
                   'guards': [r for r in rows(c, 'guards') if r['user_id'] in visible],
                   'timers': [r for r in rows(c, 'timers') if r['user_id'] in visible and not r['end_at']],
                   'timer_segments': [r for r in rows(c,'timers') if r['user_id'] in visible],
                   'extensions': [e for e in rows(c,'ot_extensions') if get(c,'overtime',e['overtime_id'])['user_id'] in visible],
                   'windows': [r for r in rows(c, 'windows') if user['role'] == 'ADMIN' or r['group_id'] in own_ids],
-                  'rules': [dict(r, segments=json.loads(r['segments'])) for r in rows(c, 'rules') if user['role'] == 'ADMIN' or r['manager_id'] == user['id'] or any(g['manager_id'] == r['manager_id'] for g in shown_groups)],
+                  'rules': [dict(r, segments=json.loads(r['segments'])) for r in rows(c, 'rules') if user['role'] == 'ADMIN' or r['manager_id'] == user['id'] or user['is_lead'] and r['manager_id']==user['manager_id'] or any(g['manager_id'] == r['manager_id'] for g in shown_groups)],
                   'delegations': [dict(d, group_ids=[g['id'] for g in rows(c, 'groups') if g['manager_id']==d['manager_id']] if not d['revoked_at'] else json.loads(d['group_ids'])) for d in rows(c, 'delegations') if user['role'] == 'ADMIN' or d['manager_id'] == user['id'] or d['lead_id'] == user['id']],
                   'transfer_requests':[r for r in rows(c,'transfer_requests') if user['role']=='ADMIN' or r['requested_by']==user['id']],
                   'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
@@ -501,7 +522,8 @@ def admin_person_impact(c, identity):
         guards.append(r)
     delegations = [r for r in rows(c, 'delegations') if not r['revoked_at'] and (not r['end_at'] or parse_at(r['end_at']) > parse_at(stamp)) and (r['manager_id'] == identity or r['lead_id'] == identity)]
     issued = security_issued_by(c, identity)
-    payload = {'person': public_user(user), 'groups': owned, 'timers': timers, 'documents': documents, 'scheduled': scheduled, 'guards': guards, 'delegations': delegations, 'issued_codes': [{'id': r['id'], 'user_id': r['user_id']} for r in issued],
+    direct_leads=[public_user(p) for p in rows(c,'users') if p['is_lead'] and p['manager_id']==identity and p['status']!='DISABLED']
+    payload = {'direct_leads':direct_leads,'person': public_user(user), 'groups': owned, 'timers': timers, 'documents': documents, 'scheduled': scheduled, 'guards': guards, 'delegations': delegations, 'issued_codes': [{'id': r['id'], 'user_id': r['user_id']} for r in issued],
                'pending_time': sum(r['status']=='SUBMITTED' for r in overtime) + c.execute("SELECT count(*) FROM guards WHERE user_id=? AND status='SUBMITTED'", (identity,)).fetchone()[0]}
     fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',',':'), ensure_ascii=False).encode()).hexdigest()
     candidates = [public_user(p) for p in rows(c, 'users') if p['role']=='MANAGER' and p['status']=='ACTIVE' and p['id']!=identity]
@@ -534,6 +556,15 @@ def offboard_person(identity: str, data: dict=Body(...), actor=Depends(admin)):
         transfers = data.get('transfers', {})
         if not isinstance(transfers, dict) or set(transfers) != {g['id'] for g in impact['groups']}:
             fail('Asigna un Manager de destino a cada Grupo antes de dar de baja al Manager.')
+        if impact['direct_leads']:
+            replacement=get(c,'users',data.get('lead_manager_id'))
+            if replacement['role']!='MANAGER' or replacement['status']!='ACTIVE' or replacement['account_id']!=user['account_id'] or replacement['id']==identity:fail('Asigna un Manager activo de la Cuenta para el Lead.')
+            if c.execute("SELECT 1 FROM users WHERE is_lead=1 AND manager_id=? AND status!='DISABLED'",(replacement['id'],)).fetchone():fail('El Manager de destino ya tiene un Lead.')
+            for backup in impact['direct_leads']:
+                if c.execute('SELECT 1 FROM timers WHERE user_id=? AND end_at IS NULL',(backup['id'],)).fetchone():fail('Detén el Timer del Lead antes de trasladarlo.')
+                revoke_authority(c,actor,reason,lead_ids=[backup['id']]);invalidate_sessions(c,backup['id'])
+                c.execute('UPDATE users SET manager_id=? WHERE id=?',(replacement['id'],backup['id']))
+                audit(c,actor,'TRANSFER_LEAD',backup['id'],{'from_manager':identity,'to_manager':replacement['id'],'reason':reason})
         for g in impact['groups']:
             destination = get(c,'users',str(transfers[g['id']]))
             if destination['id']==identity or destination['role']!='MANAGER' or destination['status']!='ACTIVE' or destination['account_id']!=g['account_id']:
@@ -607,8 +638,12 @@ def reactivate_person(identity: str, data: dict=Body(...), actor=Depends(admin))
             fail('Sólo se reactiva una cuenta en baja.')
         if user['role']=='MANAGER' and c.execute('SELECT 1 FROM groups WHERE manager_id=?',(identity,)).fetchone():
             fail('Regulariza primero los Grupos que todavía dependen de este Manager en baja.')
+        revive_lead=bool(user['role']=='USER' and user['manager_id'] and not user['group_id'])
+        if revive_lead:
+            m=get(c,'users',user['manager_id'])
+            if m['status']!='ACTIVE' or c.execute("SELECT 1 FROM users WHERE manager_id=? AND is_lead=1 AND status!='DISABLED' AND id<>?",(m['id'],identity)).fetchone():fail('El Manager del Lead no está disponible o ya tiene otro backup. Reasigna primero a la persona a un Grupo como Técnico.')
         code='ACT-'+secrets.token_hex(5).upper()
-        c.execute("UPDATE users SET status='PENDING_ACTIVATION',is_lead=0,password_hash=NULL,activation_hash=? WHERE id=?",(password_hash(code),identity))
+        c.execute("UPDATE users SET status='PENDING_ACTIVATION',is_lead=?,password_hash=NULL,activation_hash=? WHERE id=?",(int(revive_lead),password_hash(code),identity))
         invalidate_sessions(c,identity)
         revoke_authority(c,actor,reason,manager_ids=[identity],lead_ids=[identity])
         audit(c,actor,'REACTIVATE_PERSON',identity,{'reason':reason})
@@ -625,8 +660,8 @@ def normalized_key(value):
 
 def standard_group_code(c, account, platform, service, exclude=''):
     if account['country_code'] not in COUNTRY_CODES:fail('Primero define el país de la Cuenta en Organización.')
-    if platform not in PLATFORMS:fail('Selecciona la plataforma del Grupo.')
-    stem=account_display_code(account)+'-'+platform+'-'+service;number=1
+    if platform and platform not in PLATFORMS:fail('Plataforma no válida.')
+    stem=account_display_code(account)+('-'+platform if platform else '')+'-'+service;number=1
     while True:
         candidate=stem if number==1 else stem+'-'+str(number).zfill(2)
         if not c.execute('SELECT 1 FROM groups WHERE (code=? COLLATE NOCASE OR standard_code=? COLLATE NOCASE) AND id!=?',(candidate,candidate,exclude)).fetchone():return candidate
@@ -674,7 +709,7 @@ def delete_account(identity: str, actor=Depends(admin)):
 def validate_manager_leads(c, manager_ids):
     """Validate the resulting ownership inside the same write transaction; never erase legacy data."""
     for manager_id in set(manager_ids) - {None, ''}:
-        holders = c.execute("SELECT u.id FROM users u JOIN groups g ON g.id=u.group_id WHERE g.manager_id=? AND u.is_lead=1 AND u.status!='DISABLED'", (manager_id,)).fetchall()
+        holders = c.execute("SELECT id FROM users WHERE manager_id=? AND is_lead=1 AND status!='DISABLED'", (manager_id,)).fetchall()
         if len(holders) > 1:
             fail('Este Manager ya tiene un Lead. Retira una designación antes de reunir los equipos; sólo puede haber un backup por Manager.')
 
@@ -690,7 +725,7 @@ def save_group(data: dict = Body(...), identity: str = '', actor=Depends(admin))
         service=normalized_key(data.get('service_key') or old['service_key']) if data.get('service_key') or old and old['service_key'] else ''
         standard=old['standard_code'] if old else ''
         if service:
-            if platform not in PLATFORMS:fail('Selecciona la plataforma del Grupo.')
+            if platform and platform not in PLATFORMS:fail('Plataforma no válida.')
             changed=not old or old['account_id']!=aid or old['platform_code']!=platform or old['service_key']!=service or not standard
             if changed:standard=standard_group_code(c,account,platform,service,identity)
             code=standard if not old or old['code']==old['standard_code'] else old['code']
@@ -720,6 +755,8 @@ def save_group(data: dict = Body(...), identity: str = '', actor=Depends(admin))
         else:
             identity = uid()
             c.execute('INSERT INTO groups(id,account_id,manager_id,code,name,platform_code,service_key,standard_code) VALUES(?,?,?,?,?,?,?,?)', (identity,aid,mid,code,text(data,'name'),platform,service,standard))
+        if service:
+            c.execute('INSERT OR IGNORE INTO specialties VALUES(?,?,?,?)',(uid(),aid,service,str(data.get('specialty_name') or service).strip()[:100]))
         validate_manager_leads(c,[mid])
         audit(c, actor, 'SAVE_GROUP', identity)
     return {'id': identity}
@@ -742,7 +779,7 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
     with connection(True) as c:
         old = get(c, 'users', identity) if identity else None
         if data.get('_transfer_only'):
-            if not old or old['role']!='USER' or old['status']=='DISABLED':
+            if not old or old['role']!='USER' or old['status']=='DISABLED' or old['is_lead']:
                 fail('Sólo se transfieren Técnicos activos o pendientes de activación.')
             if text(data,'expected_group_id')!=old['group_id']:
                 fail('El Técnico cambió de Grupo desde que abriste el traslado. Actualiza la organización.',409)
@@ -758,13 +795,15 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
             get(c, 'accounts', aid)
         elif role == 'MANAGER':
             fail('El Manager debe pertenecer a una Cuenta.')
-        if role == 'USER':
-            get(c, 'groups', gid)
-            destination_group = get(c, 'groups', gid)
-            if lead and not destination_group['manager_id']:
-                fail('Asigna un Manager al Grupo antes de designar su backup Lead.')
-            if lead and c.execute("SELECT 1 FROM users u JOIN groups g ON g.id=u.group_id WHERE g.manager_id=? AND u.is_lead=1 AND u.status!='DISABLED' AND u.id<>?",(destination_group['manager_id'],identity)).fetchone():
-                fail('Este Manager ya tiene un Lead entre sus Grupos. Retira esa capacidad antes de designar a otro backup.')
+        lead_manager=None
+        if role=='USER':
+            if lead:
+                lead_manager=data.get('manager_id') or (get(c,'groups',gid)['manager_id'] if gid else old.get('manager_id') if old else None)
+                m=get(c,'users',lead_manager)
+                if m['role']!='MANAGER' or m['status']=='DISABLED':fail('Selecciona un Manager vigente para el Lead.')
+                if c.execute("SELECT 1 FROM users WHERE manager_id=? AND is_lead=1 AND status!='DISABLED' AND id<>?",(lead_manager,identity)).fetchone():fail('Este Manager ya tiene un Lead.')
+                gid=None
+            else:get(c,'groups',gid)
         group_ids = list(dict.fromkeys(data.get('group_ids', []))) if role == 'MANAGER' else []
         for g_id in group_ids:
             g = get(c, 'groups', g_id)
@@ -783,7 +822,7 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
             fail('Utiliza Baja o Reactivar para cambiar el acceso de una persona.')
         if status=='DISABLED' and lead:
             fail('Una cuenta en baja no puede recibir capacidad Lead; reactívala primero.')
-        if old and role=='USER' and gid!=old['group_id']:
+        if old and role=='USER' and (gid!=old['group_id'] or lead_manager!=old.get('manager_id')):
             if c.execute('SELECT 1 FROM timers WHERE user_id=? AND end_at IS NULL',(identity,)).fetchone():
                 fail('Detén el Timer antes de transferir al Técnico de Grupo.')
             transfer_reason=text(data,'transfer_reason')
@@ -797,14 +836,14 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
                     capture_origin(c,record['id'],old,inferred=True)
             if request_id:
                 c.execute("UPDATE transfer_requests SET status='APPROVED',decided_by=?,decided_at=?,decision_reason=?,destination_group_id=? WHERE id=?",(actor['id'],now(),transfer_reason,gid,request_id))
-            old_group=get(c,'groups',old['group_id']);new_group=get(c,'groups',gid)
-            if old['status']!='DISABLED' and (not new_group['manager_id'] or get(c,'users',new_group['manager_id'])['status']!='ACTIVE'):
+            old_owner=owner_manager(c,old);new_owner=lead_manager or get(c,'groups',gid)['manager_id']
+            if old['status']!='DISABLED' and (not new_owner or get(c,'users',new_owner)['status']!='ACTIVE'):
                 fail('El Grupo de destino necesita un Manager activo.')
             revoke_authority(c,actor,transfer_reason,lead_ids=[identity])
-            if old_group['manager_id']!=new_group['manager_id']:
+            if old_owner!=new_owner:
                 reopen_recoveries(c,actor,[identity],transfer_reason)
             invalidate_sessions(c,identity)
-            audit(c,actor,'TRANSFER_PERSON',identity,{'from_group':old['group_id'],'to_group':gid,'reason':transfer_reason})
+            audit(c,actor,'TRANSFER_PERSON',identity,{'from_group':old['group_id'],'to_group':gid,'from_manager':old_owner,'to_manager':new_owner,'reason':transfer_reason})
         if old and role=='MANAGER':
             for owned in c.execute('SELECT id FROM groups WHERE manager_id=?',(identity,)).fetchall():
                 if owned['id'] not in group_ids and c.execute("SELECT 1 FROM users WHERE group_id=? AND status!='DISABLED'",(owned['id'],)).fetchone():
@@ -819,7 +858,7 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
         if old:
             if status == 'ACTIVE' and not old['password_hash']:
                 fail('La persona debe activar su cuenta y definir su contraseña primero.')
-            if role == 'USER' and (gid != old['group_id'] or not lead):
+            if role == 'USER' and (gid != old['group_id'] or lead_manager!=old.get('manager_id') or not lead):
                 c.execute('UPDATE delegations SET revoked_at=? WHERE lead_id=? AND revoked_at IS NULL', (now(), identity))
             c.execute('UPDATE users SET username=?,employee_id=?,first=?,last=?,email=?,account_id=?,group_id=?,is_lead=?,status=? WHERE id=?',
                       (username, employee_id, text(data, 'first'), text(data, 'last'), text(data, 'email'), aid, gid, int(lead), status, identity))
@@ -828,7 +867,8 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
         else:
             identity = uid()
             code = 'ACT-' + secrets.token_hex(5).upper()
-            c.execute('INSERT INTO users VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', (identity, role, username, employee_id, text(data, 'first'), text(data, 'last'), text(data, 'email'), aid, gid, int(lead), 'PENDING_ACTIVATION', None, password_hash(code), now()))
+            c.execute('INSERT INTO users(id,role,username,employee_id,first,last,email,account_id,group_id,is_lead,status,password_hash,activation_hash,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', (identity, role, username, employee_id, text(data, 'first'), text(data, 'last'), text(data, 'email'), aid, gid, int(lead), 'PENDING_ACTIVATION', None, password_hash(code), now()))
+        if role=='USER':c.execute('UPDATE users SET manager_id=? WHERE id=?',(lead_manager,identity))
         if role == 'MANAGER':
             c.execute('UPDATE groups SET manager_id=NULL WHERE manager_id=?', (identity,))
             for g_id in group_ids:
@@ -837,7 +877,7 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
                 if not set(json.loads(d['group_ids'])).issubset(set(group_ids)):
                     c.execute('UPDATE delegations SET revoked_at=? WHERE id=?', (now(), d['id']))
         if role=='USER' and lead:
-            validate_manager_leads(c,[get(c,'groups',gid)['manager_id']])
+            validate_manager_leads(c,[lead_manager])
         elif role=='MANAGER':
             validate_manager_leads(c,[identity])
         audit(c, actor, 'SAVE_PERSON', identity)
@@ -845,6 +885,10 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
 
 
 def capture_origin(c, record_id, user, inferred=False):
+    if not user['group_id']:
+        mid=owner_manager(c,user);m=get(c,'users',mid);a=get(c,'accounts',m['account_id'])
+        snapshot={'group_id':None,'group_name':'Lead del Manager','group_code':'','account_name':a['name'],'account_code':account_display_code(a),'manager_id':mid,'inferred':inferred}
+        c.execute('INSERT OR IGNORE INTO record_origins VALUES(?,?)',(record_id,json.dumps(snapshot)));return
     g=dict(get(c,'groups',user['group_id']));a=dict(get(c,'accounts',g['account_id']))
     snapshot={'group_id':g['id'],'group_name':g['name'],'group_code':group_display_code(g,a),'account_name':a['name'],'account_code':account_display_code(a),'manager_id':g['manager_id'],'inferred':inferred}
     c.execute('INSERT OR IGNORE INTO record_origins VALUES(?,?)',(record_id,json.dumps(snapshot)))
@@ -919,6 +963,9 @@ def recovery_handler_allowed(c, actor, target):
     if actor['id'] == target['id'] or actor['role'] == 'USER':
         return False
     manager_id = None
+    if target['role']=='USER' and target['is_lead'] and target['manager_id']:
+        m=get(c,'users',target['manager_id'])
+        if m['status']=='ACTIVE':return actor['role']=='MANAGER' and actor['id']==m['id']
     if target['role'] == 'USER' and target['group_id']:
         manager_row = c.execute("SELECT u.id FROM groups g JOIN users u ON u.id=g.manager_id WHERE g.id=? AND u.role='MANAGER' AND u.status='ACTIVE'", (target['group_id'],)).fetchone()
         manager_id = manager_row['id'] if manager_row else None
@@ -1030,7 +1077,7 @@ def delegate(data: dict = Body(...), actor=Depends(current_user)):
         lead = get(c, 'users', text(data, 'lead_id'))
         allowed = scope(c, actor)
         ids = sorted(allowed)
-        if not lead['is_lead'] or lead['status'] != 'ACTIVE' or lead['group_id'] not in allowed or not ids:
+        if not lead['is_lead'] or lead['status'] != 'ACTIVE' or lead['manager_id']!=actor['id'] or not ids:
             fail('Selecciona un Lead activo de tu equipo. La delegación cubre todos tus Grupos.')
         # The write transaction serializes concurrent assignments. Changing backup
         # explicitly revokes the existing active/scheduled assignment atomically.
@@ -1119,6 +1166,7 @@ def delete_rule(identity: str, actor=Depends(current_user)):
 @app.post('/api/guards')
 def add_guard(data: dict = Body(...), actor=Depends(current_user)):
     operational(actor)
+    if actor['is_lead']:fail('El Lead registra OT; no puede solicitar Guardias.',403)
     try:
         a, b = date.fromisoformat(text(data, 'start_date')), date.fromisoformat(text(data, 'end_date'))
     except ValueError:
@@ -1466,7 +1514,7 @@ def accounting(c, visible, month=None, record_ids=None):
 
 def selected_users(c, actor, user_id=None, group_id=None):
     allowed = scope(c, actor)
-    visible = {u['id'] for u in rows(c, 'users') if u['role'] == 'USER' and (u['id'] == actor['id'] or u['group_id'] in allowed)}
+    visible = visible_users(c,actor)
     if actor['role'] == 'ADMIN':
         visible = {u['id'] for u in rows(c, 'users') if u['role'] == 'USER'}
     if user_id:
@@ -1553,7 +1601,7 @@ def analytics_records(c, visible, selected_months, query='', status='', record_t
             text=' '.join(str(v or '') for v in [r['id'],reference,description,r.get('justification'),p['first'],p['last'],p['employee_id'],g.get('name'),g.get('code'),g.get('display_code'),start,end,aliases[category],*extensions.get(r['id'],[])])
             haystack=normalized(text)
             if not all(token in haystack for token in tokens):continue
-            result.append({'id':r['id'],'kind':kind,'capture_type':category,'user_id':p['id'],'name':p['first']+' '+p['last'],'employee_id':p['employee_id'],'group_id':p['group_id'],'group_name':g.get('name',''),'reference':reference,'description':description,'from_at':start,'to_at':end,'status':r['status'],'display_status':effective_status,'execution':r.get('execution'),'created_at':r['created_at']})
+            result.append({'id':r['id'],'kind':kind,'capture_type':category,'user_id':p['id'],'name':p['first']+' '+p['last'],'employee_id':p['employee_id'],'group_id':p['group_id'],'group_name':g.get('name','Lead del Manager' if p['is_lead'] else ''),'reference':reference,'description':description,'from_at':start,'to_at':end,'status':r['status'],'display_status':effective_status,'execution':r.get('execution'),'created_at':r['created_at']})
     return sorted(result,key=lambda r:(r['created_at'],r['id']),reverse=True)
 
 
@@ -1570,7 +1618,7 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
             fail('La analítica del equipo requiere un Manager o un Lead con delegación vigente.', 403)
         if group_id and group_id not in allowed_groups:
             fail('El Grupo no está en tu alcance.', 403)
-        visible = {p['id'] for p in rows(c, 'users') if p['role'] == 'USER' and p['group_id'] in allowed_groups}
+        visible = {p['id'] for p in rows(c,'users') if p['role']=='USER' and p['id'] in visible_users(c,actor)}
         if user_id:
             if user_id not in visible:
                 fail('El Técnico no está en tu alcance delegado.', 403)
@@ -1626,10 +1674,10 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
 
     summary = empty_totals()
     by_group = {g['id']: {'id': g['id'], 'code': g.get('display_code',g['code']), 'name': g['name'], 'user_count': sum(p['group_id'] == g['id'] for p in people), 'minutes': empty_totals()} for g in shown_groups}
-    by_user = {p['id']: {'id': p['id'], 'name': f"{p['first']} {p['last']}", 'employee_id': p['employee_id'], 'group_id': p['group_id'], 'group_name': group_names.get(p['group_id'], ''), 'minutes': empty_totals()} for p in people}
+    by_user = {p['id']: {'id': p['id'], 'name': f"{p['first']} {p['last']}", 'employee_id': p['employee_id'], 'group_id': p['group_id'], 'group_name': group_names.get(p['group_id'], 'Lead del Manager' if p['is_lead'] else ''), 'minutes': empty_totals()} for p in people}
     by_day = {}
     for record in detail:
-        record['group_name'] = group_names.get(record['group_id'], '')
+        record['group_name'] = group_names.get(record['group_id'], 'Lead del Manager')
         add(summary, record)
         add(by_user[record['user_id']]['minutes'], record)
         if record['group_id'] in by_group:

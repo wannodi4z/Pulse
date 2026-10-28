@@ -51,8 +51,9 @@ def provision():
             user=existing[emp]
             identity=user['id'] if user else mid if role=='MANAGER' else server.uid()
             if role=='USER':
-                gid=groups[0 if lead else 1]
-                if user and user['group_id']:
+                gid=None if lead else groups[1]
+                if user and lead and user['manager_id'] not in (None,mid):raise ValueError('SL0001 pertenece a otro Manager.')
+                if user and user['group_id'] and not lead:
                     current=server.get(c,'groups',user['group_id'])
                     if current['account_id']!=aid or current['manager_id']!=mid:
                         raise ValueError(f'{emp} está en otro equipo. Usa Organización para transferirlo primero.')
@@ -61,9 +62,10 @@ def provision():
                     c.execute('INSERT INTO users(id,role,username,employee_id,first,last,email,group_id,is_lead,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
                               (identity,role,emp,emp,first,'Pruebas',emp+'@example.test',gid,int(lead),'PENDING_ACTIVATION',server.now()))
                 else:
-                    c.execute('UPDATE users SET group_id=?,is_lead=? WHERE id=?',(gid,int(lead),identity))
+                    c.execute('UPDATE users SET group_id=?,is_lead=?,manager_id=? WHERE id=?',(gid,int(lead),mid if lead else None,identity))
                     if user['is_lead'] and not lead:
                         server.revoke_authority(c,None,'Configuración explícita de accesos BNTE',lead_ids=[identity])
+            if role=='USER':c.execute('UPDATE users SET manager_id=? WHERE id=?',(mid if lead else None,identity))
             current=server.get(c,'users',identity)
             changed=current['status']!='ACTIVE' or not server.password_matches(password,current['password_hash'])
             if changed:
@@ -85,5 +87,5 @@ if __name__=='__main__':
         raise SystemExit('Configuración no aplicada: '+message) from None
     print('Banorte · BNTE configurada en:',server.DB)
     print('MGR0001 activo: Manager de seis Grupos de prueba: z/OS, CICS/MQ, Db2, Linux, Unix y Oracle.')
-    print('SL0001 activo: Técnico Lead. 951357 activo: Técnico.')
+    print('SL0001 activo: Lead directo de MGR0001, sin Grupo, sólo OT. 951357 activo: Técnico.')
     print('Contraseñas: las solicitadas. No se crean OT, Guardias, Timers ni delegación.')

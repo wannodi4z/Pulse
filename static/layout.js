@@ -87,7 +87,7 @@ window.PulseLayout=(()=>{
       let size=table?Math.max(1,Math.floor((budget-overhead)/Math.max(45,height/children.length))):list.matches('.organization-board')&&innerWidth>=1050?2:1;
       size=Math.min(size,children.length);if(size>=children.length)return;
       const count=Math.ceil(children.length/size),id=key+':list:'+li;
-      const label=table?'Filas':list.matches('.timer-list')?'Timers':list.matches('.timer-segment-list')?'Tramos':list.matches('.technicians')?'Técnicos':list.matches('.group-grid')?'Grupos':list.matches('.account-body')?'Managers':list.matches('.rule-intervals')?'Intervalos':list.matches('.rule-segments')?'Días':list.matches('.rules-grid')?'Reglas':'Elementos';
+      const label=table?'Filas':list.matches('.timer-list')?'Timers':list.matches('.timer-segment-list')?'Tramos':list.matches('.technicians')?'Técnicos':list.matches('.group-grid')?(q('.direct-lead',list)?'Grupos y Lead':'Grupos'):list.matches('.account-body')?'Managers':list.matches('.rule-intervals')?'Intervalos':list.matches('.rule-segments')?'Días':list.matches('.rules-grid')?'Reglas':'Elementos';
       const control=pager(count,Math.min(memory.get(id)||0,count-1),id,label,value=>children.forEach((n,i)=>n.classList.toggle('viewport-off',Math.floor(i/size)!==value)));
       list._viewport={children,size,control};
       if(table){const wrapper=list.closest('.table-scroll')||list.parentElement;wrapper.after(control);}else list.after(control);

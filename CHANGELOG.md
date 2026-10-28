@@ -2,6 +2,13 @@
 
 La entrega vigente es la primera entrada. Las versiones repetidas en entradas antiguas corresponden a reinicios de numeración solicitados durante el diseño.
 
+## v1.1.1 · 28 de octubre de 2026
+
+- Lead directamente bajo el Manager, sin Grupo, con OT propia y sin nuevas Guardias. Delegación completa del equipo sin autoaprobación; historial y designaciones anteriores conservados al actualizar.
+- Alta/edición/traslado/baja/reactivación del Lead con validaciones y sesiones/permisos actualizados; baja de Manager contempla destino para el backup.
+- Catálogo de especialidades por Cuenta: búsqueda y captura manual desde Nuevo Grupo, sin campo Plataforma obligatorio. Códigos nuevos automáticos sin cambiar los anteriores.
+- Modales de Grupo y solicitudes vacías más compactos. Configurador Banorte conserva los tres accesos solicitados activos con el nuevo modelo.
+
 ## v1.1.0 · 28 de octubre de 2026
 
 - Cuenta primero: Managers dentro de la Cuenta, Grupos por especialidad y Técnicos dentro de cada Grupo. País es metadato de Cuenta; Mainframe y OPEN / Distribuidos clasifican Grupos. Códigos automáticos y consecutivos sin borrar claves anteriores ni historial.

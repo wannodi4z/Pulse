@@ -1,4 +1,4 @@
-# Operational Pulse 1.1.0 · especificación de la implementación nueva
+# Operational Pulse 1.1.1 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -9,9 +9,12 @@ Aplicación local para macOS y VS Code. HTML, CSS y JavaScript sin compilación,
 - Cuenta: código único y nombre, edición y eliminación sólo si no tiene Grupos ni Managers.
 - Manager: persona con rol MANAGER, una Cuenta, cero Grupos mientras se configura y uno o más Grupos cuando se asignan. Los Grupos seleccionables son los de su Cuenta que estén libres o sean propios. Una selección multigrupo se presenta como `Multigrupo · N grupos`.
 - Grupo: una Cuenta y, opcionalmente, un Manager de la misma Cuenta. Una columna de propietario evita asignaciones simultáneas a dos Managers.
-- Técnico: persona con rol USER, un Grupo y una capacidad opcional `is_lead`. Sólo puede haber un Lead entre todos los Grupos de un Manager. El Lead permanece dentro de su Grupo. La validación se ejecuta dentro de la transacción SQLite al designar, transferir un Técnico, reasignar un Grupo o transferir los equipos durante una baja. Un Grupo sin Manager no admite nuevas designaciones Lead.
-- Jerarquía visual: Cuenta contiene bloques de Managers; cada Manager contiene sólo sus Grupos; cada Grupo contiene sus Técnicos. Los Grupos libres aparecen bajo `Grupos sin Manager`.
-- Lead y Técnico comparten una identidad. La delegación es independiente: Manager, Lead, alcance por Grupos, inicio automático y revocación manual; no tiene vencimiento. No se permite autoaprobación.
+- Técnico: persona con rol persistido USER, un Grupo, OT y Guardias.
+- Lead: identidad USER con is_lead=1, manager_id y group_id=NULL. Es un backup directamente bajo el Manager, máximo uno vigente por Manager; conserva OT, Timer, historial, Claim y ADP propios y no crea Guardias. No es una capa entre Manager y Grupo. Admin asigna/cambia su Manager; cambio motivado, Timer detenido, registros intactos, sesiones invalidadas y delegación revocada.
+- Jerarquía visual: Cuenta contiene Managers; dentro del Manager aparecen su Lead y sus Grupos como elementos hermanos. Cada Grupo contiene sus Técnicos. Los Grupos libres aparecen en Grupos sin Manager.
+- Delegación: Manager a su Lead, todos los Grupos actuales/futuros, inicio automático, revocación manual. Sin autoaprobación; la OT del Lead la aprueba su Manager. Recuperación de Lead la atiende el Manager propio; otro Manager no recibe la solicitud. Analítica/Excel incluyen sus horas en el alcance del Manager y en la persona, sin asignarle un Grupo ficticio.
+- Actualización: Leads anteriores se separan de su Grupo hacia el mismo Manager, manteniendo registros y origen. Designaciones heredadas múltiples se conservan para regularización por Admin; nuevas escrituras serializadas no crean un segundo backup.
+- Catálogo por Cuenta: specialties con clave normalizada y nombre. Guardar un Grupo con especialidad nueva agrega una sugerencia al catálogo. Formulario plano sin plataforma obligatoria; códigos nuevos país–Cuenta–especialidad; códigos anteriores no se renombran automáticamente.
 
 ## Navegación y estado
 

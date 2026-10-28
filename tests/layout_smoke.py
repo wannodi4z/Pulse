@@ -46,7 +46,13 @@ def run():
                     expect(page.locator('#modal [data-form=person]')).to_be_visible();page.locator('#modal [data-action=close]').first.click()
                     if os.environ.get('PULSE_SCREENSHOT_DIR'):
                         preview=Path(os.environ['PULSE_SCREENSHOT_DIR']);preview.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(preview/'organization-board.png'))
-                    card.locator('.drag-handle').drag_to(target)
+                    def drag_to_group(card,gid):
+                        card.evaluate('(el)=>PulseLayout.reveal(el)')
+                        handle=card.locator('.drag-handle');handle.hover();box=handle.bounding_box();x=box['x']+box['width']/2;y=box['y']+box['height']/2
+                        page.mouse.move(x,y);page.mouse.down();page.mouse.move(x+16,y+12,steps=5)
+                        destination=page.locator('#drag-destinations [data-drop-group="'+gid+'"]');expect(destination).to_be_visible()
+                        dest=destination.bounding_box();page.mouse.move(dest['x']+dest['width']/2,dest['y']+dest['height']/2,steps=12);page.mouse.up()
+                    drag_to_group(card,groups[0])
                     expect(page.locator('#modal [data-form=transfer]')).to_be_visible()
                     expect(page.locator('#modal [name=group_id]')).to_have_value(groups[0])
                     if os.environ.get('PULSE_SCREENSHOT_DIR'):
@@ -61,7 +67,7 @@ def run():
                     assert next(n for n in context.request.get(base+'/api/state').json()['people'] if n['id']==tech['id'])['group_id']==groups[1]
                     page.keyboard.press('Escape');expect(page.locator('#modal')).not_to_be_visible()
                     assert next(n for n in context.request.get(base+'/api/state').json()['people'] if n['id']==tech['id'])['group_id']==groups[1]
-                    card.locator('.drag-handle').drag_to(target)
+                    drag_to_group(card,groups[0])
                     page.locator('[data-action=transfer-reason]').first.click()
                     page.locator('#modal button[type=submit]').click();expect(page.locator('#modal')).not_to_be_visible()
                     moved=next(n for n in context.request.get(base+'/api/state').json()['people'] if n['id']==tech['id'])

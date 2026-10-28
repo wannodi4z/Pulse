@@ -105,10 +105,10 @@ def run():
                     assert page.locator('#modal').evaluate('(el)=>el.getBoundingClientRect().height<=innerHeight'),'Access dialog vertical overflow'
                 page.set_viewport_size({'width':1440,'height':1000})
                 if os.environ.get('PULSE_SCREENSHOT_DIR'):
-                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.1.0.png'))
+                    dest=Path(os.environ['PULSE_SCREENSHOT_DIR']);dest.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(dest/'activate-v1.1.1.png'))
                 page.keyboard.press('Escape');expect(page.locator('#modal')).not_to_be_visible()
                 action('recovery-request');fill('identity','admin2')
-                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.1.0.png'))
+                if os.environ.get('PULSE_SCREENSHOT_DIR'):page.screenshot(path=str(Path(os.environ['PULSE_SCREENSHOT_DIR'])/'recovery-v1.1.1.png'))
                 save();expect(page.locator('.access-result-body')).to_contain_text('Si tu cuenta está activa')
                 expect(page.locator('#modal h2')).to_have_text('Solicitud recibida')
                 action('recovery-complete');expect(page.locator('#modal [name=identity]')).to_have_value('admin2')
@@ -116,7 +116,7 @@ def run():
                 action('close')
                 # Branding and credits work before and after authentication.
                 action('about');expect(page.locator('.about-project')).to_contain_text('Francisco Cervantes Marquez')
-                expect(page.locator('.about-project')).to_contain_text('Versión 1.1.0')
+                expect(page.locator('.about-project')).to_contain_text('Versión 1.1.1')
                 expect(page.locator('.author-list')).to_contain_text('Samuel Alejandro Díaz Chávez')
                 expect(page.locator('.author-list article')).to_have_count(2)
                 page.set_viewport_size({'width':390,'height':844})
@@ -126,7 +126,7 @@ def run():
                 assert page.locator('.about-project img.kyndryl-logo').evaluate('(img)=>img.complete&&img.naturalWidth>0')
                 action('close')
                 login('admin1','admin12026')
-                expect(page.locator('.footer-version')).to_contain_text('v1.1.0')
+                expect(page.locator('.footer-version')).to_contain_text('v1.1.1')
                 expect(page.locator('.sidebar [data-page=analytics]')).to_have_count(0)
                 action('about');expect(page.locator('.author-list')).to_contain_text('Francisco Cervantes Marquez');action('close')
                 go('recoveries');action('recovery-issue')
@@ -154,7 +154,7 @@ def run():
                     page.screenshot(path=str(preview/'enterprise-account-menu.png'))
                     page.keyboard.press('Escape')
                 for code in ['G1','G2','G3']:
-                    action('group-new');page.locator('#modal [name=platform_code]').select_option('MF');fill('service_key',code);fill('name','Grupo '+code);save();expect(page.locator('.group-card')).to_have_count(int(code[-1]))
+                    action('group-new');fill('service_key',code);fill('name','Grupo '+code);save();expect(page.locator('.group-card')).to_have_count(int(code[-1]))
                 gids=page.locator('.group-card').evaluate_all('(nodes)=>nodes.map(n=>n.dataset.group)')
                 action('manager-new')
                 for name,value in [('first','María'),('last','Responsable'),('employee_id','M001'),('email','manager@example.test')]:fill(name,value)
@@ -173,10 +173,10 @@ def run():
                     for name,value in [('first','Persona'),('last',emp),('employee_id',emp),('email',emp+'@example.test')]:fill(name,value)
                     if lead:page.locator('[name=is_lead]').check()
                     if emp in ['T002','L002']:
-                        expect(page.locator('#lead-option')).not_to_be_visible();expect(page.locator('#lead-note')).to_contain_text('L001')
+                        expect(page.locator('#lead-option')).to_be_visible()
                     save();expect(page.locator('.secret-code')).to_be_visible();codes[emp]=page.locator('.secret-code').inner_text();action('close')
-                expect(page.locator('[data-group="'+gids[0]+'"] .technician')).to_have_count(3)
-                leadrow=page.locator('.technician').filter(has_text='L001');action('person-edit',leadrow)
+                expect(page.locator('[data-group="'+gids[0]+'"] .technician')).to_have_count(2)
+                leadrow=page.locator('.direct-lead-person').filter(has_text='L001');action('person-edit',leadrow)
                 expect(page.locator('[name=is_lead]')).to_be_checked();action('close')
                 # Navigation stays on the selected page after sync and can return to Organization.
                 for target,title in [('dashboard','Panel de administración'),('admins','Administradores'),('recoveries','Recuperación de acceso'),('profile','Mi perfil')]:
@@ -230,7 +230,7 @@ def run():
                     expect(page.locator('#delegation-editor input[type=datetime-local]')).to_have_count(0)
                     expect(page.locator('#delegation-editor input[name=group_ids]')).to_have_count(0)
                     if employee=='L002':expect(page.locator('#delegation-editor')).to_contain_text('sustituirá')
-                    if screenshot and employee=='L001':page.screenshot(path=str(Path(screenshot)/'inline-delegation-v1.1.0.png'),full_page=True)
+                    if screenshot and employee=='L001':page.screenshot(path=str(Path(screenshot)/'inline-delegation-v1.1.1.png'),full_page=True)
                     page.locator('#delegation-editor button[type=submit]').click()
                     expect(page.locator('#delegation-editor')).to_have_count(0)
                     expect(page.locator('.delegation-summary')).to_contain_text(employee)
@@ -258,7 +258,7 @@ def run():
                 expect(sunday.locator('.rule-full-note')).to_be_visible()
                 page.set_viewport_size({'width':390,'height':844});assert page.locator('#modal').evaluate('(el)=>el.scrollWidth<=el.clientWidth')
                 page.set_viewport_size({'width':1440,'height':1000})
-                if screenshot:page.locator('#modal').evaluate('(el)=>el.scrollTop=0');page.screenshot(path=str(Path(screenshot)/'weekly-intervals-v1.1.0.png'))
+                if screenshot:page.locator('#modal').evaluate('(el)=>el.scrollTop=0');page.screenshot(path=str(Path(screenshot)/'weekly-intervals-v1.1.1.png'))
                 save();expect(page.locator('.rules-grid')).to_contain_text('24 horas')
                 assert len(page.request.get(base+'/api/state').json()['rules'][0]['segments'])==13
                 # Independent technician session provides a real active event for Manager drilldowns.
@@ -308,13 +308,13 @@ def run():
                 if not group_button.count():group_button=page.locator('#modal [data-action=analytics-group][data-id="'+gids[0]+'"]').first
                 group_button.evaluate('(el)=>PulseLayout.reveal(el)');group_button.click()
                 expect(page.locator('[name=filter-group]')).to_have_value(gids[0])
-                action('analytics-visuals');expect(page.locator('#analytics-users tbody tr')).to_have_count(3)
+                action('analytics-visuals');expect(page.locator('#analytics-users tbody tr')).to_have_count(2)
                 tech_row=page.locator('#analytics-users tbody tr').filter(has_text='T001');action('analytics-user',tech_row)
                 expect(page.locator('#analytics-records tbody tr')).to_have_count(2)
                 for width,height in [(1440,1000),(390,844)]:
                     page.set_viewport_size({'width':width,'height':height});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
                 page.set_viewport_size({'width':1440,'height':1000})
-                if screenshot:page.evaluate('window.scrollTo(0,0)');page.screenshot(path=str(Path(screenshot)/'analytics-team-v1.1.0.png'),full_page=True)
+                if screenshot:page.evaluate('window.scrollTo(0,0)');page.screenshot(path=str(Path(screenshot)/'analytics-team-v1.1.1.png'),full_page=True)
                 with page.expect_download() as analytics_download:page.locator('a[download]').click()
                 analytics_file=Path(tmp)/'analytics.xlsx';analytics_download.value.save_as(analytics_file)
                 workbook=load_workbook(analytics_file);assert workbook.sheetnames==['Resumen','Por grupo','Por técnico','Detalle','Registros']
@@ -377,7 +377,7 @@ def run():
                 expect(page.locator('[data-manager="'+manager2['id']+'"] [data-group="'+gids[1]+'"]')).to_have_count(1)
                 action('person-offboard',page.locator('[data-manager="'+manager1['id']+'"] > .manager-header'))
                 page.locator('[name="transfer:'+gids[0]+'"]').select_option(manager2['id'])
-                fill('reason','Sustitución de Manager');page.locator('[name=confirm]').check()
+                page.locator('[name=lead_manager_id]').select_option(manager2['id']);fill('reason','Sustitución de Manager');page.locator('[name=confirm]').check()
                 for width,height in [(1440,760),(1366,700),(1280,650)]:
                     page.set_viewport_size({'width':width,'height':height})
                     geometry=page.locator('#modal').evaluate('(el)=>({width:el.scrollWidth,client:el.clientWidth,height:el.getBoundingClientRect().height,bodyScroll:el.querySelector(".form-body").scrollHeight,bodyClient:el.querySelector(".form-body").clientHeight})')
@@ -386,7 +386,7 @@ def run():
                     assert geometry['height']<=height
                     assert geometry['bodyScroll']<=geometry['bodyClient']+1,'Baja requires scrolling at 100%'
                 page.set_viewport_size({'width':1440,'height':760})
-                if screenshot:page.screenshot(path=str(Path(screenshot)/'manager-offboard-v1.1.0.png'))
+                if screenshot:page.screenshot(path=str(Path(screenshot)/'manager-offboard-v1.1.1.png'))
                 save();expect(page.locator('#modal')).not_to_be_visible()
                 final=page.request.get(base+'/api/state').json()
                 assert next(x for x in final['people'] if x['id']==manager1['id'])['status']=='DISABLED'
@@ -396,7 +396,7 @@ def run():
                 fill('reason','Nuevo acceso con código de activación');save();expect(page.locator('.secret-code')).to_be_visible();action('close')
                 assert next(x for x in page.request.get(base+'/api/state').json()['people'] if x['id']==manager1['id'])['status']=='PENDING_ACTIVATION'
                 assert errors==[],errors
-                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.1.0','login password visibility and OT/guard copy','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','13 weekly intervals and full Sunday','inline unique Manager Lead delegation/revocation','dashboard running/pending drilldowns and detail approvals','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','team analytics group/user/type/month drilldowns and Excel','personal analytics cannot request other users','delegated analytics scoped and revoked live','Admin-only people management','view/regenerate recovery codes','Claim/ADP rows','Lead has no implicit approval authority','one Lead across all Manager groups','guided expanded confirmation dialogs','active Technician and Group transfers','Manager offboard and reactivation via UI','edit/delete guard rules with preserved request snapshots','simplified sidebar and user menu','native viewport sections and list pagination','organization summary combined with hierarchy','actionable Admin dashboard opens selected Account','corporate header Kyndryl and distinct configuration gear','release version 1.1.0','Enterprise light shell, hierarchy and secondary action menus','action menu keyboard focus/arrows/Escape and outside dismissal'],'javascript_errors':errors},ensure_ascii=False,indent=2))
+                print(json.dumps({'result':'PASS','browser':'Chromium','checks':['Kyndryl brand and credits before/after login','version 1.1.1','login password visibility and OT/guard copy','access dialogs: mobile/focus/visibility/validation/success','real password recovery through UI','initial login','account/groups/two managers','physical nesting','multigroup label','technicians and Lead selector','activation Manager/Technician/Lead','sidebar exit and polling','responsive desktop/mobile','search focus','13 weekly intervals and full Sunday','inline unique Manager Lead delegation/revocation','dashboard running/pending drilldowns and detail approvals','rule and guard request','historical OT','emergency timer start/stop','manager approvals','download Excel','team analytics group/user/type/month drilldowns and Excel','personal analytics cannot request other users','delegated analytics scoped and revoked live','Admin-only people management','view/regenerate recovery codes','Claim/ADP rows','Lead has no implicit approval authority','one Lead across all Manager groups','guided expanded confirmation dialogs','active Technician and Group transfers','Manager offboard and reactivation via UI','edit/delete guard rules with preserved request snapshots','simplified sidebar and user menu','native viewport sections and list pagination','organization summary combined with hierarchy','actionable Admin dashboard opens selected Account','corporate header Kyndryl and distinct configuration gear','release version 1.1.1','Enterprise light shell, hierarchy and secondary action menus','action menu keyboard focus/arrows/Escape and outside dismissal'],'javascript_errors':errors},ensure_ascii=False,indent=2))
                 browser.close()
         except Exception:
             log.flush();log.seek(0);print(log.read()[-7000:]);raise

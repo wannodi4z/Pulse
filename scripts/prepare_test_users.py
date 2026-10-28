@@ -39,6 +39,7 @@ def prepare():
             identity = server.uid()
             c.execute('INSERT INTO users(id,role,username,employee_id,first,last,email,group_id,is_lead,status,password_hash,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
                       (identity,'USER',employee,employee,first,'Pruebas',employee+'@example.test',group_id,lead,'ACTIVE',server.password_hash(password),server.now()))
+            if lead:c.execute('UPDATE users SET group_id=NULL,manager_id=? WHERE id=?',(manager_id,identity))
             server.audit(c,None,'CREATE_TEST_USER',identity,{'employee_id':employee})
     return TEST_DB
 

@@ -322,7 +322,7 @@ dialog.medium-dialog{width:min(720px,calc(100vw - 32px))!important}.medium-dialo
 .analysis-dialog .table-panel{overflow:visible;min-height:max-content}
 
 .account-header .account-code{width:auto!important;min-width:64px;max-width:145px;padding:10px;overflow-wrap:anywhere;line-height:1.4}
-.entity-dialog.group-dialog{width:min(780px,calc(100vw - 32px))!important}.entity-dialog .form-body{gap:14px!important}
+.entity-dialog.group-dialog{width:min(660px,calc(100vw - 32px))!important}.entity-dialog .form-body{gap:14px!important}
 .entity-dialog [name=account_preview],.entity-dialog [name=code_preview]{background:#f4f8fd;color:#3c6b9c;font-size:12px}
 .entity-dialog [readonly]{cursor:default}
 
@@ -338,3 +338,7 @@ dialog.medium-dialog{width:min(720px,calc(100vw - 32px))!important}.medium-dialo
 .timeline-entry>.record-card{min-width:0;margin:0}.timeline-entry .entity-actions{gap:8px}
 @media(max-width:700px){.timeline-entry{grid-template-columns:minmax(0,1fr);gap:9px}.timeline-date{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 12px}.timeline-date strong{font-size:14px}.personal-timeline .timeline-context{margin:0 14px 10px;font-size:12px}}
 @media(max-width:700px){#main:has(.personal-timeline:not(.viewport-off))>.workspace-totals{display:none!important}.personal-timeline .timeline-context{display:none}.personal-timeline .section-heading{padding:12px 14px}.personal-timeline .record-card{padding:12px!important}.timeline-date small{font-size:10px}}
+
+.group-dialog{width:min(660px,calc(100vw - 32px))!important}.code-preview output{font-weight:700;color:#234e82}.requests-empty{display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 12px;text-align:center;color:#355478}.requests-empty p{margin:0;font-size:13px}.requests-dialog{width:min(760px,calc(100vw - 32px))!important}.direct-lead{padding:0 14px 14px}.direct-lead-person{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 14px;background:#f0faf8;border:1px solid #d5eee9;border-radius:10px}.direct-lead-person .entity-actions{margin-left:auto}.direct-lead-person .identity{min-width:0}.direct-lead-person strong{overflow-wrap:anywhere}
+.manager-backup{display:none!important}.direct-lead{padding:0 0 8px}.direct-lead-person{padding:7px 10px;gap:9px}.direct-lead-person .avatar{width:30px;height:30px}.direct-lead-person .identity strong{font-size:13px}.direct-lead-person .identity small{font-size:11px}.direct-lead-person .entity-actions button{min-height:30px;padding:5px 9px}
+@media(max-height:800px){.direct-lead{padding-bottom:2px}.direct-lead-person{padding:4px 8px}.direct-lead-person .entity-actions button{min-height:28px}.direct-lead-person .avatar{width:28px;height:28px}}
