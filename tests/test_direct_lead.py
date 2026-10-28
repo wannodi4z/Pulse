@@ -34,12 +34,15 @@ class DirectLeadTests(unittest.TestCase):
         self.f.login(self.lc,'SL0001','lead120261');state=self.lc.get('/api/state').json();self.assertFalse(state['can_approve']);self.assertIsNone(state['user']['group_id']);self.assertEqual(state['user']['manager_id'],m2['id'])
         self.assertEqual(state['overtime'][0]['origin_info']['manager_id'],self.m['id'])
         self.assertFalse(any(o['id']==own for o in self.mc.get('/api/state').json()['overtime']));self.f.approve(mc2,'ot',own)
-    def test_recovery_is_only_for_own_manager(self):
+    def test_recovery_is_only_for_administrators(self):
         _,other,_=self.f.person('MANAGER','M002',account=self.a)
         self.f.post('/api/recoveries',{'identity':'SL0001'},self.lc)
-        self.assertEqual(len(self.mc.get('/api/state').json()['recoveries']),1)
+        self.assertEqual(self.mc.get('/api/state').json()['recoveries'],[])
         self.assertEqual(other.get('/api/state').json()['recoveries'],[])
-        self.assertEqual(self.f.client.get('/api/state').json()['recoveries'],[])
+        self.assertEqual(len(self.f.client.get('/api/state').json()['recoveries']),1)
+        rid=self.f.client.get('/api/state').json()['recoveries'][0]['id']
+        self.assertEqual(self.mc.post('/api/recoveries/'+rid+'/issue',json={}).status_code,403)
+        self.assertEqual(self.f.client.post('/api/recoveries/'+rid+'/issue',json={}).status_code,200)
     def test_catalogue_custom_specialty_without_platform(self):
         a=self.f.post('/api/accounts',{'code':'CUSTOM','name':'Cuenta personalizada','country_code':'MX'})['id']
         d={'account_id':a,'service_key':'Linux y Oracle','specialty_name':'Linux y Oracle','name':'Distribuidos Producción'}

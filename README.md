@@ -1,6 +1,22 @@
-# Operational Pulse · 1.1.5
+# Operational Pulse · 1.2.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Perfil Administrador · v1.2.0
+
+La navegación administrativa contiene **Panel, Cuentas, Administradores y Recuperación de acceso**. Cuentas abre tarjetas de cada Cuenta; al entrar muestra sus Managers y el Lead directo de cada uno, sin desplegar Grupos ni Técnicos. Se pueden crear, editar y dar de baja Managers y Leads; las bajas conservan el historial y requieren resolver las transferencias pendientes. Los Administradores también se crean, editan y dan de baja; no puede darse de baja la propia cuenta ni el último Administrador activo. Una Cuenta sólo se elimina si está vacía.
+
+El Panel presenta Cuentas registradas, Managers activos, Leads activos y recuperaciones pendientes (incluidos códigos vencidos). Muestra una gráfica y tabla de Managers por Cuenta, búsqueda por Cuenta/Manager/Lead y filtro por país. Los indicadores generales abarcan toda la organización; los filtros afectan la distribución por Cuenta. Los pendientes permiten abrir Cuentas sin Manager, Managers sin Lead, accesos por activar y recuperaciones.
+
+**Las recuperaciones de Administradores, Managers y Leads corresponden a Admin**, salvo la propia solicitud, que debe resolver otro Administrador. Las de Técnicos siguen llegando a su Manager activo; sin responsable activo las atiende Admin. Se conservan la consulta y regeneración de códigos, su vigencia y el uso único.
+
+Esta entrega se concentra en el perfil Admin. Se conservan los flujos operativos de los demás roles y las herramientas existentes de mantenimiento de estructura; no incorpora todavía un nuevo kanban ni transfiere la administración de Técnicos a Managers.
+
+Descomprime en una **carpeta nueva** para cargar los ejemplos: dos Cuentas, dos Managers por Cuenta, cuatro Leads y doce Técnicos. Los datos de ejemplo no limitan cuántas personas puedes agregar. No reemplaces tu base de trabajo para actualizar: respáldala y conserva su archivo y su clave de recuperación. El arranque no sobrescribe una base existente.
+
+Validación de esta versión: 59 pruebas de API; recorrido Admin en Chromium con indicadores, filtros, creación de Cuenta/Administrador/Manager/Lead, preservación de Grupos al editar Manager y generación/consulta/regeneración de códigos. Se comprobaron límites de pantalla a 1440×780, 1366×700, 1280×650 y 390×844; el Panel inicial de dos Cuentas cabe sin desplazamiento en los tres tamaños de escritorio. Con más registros, el contenido central tiene desplazamiento interno. También se validaron sintaxis JavaScript y compilación Python. No se probó en un Mac físico ni en Safari.
+
+Las notas de versiones anteriores se conservan debajo como historial; prevalece esta sección.
 
 ## Ajustes de Organización · v1.1.5
 

@@ -52,6 +52,7 @@ window.PulseLayout=(()=>{
   function page(main,key){
     if(!main)return;
     const heading=q(':scope > .page-heading',main),footer=q(':scope > .main-footer',main);
+    if(main.querySelector('.admin-dashboard,.admin-accounts,.admin-account-detail')){main.classList.add('admin-workspace');return;}
     const {sticky,items}=compose(main,key,heading,footer);
     if(!items.length)return;
     const stage=document.createElement('div');stage.className='viewport-stage'+(key==='organization'?' organization-stage':'');main.insertBefore(stage,footer);

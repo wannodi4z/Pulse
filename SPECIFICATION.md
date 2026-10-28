@@ -1,4 +1,4 @@
-# Operational Pulse 1.1.4 · especificación de la implementación nueva
+# Operational Pulse 1.2.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -11,8 +11,8 @@ Aplicación local para macOS y VS Code. HTML, CSS y JavaScript sin compilación,
 - Grupo: una Cuenta y, opcionalmente, un Manager de la misma Cuenta. Una columna de propietario evita asignaciones simultáneas a dos Managers.
 - Técnico: persona con rol persistido USER, un Grupo, OT y Guardias.
 - Lead: identidad USER con is_lead=1, manager_id y group_id=NULL. Es un backup directamente bajo el Manager, máximo uno vigente por Manager; conserva OT, Timer, historial, Claim y ADP propios y no crea Guardias. No es una capa entre Manager y Grupo. Admin asigna/cambia su Manager; cambio motivado, Timer detenido, registros intactos, sesiones invalidadas y delegación revocada.
-- Jerarquía visual: Cuenta contiene Managers; dentro del Manager aparecen su Lead y sus Grupos como elementos hermanos. Cada Grupo contiene sus Técnicos. Los Grupos libres aparecen en Grupos sin Manager.
-- Delegación: Manager a su Lead, todos los Grupos actuales/futuros, inicio automático, revocación manual. Sin autoaprobación; la OT del Lead la aprueba su Manager. Recuperación de Lead la atiende el Manager propio; otro Manager no recibe la solicitud. Analítica/Excel incluyen sus horas en el alcance del Manager y en la persona, sin asignarle un Grupo ficticio.
+- Presentación Admin: tarjetas de Cuentas y, al abrir una Cuenta, tarjetas de sus Managers con un espacio propio para el Lead. Grupos y Técnicos sólo se resumen como cantidades; no se despliega el árbol operativo. El modelo persistido de Grupos y Técnicos se conserva.
+- Delegación: Manager a su Lead, todos los Grupos actuales/futuros, inicio automático, revocación manual. Sin autoaprobación; la OT del Lead la aprueba su Manager. Recuperación de Lead la atiende Admin; ningún Manager recibe esa solicitud. Analítica/Excel incluyen sus horas en el alcance del Manager y en la persona, sin asignarle un Grupo ficticio.
 - Actualización: Leads anteriores se separan de su Grupo hacia el mismo Manager, manteniendo registros y origen. Designaciones heredadas múltiples se conservan para regularización por Admin; nuevas escrituras serializadas no crean un segundo backup.
 - Catálogo por Cuenta: specialties con clave normalizada y nombre. Guardar un Grupo con especialidad nueva agrega una sugerencia al catálogo. Formulario plano sin plataforma obligatoria; códigos nuevos país–Cuenta–especialidad; códigos anteriores no se renombran automáticamente.
 
@@ -26,7 +26,7 @@ La lectura común se hace mediante `GET /api/state`. Las escrituras son transacc
 
 - Roles: ADMIN, MANAGER y USER. `is_lead` no es un rol adicional.
 - Nuevas personas: pendientes de activación con código mostrado una sola vez. Activación define contraseña de al menos diez caracteres.
-- ADMIN es el único que crea y edita estructura y personas; gestiona recuperaciones de Managers, otros administradores y Técnicos sin Manager activo. Las aprobaciones operativas las realizan Manager y Lead delegado.
+- ADMIN es el único que crea y edita estructura y personas; gestiona recuperaciones de Managers, Leads, otros administradores y Técnicos sin Manager activo. Las aprobaciones operativas las realizan Manager y Lead delegado.
 - MANAGER consulta a su equipo y gestiona tiempo, backup y recuperaciones de sus Técnicos; no modifica personas. Lead delegado cubre todos los Grupos actuales del Manager hasta revocación manual; permanece Técnico para Mi tiempo, Claim y ADP.
 - Sesiones de ocho horas, almacenadas en SQLite, con cookie HttpOnly y SameSite estricto; Secure cuando se sirve por HTTPS. Cambio de contraseña o deshabilitación invalida sesiones. Limitación de intentos de login por identidad.
 - Contraseñas y códigos nunca se devuelven en `/api/state`. Almacenamiento PBKDF2-HMAC-SHA256, salt aleatorio, 260 000 iteraciones.
@@ -201,3 +201,11 @@ La base de ejemplo contiene Banorte y Acme México, un Manager y un Lead directo
 Dos Cuentas de ejemplo, dos Managers por Cuenta, un Lead directo por Manager: cuatro Managers, cuatro Leads, doce Técnicos y quince Grupos. No hay límite de dos Managers en código: es sólo la composición del fixture. Credenciales originales conservadas; nuevos MGR0003/SL0003 en Banorte y MGR0004/SL0004 en Acme.
 
 Agregar Manager y Agregar Grupo visibles en Cuenta. Selector Manager/equipo sincronizado con la navegación interna y búsqueda; no hay otra página ni otra sesión. Cabecera de Manager con Editar Manager y Agregar Grupo contextual; Lead sin elipsis, con Editar Lead, o Agregar Lead si está libre. Crear Manager/Lead revela automáticamente el bloque correspondiente. El alta contextual de Grupo preselecciona Cuenta y Manager correctos. La unicidad de Lead sigue validada por servidor.
+
+## Perfil y Panel administrativo · v1.2.0
+
+Admin crea, edita y elimina Cuentas vacías; crea, edita y da de baja Administradores, Managers y Leads. Las bajas conservan identidad e historial; las de Manager requieren reasignación de dependencias. Se impide la baja de la propia cuenta y del último Admin activo. Los Leads dados de baja se consultan en el archivo de su Manager; la reactivación requiere disponibilidad del responsable y de su plaza de Lead.
+
+Cuatro accesos visibles en el sidebar: Panel, Cuentas, Administradores y Recuperación de acceso. Panel: totales generales de Cuentas registradas, Managers activos, Leads activos y recuperaciones pendientes/vencidas. Distribución por Cuenta con gráfica de barras y tabla (Managers activos, Leads activos y Managers activos sin Lead); la búsqueda y el país filtran ambas vistas. Pendientes accionables: Managers vigentes sin Lead, Cuentas sin Manager vigente, accesos administrativos por activar y recuperaciones. Cada Cuenta puede abrirse desde tabla, gráfica o tarjetas. Los formularios administrativos no cambian Grupos al guardar sólo la identidad de un Manager: omitir group_ids conserva la asignación existente.
+
+La recuperación de Admin, Manager y Lead se asigna exclusivamente a Admin, sin autoemisión ni autoconsulta de códigos. Los Técnicos mantienen su flujo anterior. El cambio del perfil Manager y el kanban de Técnicos no forman parte de esta entrega del perfil Admin. Las herramientas previas de mantenimiento y los registros operativos se conservan.

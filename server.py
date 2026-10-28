@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.1.5'
+VERSION = '1.2.0'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -818,7 +818,7 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
                 if c.execute("SELECT 1 FROM users WHERE manager_id=? AND is_lead=1 AND status!='DISABLED' AND id<>?",(lead_manager,identity)).fetchone():fail('Este Manager ya tiene un Lead.')
                 gid=None
             else:get(c,'groups',gid)
-        group_ids = list(dict.fromkeys(data.get('group_ids', []))) if role == 'MANAGER' else []
+        group_ids = list(dict.fromkeys(data.get('group_ids', [g['id'] for g in c.execute('SELECT id FROM groups WHERE manager_id=?',(identity,))] if old else []))) if role == 'MANAGER' else []
         for g_id in group_ids:
             g = get(c, 'groups', g_id)
             if g['account_id'] != aid:
@@ -1008,10 +1008,9 @@ def change_password(data: dict = Body(...), actor=Depends(current_user)):
 def recovery_handler_allowed(c, actor, target):
     if actor['id'] == target['id'] or actor['role'] == 'USER':
         return False
+    if target['role'] in ('ADMIN','MANAGER') or target['is_lead']:
+        return actor['role']=='ADMIN'
     manager_id = None
-    if target['role']=='USER' and target['is_lead'] and target['manager_id']:
-        m=get(c,'users',target['manager_id'])
-        if m['status']=='ACTIVE':return actor['role']=='MANAGER' and actor['id']==m['id']
     if target['role'] == 'USER' and target['group_id']:
         manager_row = c.execute("SELECT u.id FROM groups g JOIN users u ON u.id=g.manager_id WHERE g.id=? AND u.role='MANAGER' AND u.status='ACTIVE'", (target['group_id'],)).fetchone()
         manager_id = manager_row['id'] if manager_row else None
