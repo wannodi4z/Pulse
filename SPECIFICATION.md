@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.3 · especificación de la implementación nueva
+# Operational Pulse 1.0.4 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -141,3 +141,7 @@ El arrastre HTML nativo se limita a Técnicos de Organización y no modifica el 
 ### Separación de revisión y consulta v1.0.3
 
 La ruta interna teamTime se presenta como Aprobaciones y abre pendientes de todos los periodos. La ruta analytics se presenta como Tiempo del equipo e integra vistas Analítica e Historial. El historial reutiliza filtros y detalle sin duplicar las acciones de decisión; las autorizaciones del backend permanecen iguales. La solicitud de Guardia compara effective_from contra start_date, conserva validación en servidor y comunica las fechas explícitamente en interfaz.
+
+### Localizador de Grupos v1.0.4
+
+Búsqueda local sobre el estado autorizado de Admin, sin endpoints nuevos. Coincide por tokens sin distinción de acentos en nombre/código de Grupo, Cuenta y nombre/Employee ID del Manager. Hasta cinco resultados visibles según el espacio disponible; si hay más se solicita precisar el texto. Al seleccionar se usa PulseLayout.reveal para abrir Cuenta, Manager y página de Grupos conservando la estructura. Soporta flechas, Enter y Escape y no vuelve a renderizar la aplicación al escribir.

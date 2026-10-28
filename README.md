@@ -1,4 +1,4 @@
-# Operational Pulse · 1.0.3
+# Operational Pulse · 1.0.4
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.3`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.4`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.3/
+Operational_Pulse_v1.0.4/
   index.html
   server.py
   requirements.txt
@@ -323,3 +323,11 @@ Regresión de navegador: `PULSE_CHROMIUM_EXECUTABLE=/usr/bin/chromium .venv/bin/
 - **Aprobaciones** abre las solicitudes pendientes de todos los periodos.
 - **Tiempo del equipo** agrupa las pestañas Analítica e Historial. La analítica suma horas reales aprobadas; el historial conserva estados, filtros y trazabilidad, incluyendo las solicitudes pendientes. Excel mantiene su alcance y exporta tiempo aprobado.
 - Una regla de Guardia vigente hoy no aplica a solicitudes que empiezan antes de su fecha de vigencia. El formulario muestra las fechas en texto, limita la fecha mínima y explica el problema antes de enviar.
+
+## Localizar Grupos y editar estructura · v1.0.4
+
+En Organización, escribe el nombre o código del Grupo, Cuenta o Manager. Selecciona un resultado para abrirlo directamente, incluso si está en otra Cuenta o página. Las flechas del teclado seleccionan resultados; Enter abre el Grupo y Escape cierra la lista. Si hay muchos resultados, precisa la búsqueda. Se conserva la jerarquía y el arrastre de Técnicos.
+
+Los diálogos de Cuenta y Grupo usan anchos proporcionales y botones Crear Cuenta/Crear Grupo. La administración continúa siendo exclusiva de Admin.
+
+[Ver capturas de la búsqueda y los diálogos](docs/interface-v1.0.4.md).

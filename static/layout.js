@@ -23,7 +23,7 @@ window.PulseLayout=(()=>{
     const sticky=[];
     const pin=selector=>{const node=q(':scope > '+selector,main);if(node){node.classList.add('workspace-context');sticky.push(node);}};
     const bundle=(nodes,label)=>{nodes=nodes.filter(Boolean);if(!nodes.length)return;const section=document.createElement('section');section.className='workspace-view';section.dataset.viewLabel=label;main.insertBefore(section,nodes[0]);nodes.forEach(n=>section.append(n));return section;};
-    if(key==='organization')pin('.organization-summary');
+    if(key==='organization'){pin('.organization-finder');pin('.organization-summary');}
     if(key==='teamTime')pin('.filters');
     if(key==='analytics'){pin('.team-view-tabs');pin('.filters');}
     if(key==='team')pin('.delegation-summary');

@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.3
+# Validación ejecutada · Operational Pulse 1.0.4
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -146,3 +146,10 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 - `tests/layout_smoke.py` en Chromium PASS: 57 combinaciones de pantalla, rol y vista, incluidas las tres dimensiones de Historial; cero errores JavaScript.
 - Medición con CSS real: estado vacío centrado en todo el bloque del Manager (desviación 0 px), botones activos azules y deshabilitados grises.
 - Sintaxis de ambos JavaScript y compilación Python correctas. No se ejecutó Mac/Safari.
+
+## Organización directa v1.0.4
+
+- 28 pruebas API PASS. Prueba funcional completa en Chromium PASS, cero errores JavaScript.
+- `tests/layout_smoke.py`: PASS en 57 combinaciones de pantalla/vista/rol, con arrastre, cancelación y bloqueo por Timer activo.
+- `tests/organization_browser.py`: PASS con SQLite aislado y 26 Grupos. Búsqueda por código, nombre sin acentos y Manager; salto entre Cuentas/páginas; resultados vacíos; Escape; teclado y ratón. Comprobación de modales y creación real a 1440×780, 1280×650 y 390×844, sin controles recortados.
+- Sintaxis de app.js/layout.js y compilación Python correctas. Mac/Safari no ejecutados. Las capturas sólo contienen datos de prueba aislados.

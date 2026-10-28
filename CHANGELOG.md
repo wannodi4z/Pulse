@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## v1.0.4 · 28 de octubre de 2026
+
+- Buscador de Grupos por nombre, código, Cuenta y Manager, con resultados directos, búsqueda sin acentos y navegación con teclado. Abre la Cuenta y las páginas necesarias y resalta el Grupo sin alterar su jerarquía.
+- Modales de Cuenta y Grupo proporcionados al contenido, con contexto breve, identidad en una fila y acciones explícitas de crear/guardar.
+- Mantiene paginación, arrastre de Técnicos, validaciones y permisos de Admin.
+
+
 ## v1.0.3 · 28 de octubre de 2026
 
 - Solicitudes de Guardia: fecha mínima y explicación de vigencia según el inicio solicitado; mensaje de API distingue regla ajena y periodo anterior a vigencia.

@@ -100,6 +100,7 @@ def run():
                         for width,height in [(1440,780),(1366,700),(1280,650)]:
                             page.set_viewport_size({'width':width,'height':height});page.goto(base);page.locator('.sidebar').wait_for()
                             for route in routes:
+                                page.wait_for_function('()=>!busy')
                                 target=page.locator('[data-page='+route+']').first;target.evaluate('(el)=>el.closest("details")?.setAttribute("open", "")')
                                 try:target.click(timeout=3000)
                                 except Exception:
@@ -131,7 +132,7 @@ def run():
                                         for value in range(control.locator('option').count()):
                                             control.select_option(str(value));bounds(f'{role} history {width}x{height} list {value}')
                                     checked.append(f'{role}:history:{width}x{height}')
-                                    page.locator('[data-action=team-view][data-id=analytics]').click()
+                                    page.locator('[data-action=team-view][data-id=analytics]').click();page.wait_for_function('()=>!busy')
 
                     # Complete a long OT form through the actual step controls at native 100%.
                     target=page.locator('[data-page=time]').first;target.click();page.wait_for_function('()=>page==="time" && document.querySelector(".breadcrumb strong")?.textContent==="Mi tiempo"')

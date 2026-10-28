@@ -237,3 +237,30 @@ dialog.transfer-dialog{max-width:850px}
 .team-view-tabs button[aria-pressed=true]{background:#eaf1ff;color:#2454a8;font-weight:600}
 .team-view-tabs .ui-icon{width:16px;height:16px}
 .date-warning{background:#fff4ec!important;color:#9b401e!important;border-color:#edb695!important}
+
+/* Compact structure dialogs and a direct Group finder. */
+dialog.entity-dialog{width:min(680px,calc(100vw - 32px))!important}dialog.account-dialog{width:min(620px,calc(100vw - 32px))!important}
+.entity-dialog .form-instructions{display:none}
+.entity-dialog .form-body{display:flex!important;flex-direction:column;align-items:stretch!important;gap:20px!important;padding:22px 25px!important}
+.entity-form-context{display:flex;align-items:center;gap:12px;padding:13px 15px;background:#f4f8fd;border:1px solid #e3ebf5;border-radius:10px}
+.entity-form-context>span{display:grid;place-items:center;width:32px;min-width:32px;height:32px;background:#e8f0fc;color:#3c6bb0;border-radius:8px}
+.entity-form-context p{font-size:13px;color:#536b89;line-height:1.6;margin:0}
+.entity-form-fields{display:grid;grid-template-columns:minmax(120px,.8fr) minmax(0,1.8fr);gap:18px}
+.entity-dialog .field{margin:0;min-width:0}.entity-dialog .field input,.entity-dialog .field select{width:100%}
+.entity-dialog [name=code]{font-family:ui-monospace,SFMono-Regular,monospace;letter-spacing:.5px}
+.entity-form-note{color:#6a7e98;font-size:12px;line-height:1.6;margin:0}
+.entity-dialog .dialog-footer{padding:15px 25px}
+.organization-finder{display:flex;align-items:center;gap:15px;margin-bottom:12px;flex:none}
+.organization-finder>label{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #dce5f0;border-radius:9px;padding:0 12px;width:min(480px,100%);min-width:0}
+.organization-finder>label:focus-within{border-color:#729bd6;box-shadow:0 0 0 3px #eaf2ff}
+.organization-finder .ui-icon{width:17px;height:17px;color:#7b92af;flex:none}
+.organization-finder input{border:0;background:transparent;box-shadow:none!important;outline:0;min-width:0;width:100%;font-size:13px;min-height:39px;padding:8px 0}
+.organization-finder>span{font-size:11px;color:#8091a6}
+.group-search-popup{position:fixed;z-index:110;max-width:calc(100vw - 24px);background:#fff;border:1px solid #dbe5f1;border-radius:11px;padding:6px;box-shadow:0 12px 35px #19365020}
+.group-search-popup>p{font-size:11px;color:#7a8ba1;padding:7px 10px;margin:0}
+.group-search-popup>button{display:flex;align-items:center;gap:10px;width:100%;min-height:57px;padding:9px 10px;border-radius:7px;text-align:left}
+.group-search-popup>button:hover,.group-search-popup>button[aria-selected=true]{background:#eef5ff}
+.group-search-popup>button>span:nth-child(2){flex:1;min-width:0}.group-search-popup strong{display:block;color:#35516f;font-size:13px;overflow-wrap:anywhere}.group-search-popup small{display:block;font-size:11px;color:#8291a4;margin-top:3px;overflow-wrap:anywhere}
+.group-search-popup .ui-icon{width:16px;height:16px;flex:none;color:#6d8fbb}.group-result-icon{display:grid;place-items:center;width:32px;min-width:32px;height:32px;background:#f2f6fd;border-radius:8px}
+.viewport-stage .group-card.group-located{outline:2px solid #2eafa9;outline-offset:3px;box-shadow:0 0 0 5px #e3f7f4}
+@media(max-width:700px){.organization-finder>span{display:none}.organization-finder>label{width:100%}.entity-dialog .form-body{padding:15px 17px!important;gap:15px!important}.entity-form-fields{grid-template-columns:1fr;gap:13px}.entity-form-context{padding:10px}.entity-form-context p{font-size:12px}}
