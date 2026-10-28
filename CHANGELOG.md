@@ -2,6 +2,11 @@
 
 La entrega vigente es la primera entrada. Las versiones repetidas en entradas antiguas corresponden a reinicios de numeración solicitados durante el diseño.
 
+## v1.1.2 · 28 de octubre de 2026
+
+- ZIP de pruebas con Banorte, seis Grupos y los tres usuarios solicitados ya activos. El primer inicio prepara la base de ejemplo automáticamente sólo si falta la base por defecto; no requiere configurador aparte.
+- Una base existente y las rutas PULSE_DB_PATH explícitas nunca se sustituyen. Reiniciar conserva cambios de contraseña, usuarios y datos manuales. La base incluida no tiene sesiones, OT, Guardias, Timers ni delegaciones.
+
 ## v1.1.1 · 28 de octubre de 2026
 
 - Lead directamente bajo el Manager, sin Grupo, con OT propia y sin nuevas Guardias. Delegación completa del equipo sin autoaprobación; historial y designaciones anteriores conservados al actualizar.

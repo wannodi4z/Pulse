@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.1.1'
+VERSION = '1.1.2'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -165,6 +165,20 @@ def init_db():
                           (uid(), 'ADMIN', f'admin{n}', 'Administrador', surname, f'admin{n}@operationalpulse.local', 'ACTIVE', password_hash(f'admin{n}2026'), now()))
 
 
+def install_example_database():
+    """The test distribution initializes only a missing default DB, never an existing one."""
+    example=ROOT/'fixtures'/'banorte_pruebas.sqlite3'
+    if 'PULSE_DB_PATH' in os.environ or DB.exists() or not example.is_file():return
+    import shutil
+    temporary=DB.with_name('.pulse-example-'+uuid.uuid4().hex+'.sqlite3')
+    try:
+        shutil.copyfile(example,temporary)
+        try:os.link(temporary,DB)  # Exclusive and atomic: an existing database always wins.
+        except FileExistsError:pass
+    finally:temporary.unlink(missing_ok=True)
+
+
+install_example_database()
 init_db()
 
 

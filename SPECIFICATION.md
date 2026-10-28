@@ -1,4 +1,4 @@
-# Operational Pulse 1.1.1 · especificación de la implementación nueva
+# Operational Pulse 1.1.2 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -183,3 +183,7 @@ Mi tiempo ordena OT por inicio real o programado, no por creación. Capturas his
 Manager solicita Grupo/especialidad de destino y motivo para un Técnico propio. No se expone el directorio ajeno ni se modifica la persona al solicitar. Admin revisa todas las solicitudes desde Organización y ejecuta usando el traslado existente o rechaza con motivo. La ejecución valida estado pendiente, Técnico/origen vigentes, Timer detenido, destino con Manager activo y Lead único; resolución y traslado se guardan en una transacción. Los Managers sólo ven sus solicitudes.
 
 Los registros permanecen ligados al mismo user_id. Nueva autoridad: responsable actual del Técnico; el anterior pierde acceso. OT/Guardias mantienen datos, aprobaciones y tramos. record_origins conserva el contexto en creación; registros anteriores lo incorporan al trasladarse con marca inferred, sin afirmar un origen que no se había registrado. Detalle muestra la referencia de origen; analítica agrega por pertenencia actual. No se reescriben los tiempos ni snapshots de las reglas de Guardia.
+
+## Distribución de pruebas v1.1.2
+
+El fixture SQLite contiene únicamente los dos administradores, los tres accesos de ejemplo activos, Banorte y seis Grupos, además de auditoría de configuración. No hay sesiones, registros de tiempo ni delegaciones. Se copia atómicamente a la base predeterminada sólo si ésta no existe y no se definió PULSE_DB_PATH. Una base existente gana incluso si otra instancia la creó durante el inicio. Nunca se reponen contraseñas ni se restauran ejemplos en reinicios. El modo limpio sigue disponible con ruta explícita o sin fixtures.

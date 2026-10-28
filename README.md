@@ -1,6 +1,22 @@
-# Operational Pulse · 1.1.1
+# Operational Pulse · 1.1.2
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## ZIP de pruebas listo para entrar · v1.1.2
+
+Esta entrega incluye una base de ejemplo limpia en `fixtures/banorte_pruebas.sqlite3`. **Descomprime en una carpeta nueva**, instala dependencias y arranca con `bash start.command`, F5 o el comando uvicorn habitual. En una carpeta sin `operational_pulse.db`, se prepara automáticamente Banorte/MX-BNTE y seis Grupos, con estos accesos ya activos:
+
+| Employee ID | Contraseña | Perfil |
+| --- | --- | --- |
+| MGR0001 | manager12026 | Manager |
+| SL0001 | lead120261 | Lead directo del Manager, sin Grupo; sólo OT |
+| 951357 | tecnico12026 | Técnico |
+
+**No necesitas ejecutar el configurador para una instalación nueva.** No hay OT, Guardias, Timers ni delegación precreados. Se mantienen admin1/admin2 y sus contraseñas iniciales.
+
+Una base existente nunca se sustituye. Si eliges seguir usando tu carpeta/base anterior, puedes incorporar estos accesos con `bash configurar_banorte.command`; ese comando explícito establece las contraseñas solicitadas. En reinicios normales no se restauran usuarios borrados, no se restablecen contraseñas ni se reemplazan datos manuales.
+
+Para una instalación vacía sin ejemplos, define `PULSE_DB_PATH` a la ruta deseada o retira la carpeta `fixtures` antes del primer inicio; se crean sólo admin1/admin2. El ZIP de pruebas no contiene sesiones iniciadas ni claves de recuperación.
 
 ## Cambios de esta entrega · v1.1.1
 
@@ -24,7 +40,7 @@ Las descripciones de ciclos anteriores más abajo son históricas; esta sección
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.1`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.2`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -145,7 +161,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.1.1/
+Operational_Pulse_v1.1.2/
   index.html
   server.py
   requirements.txt

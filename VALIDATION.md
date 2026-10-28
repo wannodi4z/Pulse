@@ -1,4 +1,8 @@
-# Validación ejecutada · Operational Pulse 1.1.1
+# Validación ejecutada · Operational Pulse 1.1.2
+
+## Entrega v1.1.2 · 28 de octubre de 2026
+
+Corrección del paquete de prueba, sin cambios en reglas operativas. Suite completa actual: **56 pruebas API aprobadas**; sintaxis JavaScript y compilación Python correctas. Pruebas nuevas mediante procesos Python separados en carpetas temporales con el código y fixture copiados: primer inicio sin configurador permite login de los tres accesos activos; reinicio conserva contraseña modificada y Cuenta manual; una base anterior limpia nunca se reemplaza. Las pruebas se ejecutan con FastAPI TestClient en Linux, no físicamente en Mac/Safari. Las pruebas funcionales y de Chromium de v1.1.1 se documentan debajo y corresponden a esa entrega previa.
 
 ## Entrega v1.1.1 · 28 de octubre de 2026
 
