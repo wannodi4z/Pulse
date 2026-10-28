@@ -1,4 +1,4 @@
-# Validación ejecutada · Operational Pulse 1.0.2
+# Validación ejecutada · Operational Pulse 1.0.3
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 
@@ -138,3 +138,11 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 - `tests/layout_smoke.py`: PASS, 54 combinaciones de pantalla y roles.
 - 27 pruebas API PASS; sintaxis JavaScript y compilación Python correctas. Mac/Safari no ejecutados.
 - En el diagnóstico no se reprodujo pérdida de persistencia: sí se reprodujo contenido fuera del área visible al añadir intervalos. Se corrigió la actualización de paginación y se comprobó el ciclo completo de guardado/reapertura.
+
+## Claridad y revisión v1.0.3
+
+- 28 pruebas API PASS, incluida reproducción exacta del periodo 26 sep–2 oct con regla desde 26 oct: rechazo con ambas fechas; solicitud desde 26 oct aceptada.
+- `tests/browser_smoke.py` en Chromium PASS, cero errores JavaScript. Comprueba aviso de vigencia antes del envío, Aprobaciones con pendientes/todos los periodos y cambio Analítica↔Historial sin acciones duplicadas de aprobación.
+- `tests/layout_smoke.py` en Chromium PASS: 57 combinaciones de pantalla, rol y vista, incluidas las tres dimensiones de Historial; cero errores JavaScript.
+- Medición con CSS real: estado vacío centrado en todo el bloque del Manager (desviación 0 px), botones activos azules y deshabilitados grises.
+- Sintaxis de ambos JavaScript y compilación Python correctas. No se ejecutó Mac/Safari.

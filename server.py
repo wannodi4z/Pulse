@@ -22,7 +22,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -940,8 +940,10 @@ def add_guard(data: dict = Body(...), actor=Depends(current_user)):
     with connection(True) as c:
         rule = get(c, 'rules', text(data, 'rule_id'))
         g = get(c, 'groups', actor['group_id'])
-        if rule['manager_id'] != g['manager_id'] or rule['effective_from'] > a.isoformat():
-            fail('Selecciona una regla vigente de tu Manager.')
+        if rule['manager_id'] != g['manager_id']:
+            fail('Selecciona una regla del Manager de tu Grupo.')
+        if rule['effective_from'] > a.isoformat():
+            fail(f"La regla {rule['name']} aplica desde {rule['effective_from']}; tu Guardia empieza el {a.isoformat()}, antes de su vigencia.")
         snapshot = dict(rule, segments=json.loads(rule['segments']))
         c.execute('INSERT INTO guards VALUES(?,?,?,?,?,?,?,?)', (identity, actor['id'], str(a), str(b), json.dumps(snapshot), 'SUBMITTED', None, now()))
         audit(c, actor, 'REQUEST_GUARD', identity)

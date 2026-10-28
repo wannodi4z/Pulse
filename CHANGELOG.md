@@ -1,5 +1,13 @@
 # Historial de versiones
 
+## v1.0.3 · 28 de octubre de 2026
+
+- Solicitudes de Guardia: fecha mínima y explicación de vigencia según el inicio solicitado; mensaje de API distingue regla ajena y periodo anterior a vigencia.
+- Estado Sin Grupos asignados centrado en todo el bloque del Manager.
+- Anterior/Siguiente habilitados en azul; deshabilitados en gris.
+- Aprobaciones abre los pendientes de todos los periodos. Tiempo del equipo reúne Analítica e Historial con filtros, detalle y exportación; el historial no duplica botones de aprobación.
+
+
 ## v1.0.2 · 27 de octubre de 2026
 
 - Editor de Guardia: reconstruye la paginación al agregar, quitar o habilitar intervalos; mantiene accesible la configuración sin ocultar filas nuevas.

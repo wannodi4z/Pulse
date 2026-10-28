@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.2 · especificación de la implementación nueva
+# Operational Pulse 1.0.3 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -137,3 +137,7 @@ Las opciones de los menús usan los mismos controladores y un icono local. La ac
 `POST /api/admin/people/{id}/transfer` requiere Admin y recibe `expected_group_id`, `group_id` y `transfer_reason`. La operación reutiliza la validación transaccional de personas, leyendo la identidad vigente bajo el mismo bloqueo. Los campos de perfil enviados por el navegador no se usan en este endpoint. Origen obsoleto devuelve 409; Timer activo, ausencia de motivo, acceso en baja o conflicto Lead se rechazan sin escrituras parciales. Los permisos operativos de Manager y Lead no autorizan esta ruta.
 
 El arrastre HTML nativo se limita a Técnicos de Organización y no modifica el estado ni el DOM de asignación antes de confirmar. Durante la interacción se pausa la actualización silenciosa para mantener los elementos estables. Al cancelar, salir o redimensionar se limpian los indicadores de arrastre. Mover ofrece una alternativa de teclado. Los mismos data-action abren las ediciones directas de entidades desde sus nombres.
+
+### Separación de revisión y consulta v1.0.3
+
+La ruta interna teamTime se presenta como Aprobaciones y abre pendientes de todos los periodos. La ruta analytics se presenta como Tiempo del equipo e integra vistas Analítica e Historial. El historial reutiliza filtros y detalle sin duplicar las acciones de decisión; las autorizaciones del backend permanecen iguales. La solicitud de Guardia compara effective_from contra start_date, conserva validación en servidor y comunica las fechas explícitamente en interfaz.

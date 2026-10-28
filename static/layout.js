@@ -25,6 +25,7 @@ window.PulseLayout=(()=>{
     const bundle=(nodes,label)=>{nodes=nodes.filter(Boolean);if(!nodes.length)return;const section=document.createElement('section');section.className='workspace-view';section.dataset.viewLabel=label;main.insertBefore(section,nodes[0]);nodes.forEach(n=>section.append(n));return section;};
     if(key==='organization')pin('.organization-summary');
     if(key==='teamTime')pin('.filters');
+    if(key==='analytics'){pin('.team-view-tabs');pin('.filters');}
     if(key==='team')pin('.delegation-summary');
     if(key==='time'){
       pin('.time-actions');

@@ -6,6 +6,8 @@ let month = new Date().toLocaleDateString('sv-SE', {timeZone:'America/Mexico_Cit
 let ledger = {rows:[],ot_minutes:0,guard_minutes:0};
 let analyticsReport = null;
 let analyticsDetailType = null;
+let teamView = 'analytics';
+let settingsOpen = false;
 let reportSequence = 0;
 const analyticsTypes = ['EMERGENCY','PLANNED','HISTORICAL','GUARD'];
 const analyticsNames = {EMERGENCY:'OT emergente',PLANNED:'OT programada',HISTORICAL:'OT histórica',GUARD:'Guardia neta',ALL:'Todas las horas'};
@@ -30,7 +32,7 @@ const isManager = () => me()?.role==='MANAGER';
 const isTech = () => me()?.role==='USER';
 const roles = {ADMIN:'Administrador',MANAGER:'Manager',USER:'Técnico'};
 const statuses = {ACTIVE:'Activo',DISABLED:'Baja',PENDING_ACTIVATION:'Activación pendiente',SUBMITTED:'Pendiente',APPROVED:'Aprobado',REJECTED:'Rechazado',DOCUMENTATION:'Por documentar',RUNNING:'En curso',SCHEDULED:'Programado',COMPLETED:'Finalizado',PENDING:'Pendiente',ISSUED:'Código emitido',USED:'Recuperado',CANCELLED:'Cancelado',EXPIRED:'Vencido'};
-const pageNames = {dashboard:'Panel',analytics:'Analítica del equipo',myAnalytics:'Mi resumen',organization:'Organización',admins:'Administradores',recoveries:'Recuperación de acceso',profile:'Mi perfil',team:'Mi equipo',teamTime:'Tiempo del equipo',timeRules:'Reglas de guardia',time:'Mi tiempo',claim:'Claim',adp:'ADP'};
+const pageNames = {dashboard:'Panel',analytics:'Tiempo del equipo',myAnalytics:'Mi resumen',organization:'Organización',admins:'Administradores',recoveries:'Recuperación de acceso',profile:'Mi perfil',team:'Mi equipo',teamTime:'Aprobaciones',timeRules:'Reglas de guardia',time:'Mi tiempo',claim:'Claim',adp:'ADP'};
 const icon = name => `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/static/icons.svg#${name}"></use></svg>`;
 const projectAuthors = ['Samuel Alejandro Díaz Chávez', 'Francisco Cervantes Marquez'];
 const kyndrylBrand = () => '<img class="kyndryl-logo" src="/static/kyndryl-logo.svg" alt="Kyndryl" width="80" height="24">';
@@ -72,19 +74,19 @@ function credentials(code,username,title='Datos de activación'){
   showModal(title,`<div class="form-body"><p>Entrega este código por un canal corporativo. La persona definirá su contraseña desde «Activar cuenta».</p>${username?`<p>Usuario: <strong>${esc(username)}</strong></p>`:''}<div class="secret-code">${esc(code)}</div><p class="muted">El código se muestra sólo al generar o regenerar el acceso.</p></div><footer class="dialog-footer">${btn('Listo','close','','primary')}</footer>`);
 }
 function login(){
-  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">CONTROL DE TIEMPO EXTRA</p><h1>Planea.<br>Trabaja. Controla.</h1><p>Registra tiempo extra, gestiona guardias<br>y consulta tus horas aprobadas.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.0.2</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">ACCESO A OPERATIONAL PULSE</p><h2>Control de OT y guardias</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}<label class="field" for="login-password"><span>Contraseña</span><span class="login-password-input"><input id="login-password" name="password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" data-action="password-visibility" data-id="login-password" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button></span></label><p class="form-error" role="alert"></p><button type="submit" class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Control de OT, guardias y aprobaciones.</small></p></div></div><footer>Operational Pulse · OT y guardias <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
+  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">CONTROL DE TIEMPO EXTRA</p><h1>Planea.<br>Trabaja. Controla.</h1><p>Registra tiempo extra, gestiona guardias<br>y consulta tus horas aprobadas.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.0.3</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">ACCESO A OPERATIONAL PULSE</p><h2>Control de OT y guardias</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}<label class="field" for="login-password"><span>Contraseña</span><span class="login-password-input"><input id="login-password" name="password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" data-action="password-visibility" data-id="login-password" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button></span></label><p class="form-error" role="alert"></p><button type="submit" class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Control de OT, guardias y aprobaciones.</small></p></div></div><footer>Operational Pulse · OT y guardias <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
 }
 function nav(){
   const work=isAdmin()?['dashboard','organization']:isManager()?['dashboard','team','teamTime','analytics']:['dashboard','time','myAnalytics','claim','adp',...(state.can_approve?['team','teamTime','analytics']:[])];
   const settings=isAdmin()?['admins','recoveries']:isManager()?['timeRules','recoveries']:[];
   const item=p=>`<button class="nav-item ${p===page?'active':''}" data-page="${p}" ${p===page?'aria-current="page"':''}><span class="nav-icon" aria-hidden="true">${icon(p)}</span><span class="nav-text">${pageNames[p]}</span>${p==='teamTime'&&pendingCount()?`<b>${pendingCount()}</b>`:''}</button>`;
-  return `<aside class="sidebar enterprise-sidebar"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span class="brand-title"><small>OPERATIONAL</small><strong>Pulse</strong></span></a><nav aria-label="Navegación principal"><p class="nav-label">ESPACIO DE TRABAJO</p>${work.map(item).join('')}${settings.length?`<details class="nav-settings" ${settings.includes(page)?'open':''}><summary><span class="nav-icon">${icon('settings')}</span><span>Configuración</span><span class="nav-chevron">⌄</span></summary>${settings.map(item).join('')}</details>`:''}</nav><div class="sidebar-utility"><button type="button" data-action="about">${icon('info')}<span>Acerca del proyecto</span>${icon('forward')}</button></div></aside>`;
+  return `<aside class="sidebar enterprise-sidebar"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span class="brand-title"><small>OPERATIONAL</small><strong>Pulse</strong></span></a><nav aria-label="Navegación principal"><p class="nav-label">ESPACIO DE TRABAJO</p>${work.map(item).join('')}${settings.length?`<details class="nav-settings" ${settingsOpen||settings.includes(page)?'open':''}><summary><span class="nav-icon">${icon('settings')}</span><span>Configuración</span><span class="nav-chevron">⌄</span></summary>${settings.map(item).join('')}</details>`:''}</nav><div class="sidebar-utility"><button type="button" data-action="about">${icon('info')}<span>Acerca del proyecto</span>${icon('forward')}</button></div></aside>`;
 }
 function userMenu(){return `<details class="user-menu"><summary aria-label="Menú de usuario"><span class="avatar" aria-hidden="true">${esc(initials(me()))}</span><span class="user-button-copy"><strong>${esc(full(me()))}</strong><small>${esc(roles[me().role])}${me().is_lead?' · Lead':''} · ${esc(me().employee_id||me().username||'')}</small></span><span class="user-chevron" aria-hidden="true">⌄</span></summary><div><button data-page="profile">${icon('profile')} Mi perfil</button>${btn(icon('arrow')+'Cerrar sesión','logout','','logout')}</div></details>`;}
 function pendingCount(){return state?[...state.overtime,...state.guards].filter(r=>r.status==='SUBMITTED'&&r.user_id!==me().id).length:0;}
 function content(){
   switch(page){
-    case 'analytics':return analyticsPage(false);
+    case 'analytics':return teamView==='history'?teamTimePage(true):analyticsPage(false);
     case 'myAnalytics':return analyticsPage(true);
     case 'organization':return isAdmin()?organizationPage():dashboard();
     case 'admins':return isAdmin()?adminsPage():dashboard();
@@ -144,7 +146,7 @@ async function refresh(silent=false){
   }catch(error){if(!silent)throw error;}
 }
 async function navigate(next){
-  if(!state)return;page=next;filters={group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};delegationDraftLead='';analyticsDetailType=null;
+  if(!state)return;page=next;filters={group:'',person:'',status:next==='teamTime'?'SUBMITTED':'',kind:'',search:'',period:next==='teamTime'?'ALL':'MONTH'};teamView='analytics';delegationDraftLead='';analyticsDetailType=null;
   $('#modal').close();await loadLedger();render();$('#main')?.focus({preventScroll:true});
 }
 function tick(){
@@ -191,7 +193,7 @@ function analyticsExportLink(personal){
 }
 function analyticsPage(personal){
   const report=analyticsReport,correct=report&&report.month===month&&report.mode===(personal?'PERSONAL':'TEAM')&&(personal||report.filters.group_id===(filters.group||null)&&report.filters.user_id===(filters.person||null));
-  const header=heading(personal?'TU TIEMPO APROBADO':'HORAS Y DISTRIBUCIÓN',personal?'Mi resumen mensual':'Analítica del equipo',personal?'Tus horas de OT y Guardia, separadas por tipo y día.':'Horas por Grupo, Técnico y tipo de registro. Un mismo cálculo para toda la operación.',monthControl()+analyticsExportLink(personal));
+  const header=heading(personal?'TU TIEMPO APROBADO':'HORAS Y DISTRIBUCIÓN',personal?'Mi resumen mensual':'Tiempo del equipo',personal?'Tus horas de OT y Guardia, separadas por tipo y día.':'Horas por Grupo, Técnico y tipo de registro. Un mismo cálculo para toda la operación.',monthControl()+analyticsExportLink(personal))+(personal?'':teamViewTabs());
   if(!correct)return header+`<section class="panel">${empty('Cargando el desglose del mes…')}</section>`;
   const groups=state.groups.filter(g=>state.scope.includes(g.id)),people=state.people.filter(p=>p.role==='USER'&&state.scope.includes(p.group_id)&&(!filters.group||p.group_id===filters.group));
   const controls=personal?`<div class="analytics-personal-scope">${icon('profile')}<span>Resumen exclusivo de <strong>${esc(full(me()))}</strong> · ${esc(me().employee_id)}</span><span class="pill">Sólo tus horas</span></div>`:`<section class="panel analytics-filters"><div>${select('filter-group','Grupo',options(groups,filters.group,g=>g.code+' · '+g.name,'Todos mis Grupos'))}${select('filter-person','Técnico',options(people,filters.person,full,'Todos los Técnicos del alcance'))}</div><p>Se muestran únicamente los Grupos bajo tu responsabilidad${isTech()?' delegada y vigente':''}.</p></section>`;
@@ -289,9 +291,10 @@ function otCard(o){
   const active=state.timers.some(t=>t.overtime_id===o.id),canStart=o.status==='APPROVED'&&o.execution==='SCHEDULED'&&new Date(o.scheduled_start)<=new Date()&&new Date(o.scheduled_end)>new Date();
   return `<article class="record-card"><div class="grow"><div class="record-title"><span class="small-label">${o.capture_type==='EMERGENCY'?'EMERGENCIA':o.capture_type==='HISTORICAL'?'OT HISTÓRICA':'OT PROGRAMADA'}</span>${badge(active?'RUNNING':o.status)}</div><h3>${esc(o.reference||'Pendiente de documentación')}</h3><p>${esc(o.description||'Detén el Timer y documenta el trabajo realizado.')}</p><small>${o.start_at?`Real: ${range(o.start_at,o.end_at)}`:`Programado: ${range(o.scheduled_start,o.scheduled_end)}`}</small>${o.revision?`<small>Revisión ${o.revision} · La última edición requiere aprobación.</small>`:''}</div><div class="entity-actions">${!active?btn(o.status==='DOCUMENTATION'?'Documentar':'Editar y reenviar','ot-edit',o.id,'secondary'):''}${canStart?btn('▶ Iniciar','timer-planned',o.id,'primary'):''}</div></article>`;
 }
-function teamTimePage(){
+function teamViewTabs(){return `<nav class="team-view-tabs" aria-label="Vista de Tiempo del equipo"><button type="button" data-action="team-view" data-id="analytics" aria-pressed="${teamView==='analytics'}">${icon('analytics')} Analítica</button><button type="button" data-action="team-view" data-id="history" aria-pressed="${teamView==='history'}">${icon('teamTime')} Historial</button></nav>`;}
+function teamTimePage(history=false){
   const people=state.people.filter(p=>p.role==='USER'&&state.scope.includes(p.group_id));
-  return heading('OPERACIÓN Y TRAZABILIDAD','Tiempo del equipo','Aprobaciones e historial unificados. Revisa cada decisión en su contexto.',monthControl()+exportLink())+
+  return heading('OPERACIÓN Y TRAZABILIDAD',history?'Tiempo del equipo':'Aprobaciones',history?'Historial de OT y Guardias, con filtros y detalle de cada decisión.':'Revisa las solicitudes de OT y Guardia pendientes de tu equipo.',monthControl()+exportLink())+(history?teamViewTabs():'')+
   `<section class="panel filters"><div>${select('filter-period','Periodo',`<option value="MONTH" ${filters.period==='MONTH'?'selected':''}>Mes seleccionado</option><option value="ALL" ${filters.period==='ALL'?'selected':''}>Todos los periodos</option>`)}${select('filter-group','Grupo',options(state.groups,filters.group,x=>x.name,'Todos los Grupos'))}${select('filter-person','Técnico',options(people.filter(p=>!filters.group||p.group_id===filters.group),filters.person,full,'Todos los Técnicos'))}${select('filter-status','Estado',`<option value="">Todos los estados</option>${['SUBMITTED','APPROVED','REJECTED','DOCUMENTATION','RUNNING'].map(s=>`<option value="${s}" ${filters.status===s?'selected':''}>${statuses[s]}</option>`).join('')}`)}${select('filter-kind','Tipo',`<option value="">OT y Guardias</option><option value="OT" ${filters.kind==='OT'?'selected':''}>Tiempo extra</option><option value="GUARD" ${filters.kind==='GUARD'?'selected':''}>Guardia</option>`)}</div><p class="muted footnote">Excel incluye únicamente tiempo real aprobado del mes y alcance seleccionados.</p></section>`+
   timerPanel(state.timers.filter(t=>(!filters.kind||filters.kind==='OT')&&(!filters.status||filters.status==='RUNNING')&&(!filters.person||t.user_id===filters.person)&&(!filters.group||person(t.user_id)?.group_id===filters.group)))+
   `<section class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Técnico / Grupo</th><th>Registro</th><th>Periodo</th><th>Estado</th><th class="right">Acciones</th></tr></thead><tbody>${teamRows()}</tbody></table></div>${!teamRecords().length?empty('No hay registros con estos filtros','Los tiempos enviados por tu equipo aparecerán aquí.'):''}</section>`;
@@ -302,7 +305,7 @@ function teamRecords(){
     const u=person(r.user_id);return state.scope.includes(u?.group_id)&&(!filters.group||u.group_id===filters.group)&&(!filters.person||u.id===filters.person)&&(!filters.kind||r.filterKind===filters.kind)&&(!filters.status||r.status===filters.status||filters.status==='RUNNING'&&r.execution==='RUNNING')&&(filters.period==='ALL'||r.a.slice(0,10)<endMonth&&r.b.slice(0,10)>=month+'-01');
   }).sort((a,b)=>b.created_at.localeCompare(a.created_at));
 }
-function teamRows(){return teamRecords().map(r=>`<tr><td><strong>${esc(full(person(r.user_id)))}</strong><small>${esc(person(r.user_id)?.employee_id)} · ${esc(group(person(r.user_id)?.group_id)?.name)}</small></td><td><span class="small-label">${r.kind==='ot'?'TIEMPO EXTRA':'GUARDIA'}</span><strong>${esc(r.reference||r.rule_snapshot?.name||'Por documentar')}</strong><small>${esc(r.description||'')}</small></td><td>${fmtDate(r.a)}<small>${r.kind==='ot'?`${fmtTime(r.a)} — ${fmtTime(r.b)}`:fmtDate(r.b)}</small></td><td>${badge(r.execution==='RUNNING'?'RUNNING':r.status)}</td><td><div class="row-actions">${btn('Detalle','record-detail',`${r.kind}:${r.id}`,'link')}${r.status==='SUBMITTED'&&r.user_id!==me().id&&r.execution!=='RUNNING'?btn('Aprobar','approve',`${r.kind}:${r.id}`,'primary small')+btn('Rechazar','reject',`${r.kind}:${r.id}`,'text-danger'):''}</div></td></tr>`).join('');}
+function teamRows(){return teamRecords().map(r=>`<tr><td><strong>${esc(full(person(r.user_id)))}</strong><small>${esc(person(r.user_id)?.employee_id)} · ${esc(group(person(r.user_id)?.group_id)?.name)}</small></td><td><span class="small-label">${r.kind==='ot'?'TIEMPO EXTRA':'GUARDIA'}</span><strong>${esc(r.reference||r.rule_snapshot?.name||'Por documentar')}</strong><small>${esc(r.description||'')}</small></td><td>${fmtDate(r.a)}<small>${r.kind==='ot'?`${fmtTime(r.a)} — ${fmtTime(r.b)}`:fmtDate(r.b)}</small></td><td>${badge(r.execution==='RUNNING'?'RUNNING':r.status)}</td><td><div class="row-actions">${btn('Detalle','record-detail',`${r.kind}:${r.id}`,'link')}${page==='teamTime'&&r.status==='SUBMITTED'&&r.user_id!==me().id&&r.execution!=='RUNNING'?btn('Aprobar','approve',`${r.kind}:${r.id}`,'primary small')+btn('Rechazar','reject',`${r.kind}:${r.id}`,'text-danger'):''}</div></td></tr>`).join('');}
 function rulesPage(){
   const days=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
   return heading('COBERTURA OPERATIVA','Reglas de Guardia','Las solicitudes conservan una copia de la regla vigente al momento de crearse.',btn('＋ Crear regla','rule-new','','primary'))+
@@ -435,7 +438,20 @@ function otModal(id=''){
 }
 function guardModal(){
   if(!state.rules.length)return toast('Tu Manager debe crear una regla de Guardia primero.',true);
-  showModal('Solicitar Guardia',form('guard',select('rule_id','Regla de Guardia *',options(state.rules,'',x=>`${x.name} · desde ${fmtDate(x.effective_from)}`),'required')+`<div class="form-grid">${field('start_date','Fecha de inicio *','','date','required')}${field('end_date','Fecha de fin *','','date','required')}</div><p class="callout">La solicitud es individual y requiere aprobación. La OT aprobada se descuenta de la Guardia al calcular el neto.</p>`,'','Enviar solicitud'));
+  showModal('Solicitar Guardia',form('guard',select('rule_id','Regla de Guardia *',options(state.rules,'',x=>`${x.name} · vigente para Guardias desde ${fmtDate(x.effective_from)}`),'required')+`<div class="form-grid">${field('start_date','Fecha de inicio *','','date','required')}${field('end_date','Fecha de fin *','','date','required')}</div><p id="guard-date-help" class="callout" role="status"></p><p class="callout">La solicitud es individual y requiere aprobación. La OT aprobada se descuenta de la Guardia al calcular el neto.</p>`,'','Enviar solicitud'));
+  syncGuardDates();
+}
+function syncGuardDates(){
+  const f=$('[data-form=guard]');if(!f)return;
+  const r=state.rules.find(r=>r.id===f.elements.rule_id.value),start=f.elements.start_date,end=f.elements.end_date,help=$('#guard-date-help');
+  if(!r)return;
+  start.min=r.effective_from;end.min=start.value||r.effective_from;
+  const invalid=start.value&&start.value<r.effective_from;
+  const message=`La regla «${r.name}» aplica a Guardias que comienzan el ${fmtDate(r.effective_from)} o después.`;
+  start.setCustomValidity(invalid?message+' El inicio seleccionado es '+fmtDate(start.value)+'.':'');
+  end.setCustomValidity(end.value&&start.value&&end.value<start.value?'La fecha de fin debe ser igual o posterior al inicio.':'');
+  help.textContent=invalid?message+' Tu solicitud empieza el '+fmtDate(start.value)+', antes de esa vigencia.':message+(start.value?' Periodo seleccionado: '+fmtDate(start.value)+(end.value?' al '+fmtDate(end.value):'')+'.':' La vigencia se compara con el inicio solicitado, no con la fecha de hoy.');
+  help.classList.toggle('date-warning',!!invalid);
 }
 function ruleModal(id=''){
   const saved=state.rules.find(r=>r.id===id);
@@ -508,7 +524,7 @@ function accessResult(kind,username){
 function detailModal(key){
   const [kind,id]=key.split(':'),r=(kind==='ot'?state.overtime:state.guards).find(r=>r.id===id);if(!r)return;
   const logs=state.audit.filter(a=>a.entity_id===id);
-  showModal('Detalle del registro',`<div class="form-body"><p class="form-instructions"><strong>Revisa antes de decidir</strong>Consulta el periodo, la documentación y la trazabilidad. Si tienes autoridad, puedes aprobar o explicar el rechazo al final.</p><div class="detail-hero">${identity(person(r.user_id))}${badge(r.execution==='RUNNING'?'RUNNING':r.status)}</div>${r.execution==='RUNNING'?`<div class="detail-live"><span class="live-dot"></span><span>Timer activo</span><strong data-elapsed="${esc(r.start_at)}">00:00:00</strong></div>`:''}<dl><dt>Registro</dt><dd>${esc(r.reference||r.rule_snapshot?.name||'Por documentar')}</dd><dt>Periodo</dt><dd>${kind==='ot'?range(r.start_at||r.scheduled_start,r.end_at||r.scheduled_end):`${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`}</dd>${kind!=='ot'&&r.rule_snapshot?.coverage_end_at?`<dt>Cierre administrativo</dt><dd>${fmtDate(r.rule_snapshot.coverage_end_at)} · ${fmtTime(r.rule_snapshot.coverage_end_at)}</dd>`:''}${kind==='ot'?`<dt>Descripción</dt><dd>${esc(r.description||'—')}</dd><dt>Justificación</dt><dd>${esc(r.justification||'—')}</dd><dt>Impacto</dt><dd>${esc(r.impact||'—')}</dd><dt>Tiempo compensatorio</dt><dd>${esc(r.in_lieu||'—')}</dd><dt>Revisiones</dt><dd>${r.revision}</dd>`:''}</dl><h3>Trazabilidad</h3><div class="audit-list">${logs.map(a=>{let d={};try{d=JSON.parse(a.detail)}catch{}return `<div><span></span><p><strong>${esc(auditLabel(a.action))}</strong><small>${fmtDate(a.created_at)} · ${fmtTime(a.created_at)} · ${esc(full(person(a.actor_id)))}</small>${d.reason?`<small>${esc(d.reason)}</small>`:''}</p></div>`;}).join('')||'<p class="muted">Sin eventos disponibles.</p>'}</div></div><footer class="dialog-footer">${btn('Cerrar','close','','secondary')}${state.can_approve&&r.user_id!==me().id&&r.status==='SUBMITTED'&&r.execution!=='RUNNING'?btn('Rechazar','reject',key,'text-danger')+btn('Aprobar','approve',key,'primary'):''}</footer>`);tick();
+  showModal('Detalle del registro',`<div class="form-body"><p class="form-instructions"><strong>Revisa antes de decidir</strong>Consulta el periodo, la documentación y la trazabilidad. Si tienes autoridad, puedes aprobar o explicar el rechazo al final.</p><div class="detail-hero">${identity(person(r.user_id))}${badge(r.execution==='RUNNING'?'RUNNING':r.status)}</div>${r.execution==='RUNNING'?`<div class="detail-live"><span class="live-dot"></span><span>Timer activo</span><strong data-elapsed="${esc(r.start_at)}">00:00:00</strong></div>`:''}<dl><dt>Registro</dt><dd>${esc(r.reference||r.rule_snapshot?.name||'Por documentar')}</dd><dt>Periodo</dt><dd>${kind==='ot'?range(r.start_at||r.scheduled_start,r.end_at||r.scheduled_end):`${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`}</dd>${kind!=='ot'&&r.rule_snapshot?.coverage_end_at?`<dt>Cierre administrativo</dt><dd>${fmtDate(r.rule_snapshot.coverage_end_at)} · ${fmtTime(r.rule_snapshot.coverage_end_at)}</dd>`:''}${kind==='ot'?`<dt>Descripción</dt><dd>${esc(r.description||'—')}</dd><dt>Justificación</dt><dd>${esc(r.justification||'—')}</dd><dt>Impacto</dt><dd>${esc(r.impact||'—')}</dd><dt>Tiempo compensatorio</dt><dd>${esc(r.in_lieu||'—')}</dd><dt>Revisiones</dt><dd>${r.revision}</dd>`:''}</dl><h3>Trazabilidad</h3><div class="audit-list">${logs.map(a=>{let d={};try{d=JSON.parse(a.detail)}catch{}return `<div><span></span><p><strong>${esc(auditLabel(a.action))}</strong><small>${fmtDate(a.created_at)} · ${fmtTime(a.created_at)} · ${esc(full(person(a.actor_id)))}</small>${d.reason?`<small>${esc(d.reason)}</small>`:''}</p></div>`;}).join('')||'<p class="muted">Sin eventos disponibles.</p>'}</div></div><footer class="dialog-footer">${btn('Cerrar','close','','secondary')}${page!=='analytics'&&state.can_approve&&r.user_id!==me().id&&r.status==='SUBMITTED'&&r.execution!=='RUNNING'?btn('Rechazar','reject',key,'text-danger')+btn('Aprobar','approve',key,'primary'):''}</footer>`);tick();
 }
 function auditLabel(action){return {CREATE_OT:'Registro de OT',EDIT_OT_REOPEN_APPROVAL:'Edición y reenvío a aprobación',REQUEST_GUARD:'Solicitud de Guardia',APPROVED:'Aprobado',REJECTED:'Rechazado',START_TIMER:'Timer iniciado',STOP_TIMER:'Timer detenido',JOIN_SHARED_OT:'Participación en actividad programada',ADMIN_STOP_TIMER_ON_OFFBOARD:'Timer cerrado por baja administrativa',ADMIN_DOCUMENT_ON_OFFBOARD:'Documentación completada durante la baja',CANCEL_SCHEDULE_ON_OFFBOARD:'OT sin ejecutar cancelada por baja',CLOSE_GUARD_ON_OFFBOARD:'Cobertura cerrada por baja',TRANSFER_PERSON:'Técnico transferido',TRANSFER_GROUP:'Grupo transferido',OFFBOARD_PERSON:'Baja de acceso',REACTIVATE_PERSON:'Reactivación solicitada'}[action]||action;}
 
@@ -562,6 +578,7 @@ async function perform(action,id,button){
     case 'ot-new':otModal();return;
     case 'ot-edit':otModal(id);return;
     case 'guard-new':guardModal();return;
+    case 'team-view':teamView=id;filters={group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};analyticsDetailType=null;await loadLedger();render();return;
     case 'rule-new':ruleModal();return;
     case 'rule-edit':ruleModal(id);return;
     case 'rule-delete':await api('/api/rules/'+id,'DELETE');break;
@@ -615,6 +632,7 @@ async function submitForm(f){
   $('#modal').close();await refresh();toast('Cambios guardados.');
 }
 function bind(){
+  document.addEventListener('toggle',event=>{if(event.target.matches?.('.nav-settings')&&event.target.isConnected)settingsOpen=event.target.open;},true);
   document.addEventListener('dragstart',startTechnicianDrag);
   document.addEventListener('dragend',endTechnicianDrag);
   document.addEventListener('dragover',event=>{
@@ -646,6 +664,7 @@ function bind(){
   });
   document.addEventListener('change',async event=>{
     const target=event.target,f=target.closest('form');
+    if(f?.dataset.form==='guard')syncGuardDates();
     if(target.closest('[data-rule-day]')){syncRuleDay(target.closest('[data-rule-day]'));if(target.type==='checkbox')refitRuleEditor();}
     if(f?.dataset.form==='group'&&target.name==='account_id')f.elements.manager_id.innerHTML=managerOptions(target.value,'');
     if(f?.dataset.form==='person'&&target.name==='account_id')$('#group-checks').innerHTML=groupCheckboxes(target.value,f.dataset.id);
@@ -657,6 +676,7 @@ function bind(){
     }catch(error){toast(error.message,true);}
   });
   document.addEventListener('input',event=>{
+    if(event.target.closest('[data-form=guard]'))syncGuardDates();
     if(event.target.closest('.access-form')){
       const f=event.target.form;
       if(event.target.name==='identity')accessDraft.identity=event.target.value;
@@ -673,5 +693,5 @@ setInterval(tick,1000);
 setInterval(()=>{if(state&&!busy&&!draggedTechnician&&!document.hidden&&!$('#modal').open&&!$('#delegation-editor')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))refresh(true);},5000);
 
 function aboutProject(){
-  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.0.2 · OT y guardias</span></div>${kyndrylBrand()}</div><p>Control de horas extra (OT) y guardias, con timers, aprobaciones, historial y reportes en un solo lugar.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
+  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.0.3 · OT y guardias</span></div>${kyndrylBrand()}</div><p>Control de horas extra (OT) y guardias, con timers, aprobaciones, historial y reportes en un solo lugar.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
 }

@@ -1,4 +1,4 @@
-# Operational Pulse · 1.0.2
+# Operational Pulse · 1.0.3
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
@@ -6,7 +6,7 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.2`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.3`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -53,7 +53,7 @@ La base se crea como `operational_pulse.db` junto a `server.py`. Las sesiones y 
 6. Cierra sesión, elige **Activar cuenta**, ingresa el usuario/código y define una contraseña de al menos 10 caracteres. El Employee ID es el usuario de Managers y Técnicos.
 7. Como Manager, crea una regla de Guardia en **Reglas de guardia** y, si hace falta, una delegación hasta revocación manual desde **Mi equipo**.
 8. Como Técnico, usa **Mi tiempo** para OT programada, histórica, emergencia o solicitudes de Guardia. **Claim** y **ADP** muestran el tiempo aprobado del mes.
-9. Como Manager o Lead delegado, revisa **Tiempo del equipo**, filtra y aprueba o rechaza con motivo.
+9. Como Manager o Lead delegado, revisa **Aprobaciones**, filtra y aprueba o rechaza con motivo.
 
 ### Organización
 
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.2/
+Operational_Pulse_v1.0.3/
   index.html
   server.py
   requirements.txt
@@ -178,7 +178,7 @@ Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders,
 
 - **Guardias por intervalos:** cada día admite varios horarios. Usa «Agregar intervalo» o «24 horas»; el Manager define su semana sin horarios operativos precargados. Un fin como 00:00 después de 20:00 corresponde al día siguiente. Los intervalos se muestran agrupados por día al guardar.
 - **Delegación junto al equipo:** elige «Delegar» en la fila de un Lead activo. El formulario aparece dentro de Mi equipo, sin modal. Cubre todos los Grupos del Manager y permite sustituir al backup o revocar. Inicia al guardar y no vence automáticamente. Sólo hay una asignación vigente por Manager.
-- **Panel que lleva a la acción:** las tarjetas del Manager abren Tiempo del equipo con tipo y estado ya seleccionados. Pendientes y timers usan «Todos los periodos» para incluir eventos anteriores al mes visible. «Ver actividad» abre el detalle del Timer con contador en vivo.
+- **Panel que lleva a la acción:** las tarjetas del Manager abren Aprobaciones con tipo y estado ya seleccionados. Pendientes y timers usan «Todos los periodos» para incluir eventos anteriores al mes visible. «Ver actividad» abre el detalle del Timer con contador en vivo.
 - **Solicitudes concretas:** el bloque lateral del Panel presenta hasta tres solicitudes para revisar, en lugar de repetir el contador de pendientes. El detalle permite aprobar o rechazar usando las mismas validaciones del servidor.
 - **Compatibilidad:** se conserva la base existente. No se agregan datos de ejemplo ni se borran registros. Si una base antigua contiene varios backups simultáneos, sólo la última asignación activa otorga autoridad; al reasignar o revocar se consolidan conservando el historial.
 
@@ -188,8 +188,8 @@ Los textos del acceso y Mi tiempo se centran en el control de horas extra (OT), 
 
 ## Analítica mensual · v1.0.0
 
-- **Manager:** «Analítica del equipo» muestra sus Grupos y Técnicos.
-- **Lead:** «Mi resumen» contiene sus horas; «Analítica del equipo» sólo aparece y funciona con delegación vigente y exclusivamente para los Grupos delegados. Revocar o dejar vencer la delegación bloquea las consultas y exportaciones del equipo en el servidor.
+- **Manager:** «Tiempo del equipo» muestra sus Grupos y Técnicos.
+- **Lead:** «Mi resumen» contiene sus horas; «Tiempo del equipo» sólo aparece y funciona con delegación vigente y para todos los Grupos actuales del Manager. Revocar la delegación bloquea las consultas y exportaciones del equipo en el servidor.
 - **Técnico:** «Mi resumen» consulta únicamente al propietario de la sesión; no ofrece filtros de otras personas o Grupos.
 - **Admin:** administra estructura y accesos; no tiene acceso a esta analítica operativa.
 
@@ -317,3 +317,9 @@ Delegar cubre automáticamente **todos los Grupos actuales del Manager**. No se 
 Cada día indica cuántos intervalos tiene configurados. Agregar o eliminar intervalos actualiza la paginación del editor sin descartar los valores de otras páginas o días. Las tarjetas resumen la semana; al editar se recuperan todos los intervalos guardados.
 
 Regresión de navegador: `PULSE_CHROMIUM_EXECUTABLE=/usr/bin/chromium .venv/bin/python tests/rules_browser.py` (usa una SQLite temporal, no modifica la base de trabajo).
+
+## Revisión y consulta · v1.0.3
+
+- **Aprobaciones** abre las solicitudes pendientes de todos los periodos.
+- **Tiempo del equipo** agrupa las pestañas Analítica e Historial. La analítica suma horas reales aprobadas; el historial conserva estados, filtros y trazabilidad, incluyendo las solicitudes pendientes. Excel mantiene su alcance y exporta tiempo aprobado.
+- Una regla de Guardia vigente hoy no aplica a solicitudes que empiezan antes de su fecha de vigencia. El formulario muestra las fechas en texto, limita la fecha mínima y explica el problema antes de enviar.

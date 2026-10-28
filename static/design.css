@@ -226,3 +226,14 @@ dialog.transfer-dialog{max-width:850px}
 .rule-segments>div{display:flex;flex-direction:column;align-items:flex-start;border:1px solid #e3eaf3;border-radius:8px;padding:10px 12px;gap:5px}
 .rule-segments>div>span{text-align:left;font-size:12px}
 .rules-grid .entity-actions{margin-top:12px}
+
+/* Empty group states occupy the entire Manager block. */
+.organization-board>.empty{grid-column:1/-1;width:100%;box-sizing:border-box;text-align:center}
+.viewport-pagination button:not(:disabled),.viewport-sections button:not(:disabled),.wizard-navigation button:not(:disabled){background:#eaf1ff;border-color:#aac2ed;color:#2454a8;font-weight:600;opacity:1}
+.viewport-pagination button:not(:disabled):hover,.viewport-sections button:not(:disabled):hover,.wizard-navigation button:not(:disabled):hover{background:#dce9ff;border-color:#739bdc;color:#173f84}
+.viewport-pagination button:disabled,.viewport-sections button:disabled,.wizard-navigation button:disabled{background:#f7f9fc;color:#a4afbe;border-color:#e5eaf2;opacity:.65}
+.team-view-tabs{display:flex;gap:6px;flex:none;margin-bottom:12px;border-bottom:1px solid #dce5f1;padding-bottom:8px}
+.team-view-tabs button{display:flex;align-items:center;gap:7px;padding:9px 15px;border-radius:7px;color:#58718f;font-size:13px}
+.team-view-tabs button[aria-pressed=true]{background:#eaf1ff;color:#2454a8;font-weight:600}
+.team-view-tabs .ui-icon{width:16px;height:16px}
+.date-warning{background:#fff4ec!important;color:#9b401e!important;border-color:#edb695!important}

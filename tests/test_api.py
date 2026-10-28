@@ -159,6 +159,16 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(self.client.put('/api/people/'+lead['id'],json={**d1,'is_lead':False}).status_code,200)
         self.assertEqual(self.client.put('/api/people/'+tech['id'],json={**d3,'is_lead':True}).status_code,200)
 
+    def test_guard_rule_effective_date_is_compared_with_requested_start(self):
+        _,_,_,mc,_,tc=self.organization()
+        rule=self.post('/api/rules',{'name':'Reglas_Mainframe_v1','effective_from':'2026-10-26','segments':[{'day':0,'start':'02:00','end':'04:00'},{'day':0,'start':'20:00','end':'00:00'}]},mc)['id']
+        invalid=tc.post('/api/guards',json={'rule_id':rule,'start_date':'2026-09-26','end_date':'2026-10-02'})
+        self.assertEqual(invalid.status_code,422)
+        self.assertIn('2026-10-26',invalid.json()['detail']);self.assertIn('2026-09-26',invalid.json()['detail'])
+        self.assertEqual(len(tc.get('/api/state').json()['guards']),0)
+        self.post('/api/guards',{'rule_id':rule,'start_date':'2026-10-26','end_date':'2026-11-01'},tc)
+        self.assertEqual(len(tc.get('/api/state').json()['guards']),1)
+
     def test_multiple_weekday_intervals_full_sunday_and_net_guard(self):
         _, _, _, mc, u, uc = self.organization()
         segments = [{'day': day, 'start': start, 'end': end} for day in range(5) for start, end in [('02:00', '04:00'), ('20:00', '00:00')]]

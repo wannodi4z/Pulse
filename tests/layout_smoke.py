@@ -100,7 +100,11 @@ def run():
                         for width,height in [(1440,780),(1366,700),(1280,650)]:
                             page.set_viewport_size({'width':width,'height':height});page.goto(base);page.locator('.sidebar').wait_for()
                             for route in routes:
-                                target=page.locator('[data-page='+route+']').first;target.evaluate('(el)=>el.closest("details")?.setAttribute("open", "")');target.click()
+                                target=page.locator('[data-page='+route+']').first;target.evaluate('(el)=>el.closest("details")?.setAttribute("open", "")')
+                                try:target.click(timeout=3000)
+                                except Exception:
+                                    print('NAV FAILURE',role,route,width,height,page.locator('.nav-settings').evaluate_all('(els)=>els.map(el=>({open:el.open,html:el.outerHTML,rect:el.getBoundingClientRect().toJSON()}))'),flush=True)
+                                    raise
                                 page.wait_for_function('(route)=>document.querySelector(".breadcrumb strong")?.textContent===pageNames[route]',arg=route)
                                 if route=='organization':
                                     assert page.locator('.organization-summary').is_visible()
@@ -118,6 +122,17 @@ def run():
                                         for value in range(control.locator('option').count()):
                                             control.select_option(str(value));bounds(f'{role} {route} {width}x{height} list {value}')
                                 checked.append(f'{role}:{route}:{width}x{height}')
+                                if route=='analytics':
+                                    page.locator('[data-action=team-view][data-id=history]').click()
+                                    expect(page.locator('.workspace-context.filters')).to_be_visible()
+                                    bounds(f'{role} history {width}x{height}')
+                                    expect(page.locator('[data-action=approve]')).to_have_count(0)
+                                    for control in page.locator('.viewport-pagination:visible select').all():
+                                        for value in range(control.locator('option').count()):
+                                            control.select_option(str(value));bounds(f'{role} history {width}x{height} list {value}')
+                                    checked.append(f'{role}:history:{width}x{height}')
+                                    page.locator('[data-action=team-view][data-id=analytics]').click()
+
                     # Complete a long OT form through the actual step controls at native 100%.
                     target=page.locator('[data-page=time]').first;target.click();page.wait_for_function('()=>page==="time" && document.querySelector(".breadcrumb strong")?.textContent==="Mi tiempo"')
                     page.locator('[data-action=ot-new]').evaluate('(el)=>PulseLayout.reveal(el)')
