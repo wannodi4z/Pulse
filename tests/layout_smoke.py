@@ -124,15 +124,10 @@ def run():
                                             control.select_option(str(value));bounds(f'{role} {route} {width}x{height} list {value}')
                                 checked.append(f'{role}:{route}:{width}x{height}')
                                 if route=='analytics':
-                                    page.locator('[data-action=team-view][data-id=history]').click()
-                                    expect(page.locator('.workspace-context.filters')).to_be_visible()
-                                    bounds(f'{role} history {width}x{height}')
+                                    expect(page.locator('.team-view-tabs')).to_have_count(0)
+                                    expect(page.locator('.workspace-context.result-metrics')).to_be_visible()
+                                    expect(page.locator('#analytics-records')).to_be_visible()
                                     expect(page.locator('[data-action=approve]')).to_have_count(0)
-                                    for control in page.locator('.viewport-pagination:visible select').all():
-                                        for value in range(control.locator('option').count()):
-                                            control.select_option(str(value));bounds(f'{role} history {width}x{height} list {value}')
-                                    checked.append(f'{role}:history:{width}x{height}')
-                                    page.locator('[data-action=team-view][data-id=analytics]').click();page.wait_for_function('()=>!busy')
 
                     # Complete a long OT form through the actual step controls at native 100%.
                     target=page.locator('[data-page=time]').first;target.click();page.wait_for_function('()=>page==="time" && document.querySelector(".breadcrumb strong")?.textContent==="Mi tiempo"')

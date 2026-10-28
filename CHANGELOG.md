@@ -1,5 +1,15 @@
 # Historial de versiones
 
+La entrega vigente es la primera entrada. Las versiones repetidas en entradas antiguas corresponden a reinicios de numeración solicitados durante el diseño.
+
+## v1.1.0 · 28 de octubre de 2026
+
+- Cuenta primero: Managers dentro de la Cuenta, Grupos por especialidad y Técnicos dentro de cada Grupo. País es metadato de Cuenta; Mainframe y OPEN / Distribuidos clasifican Grupos. Códigos automáticos y consecutivos sin borrar claves anteriores ni historial.
+- Configurador explícito de Banorte en la base principal: tres accesos solicitados activos y seis Grupos de prueba; conserva datos existentes y cancela ante conflictos de pertenencia.
+- Analítica unificada con registros, búsqueda, totales de los resultados, comparación de varios meses y Excel equivalente. Aprobaciones sólo contiene decisiones pendientes.
+- Solicitudes de traslado de Manager a Admin, resolución y movimiento atómicos; OT y Guardias siguen al Técnico con trazabilidad del origen, sesiones y delegaciones actualizadas.
+- Línea de tiempo personal en Mi tiempo: orden de actividad, capturas históricas insertadas en su fecha real y programación futura con disponibilidad de Timer.
+
 ## v1.0.5 · 28 de octubre de 2026
 
 - Confirmaciones, activación/recuperación y resultados de acceso con tamaño compacto; formularios breves de Guardia y Acerca del proyecto con ancho intermedio.

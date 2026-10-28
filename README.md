@@ -1,12 +1,12 @@
-# Operational Pulse · 1.0.5
+# Operational Pulse · 1.1.0
 
-Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; este cambio de versión y diseño conserva el esquema SQLite y los datos existentes. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
 ## Ejecutarla en tu Mac
 
 Necesitas Python **3.11 o posterior** y VS Code. Puedes comprobarlo en la terminal con `python3 --version`. Si tu Mac tiene varias versiones, usa, por ejemplo, `python3.12` para crear el entorno.
 
-1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.0.5`.
+1. Descomprime el ZIP y abre en VS Code la carpeta que contiene `server.py`: **File → Open Folder**. Desde GitHub se llama `Pulse-main`; en el ZIP de la entrega se llama `Operational_Pulse_v1.1.0`.
 2. Abre **Terminal → New Terminal** y ejecuta:
 
    ```bash
@@ -127,7 +127,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.5/
+Operational_Pulse_v1.1.0/
   index.html
   server.py
   requirements.txt
@@ -174,7 +174,7 @@ Activación y recuperación ahora tienen modales propios con información por se
 
 Se aumenta el contraste de textos secundarios, etiquetas, ayudas y placeholders, manteniendo la composición, tamaños y paleta existentes. Los textos claros sobre fondos azules oscuros se conservan.
 
-## Novedades de v1.1.0
+## Flujos incorporados en el ciclo inicial (referencia histórica)
 
 - **Guardias por intervalos:** cada día admite varios horarios. Usa «Agregar intervalo» o «24 horas»; el Manager define su semana sin horarios operativos precargados. Un fin como 00:00 después de 20:00 corresponde al día siguiente. Los intervalos se muestran agrupados por día al guardar.
 - **Delegación junto al equipo:** elige «Delegar» en la fila de un Lead activo. El formulario aparece dentro de Mi equipo, sin modal. Cubre todos los Grupos del Manager y permite sustituir al backup o revocar. Inicia al guardar y no vence automáticamente. Sólo hay una asignación vigente por Manager.
@@ -281,7 +281,7 @@ Las operaciones de eliminación y baja conservan sus revisiones y confirmaciones
 
 [Ver capturas del tablero y el traslado](docs/interface-v1.2.0.md)
 
-## Enterprise luminosa · v1.1.0
+## Diseño Enterprise luminoso
 
 Nueva interfaz elegida por Samuel: sidebar claro, navegación en azul profundo, acentos turquesa y marca corporativa Kyndryl en la cabecera. Acerca del proyecto está al pie del sidebar; el menú del usuario conserva Mi perfil y Cerrar sesión.
 
@@ -332,15 +332,15 @@ Los diálogos de Cuenta y Grupo usan anchos proporcionales y botones Crear Cuent
 
 [Ver capturas de la búsqueda y los diálogos](docs/interface-v1.0.4.md).
 
-## Probar con los usuarios solicitados · v1.0.5
+## Banorte y usuarios activos en la base principal · v1.1.0
 
-Después de instalar las dependencias, detén la instancia local actual y ejecuta en la terminal de VS Code:
+Después de instalar dependencias, **detén el servidor actual con Control+C** y ejecuta desde la carpeta del proyecto:
 
 ```bash
-bash iniciar_pruebas.command
+bash configurar_banorte.command
 ```
 
-Abre http://127.0.0.1:5510. El primer inicio crea una base separada en `pruebas/operational_pulse.db`, con estos accesos activos:
+El comando configura la **base principal**, conserva los datos existentes y abre http://127.0.0.1:5510. No depende del modo separado de pruebas de v1.0.5.
 
 | Employee ID | Contraseña inicial | Perfil |
 | --- | --- | --- |
@@ -348,9 +348,39 @@ Abre http://127.0.0.1:5510. El primer inicio crea una base separada en `pruebas/
 | SL0001 | lead120261 | Técnico con capacidad Lead |
 | 951357 | tecnico12026 | Técnico |
 
-Los tres pertenecen a la Cuenta y Grupo de pruebas. Los administradores admin1/admin2 conservan sus contraseñas iniciales. El Lead sólo podrá aprobar cuando el Manager active Delegar. No se crean OT, Guardias, reglas, Timers ni delegaciones. Los inicios posteriores conservan los cambios hechos en esta base; no vuelven a crear ni reinician usuarios. `start.command` sigue usando la base principal y nunca crea estos accesos.
+Primero crea o reutiliza Banorte (clave BNTE, país MX). Dentro de esa Cuenta crea o reutiliza el Manager y seis Grupos de prueba: z/OS, CICS/MQ, Db2, Linux, Unix y Oracle. Asigna los Técnicos a sus Grupos; si ya pertenecen a ese equipo, conserva su pertenencia, nombres e historial. El Lead requiere que su Manager active Delegar para aprobar.
 
-El ZIP de código no contiene una base de datos ni claves. El lanzador de pruebas crea los accesos directamente activos, sin activación manual. El script explícito `scripts/prepare_test_users.py` es idempotente: si un usuario ya existe, conserva sus datos y contraseña.
+Este comando **explícito** establece las contraseñas solicitadas, activa esos tres accesos y conserva a los demás usuarios. Si detecta un rol, baja o equipo incompatible, cancela toda la configuración sin transferir personas automáticamente. No crea OT, Guardias, reglas, Timers ni delegación. Ejecutarlo otra vez no duplica los Grupos ni reinicia los datos operativos. Para los inicios siguientes basta `bash start.command`.
+
+El ZIP contiene código y este configurador, **no tu base ni sesiones**. Para actualizar tu Mac, conserva `operational_pulse.db` junto a `server.py` (y su archivo de clave si ya existe). El inicio normal sigue creando sólo admin1/admin2 en una base vacía. El antiguo `iniciar_pruebas.command` continúa disponible como opción aislada de desarrollo; no es el configurador de Banorte.
+
+## Cuentas y especialidades internacionales
+
+Orden de creación: **Cuenta → Managers → Grupos por especialidad → Técnicos**. País es un dato de la Cuenta; puede haber muchas Cuentas en el mismo país. Mainframe y OPEN / Distribuidos clasifican los Grupos y no añaden otra capa de personas.
+
+Elige país y clave al crear la Cuenta: `MX-BNTE`. Al crear un Grupo, elige Cuenta, Manager, plataforma y especialidad; el código se genera automáticamente: `MX-BNTE-MF-ZOS`, `MX-BNTE-MF-CICS-MQ`, `MX-BNTE-MF-DB2`, `MX-BNTE-OPEN-LINUX`, `MX-BNTE-OPEN-UNIX`, `MX-BNTE-OPEN-ORACLE`. Puedes escribir otra especialidad; si se repite recibe `-02`, `-03`, etc. Un Manager puede tener Grupos de ambas plataformas dentro de la misma Cuenta.
+
+Se conservan IDs, claves antiguas, integrantes e historial. Si una Cuenta anterior no tiene país, edítala una vez para asignarlo antes de crear Grupos con códigos automáticos. Un cambio de Manager dentro de la Cuenta conserva la clave del Grupo.
+
+## Analítica e historial en un mismo lugar
+
+**Analítica** reúne registros y métricas. Buscar una referencia, persona, Employee ID, Grupo o texto recalcula la lista y las horas sobre los mismos resultados. La búsqueda inicial consulta todo el historial; puedes limitar el periodo, Grupo, Técnico, tipo o estado. Pendientes y rechazados se ven como registros, pero no suman horas aprobadas. Guardia neta siempre descuenta la OT aprobada que se traslapa, aunque la búsqueda oculte esa OT.
+
+**Comparar meses** agrega dos o más periodos con los mismos filtros (hasta 24 meses). **Ver gráficas** muestra comparación mensual y distribución por Grupo/Técnico; Excel contiene los mismos resultados y periodos. Sólo Manager o Lead con delegación activa acceden al equipo; el Técnico conserva su resumen personal.
+
+**Aprobaciones** muestra exclusivamente solicitudes y extensiones pendientes de todos los periodos. Las consultas históricas pertenecen a Analítica; los Timers del equipo siguen visibles en Panel.
+
+## Cambios de Grupo y especialidad · v1.1.0
+
+Admin puede mover un Técnico activo desde Organización, arrastrándolo o con Mover Técnico. También puede atender solicitudes del Manager: **Mi equipo → Solicitar cambio**, indicando destino y motivo; Admin abre **Organización → Solicitudes de cambio → Revisar y trasladar**, selecciona el Grupo definitivo y confirma. Puede rechazar con motivo; el Manager consulta el resultado en Mis solicitudes de cambio.
+
+La solicitud no cambia permisos ni pertenencia. El traslado conserva la identidad, OT, Guardias, aprobaciones, capturas y tramos del Técnico. El nuevo responsable ve sus pendientes y registros; el Técnico conserva su historial y horas personales. Las capturas nuevas guardan el Grupo de origen; los registros anteriores sin esa información incorporan una referencia explícitamente marcada como **Grupo al incorporar trazabilidad**, sin inventar su origen histórico. La analítica de equipo usa la pertenencia actual del Técnico; Detalle y auditoría permiten revisar el origen/movimiento.
+
+Admin revisa el destino incluso si pertenece a otra Cuenta. Se exige Manager de destino activo y se valida el Lead único. Antes de mover debe detenerse cualquier Timer en curso; no se pierde el tiempo registrado. Se revoca la delegación anterior y se cierran las sesiones para aplicar permisos nuevos. Una solicitud duplicada, resuelta o desactualizada no puede volver a trasladar al Técnico; aprobación de solicitud y traslado se guardan juntos.
+
+## Línea de tiempo personal
+
+En **Mi tiempo**, la OT aparece ordenada por fecha real o planificada de actividad. Una captura histórica tardía se inserta en su fecha de trabajo, no en el día de captura. La vista indica cuándo se capturó, estado de aprobación, actividad planificada, en curso o pausada y acceso a Detalle y controles disponibles. Respeta el mes seleccionado y contempla actividades que cruzan meses. Se actualiza al guardar y con la sincronización de cinco segundos cuando no estás editando ni tienes un diálogo abierto. La OT pendiente no suma horas aprobadas; una programación futura indica cuándo estará disponible su Timer.
 
 ## Tipo de OT automático
 

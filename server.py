@@ -9,8 +9,10 @@ import io
 import json
 import os
 import secrets
+import re
 import sqlite3
 import uuid
+import unicodedata
 from contextlib import contextmanager, asynccontextmanager, suppress
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -23,11 +25,15 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.5'
+VERSION = '1.1.0'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
 TZ = ZoneInfo(os.environ.get('PULSE_TIMEZONE', 'America/Mexico_City'))
+COUNTRY_CODES = frozenset('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW'.split())
+PLATFORMS = {'MF':'Mainframe','OPEN':'OPEN / Distribuidos','OTHER':'Otra plataforma'}
+SERVICE_CATALOG = {'MF':['CICS-MQ','DB2','ZOS','IMS','STORAGE'], 'OPEN':['LINUX','UNIX','ORACLE','WINDOWS','SQL-SERVER','POSTGRESQL','MYSQL','DB2','NETWORK','CLOUD','STORAGE','SECURITY'], 'OTHER':['GENERAL']}
+
 SESSION_SECONDS = 8 * 3600
 @asynccontextmanager
 async def lifespan(app):
@@ -116,8 +122,19 @@ def init_db():
         CREATE TABLE IF NOT EXISTS recoveries(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), status TEXT NOT NULL, code_hash TEXT, expires_at TEXT, created_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS recovery_code_vault(recovery_id TEXT PRIMARY KEY REFERENCES recoveries(id), encrypted_code BLOB NOT NULL, created_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY, actor_id TEXT REFERENCES users(id), action TEXT NOT NULL, entity_id TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS transfer_requests(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), requested_by TEXT NOT NULL REFERENCES users(id), source_group_id TEXT NOT NULL REFERENCES groups(id), destination TEXT NOT NULL, reason TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT REFERENCES users(id), decision_reason TEXT NOT NULL DEFAULT '', destination_group_id TEXT REFERENCES groups(id));
+        CREATE UNIQUE INDEX IF NOT EXISTS one_pending_transfer ON transfer_requests(user_id) WHERE status='SUBMITTED';
+        CREATE TABLE IF NOT EXISTS record_origins(record_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
+        # Add metadata without renaming legacy keys or changing hierarchy/records.
+        for table,columns in {'accounts':{'country_code':"TEXT NOT NULL DEFAULT ''",'base_code':"TEXT NOT NULL DEFAULT ''"},'groups':{'platform_code':"TEXT NOT NULL DEFAULT ''",'service_key':"TEXT NOT NULL DEFAULT ''",'standard_code':"TEXT NOT NULL DEFAULT ''"}}.items():
+            present={row['name'] for row in c.execute('PRAGMA table_info('+table+')')}
+            for column,definition in columns.items():
+                if column not in present:c.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+definition)
+        c.execute("UPDATE accounts SET base_code=code WHERE base_code=''")
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS country_account_key ON accounts(country_code,base_code COLLATE NOCASE) WHERE country_code!='' AND base_code!=''")
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS global_group_key ON groups(standard_code COLLATE NOCASE) WHERE standard_code!=''")
         # Adopt manual revocation for the latest currently effective legacy backup.
         # Expired, revoked and future assignments are never reactivated.
         stamp = now()
@@ -140,8 +157,27 @@ def init_db():
 init_db()
 
 
+def account_display_code(account):
+    return account['country_code']+'-'+(account.get('base_code') or account['code']) if account.get('country_code') else account['code']
+
+
+def group_display_code(group, account):
+    if group.get('standard_code'):return group['standard_code']
+    if not account.get('country_code'):return group['code']
+    prefix=account_display_code(account)
+    if group['code'].startswith(prefix+'-'):return group['code']
+    return account['country_code']+'-'+group['code'] if group['code'].startswith(account['base_code']+'-') else prefix+'-'+group['code']
+
+
 def rows(c, table):
-    return [dict(r) for r in c.execute(f'SELECT * FROM {table}')]
+    result=[dict(r) for r in c.execute(f'SELECT * FROM {table}')]
+    if table=='accounts':
+        for a in result:a['display_code']=account_display_code(a)
+    elif table=='groups':
+        accounts={a['id']:dict(a) for a in c.execute('SELECT * FROM accounts')}
+        for g in result:
+            a=accounts[g['account_id']];g['country_code']=a['country_code'];g['display_code']=group_display_code(g,a)
+    return result
 
 
 def get(c, table, identity):
@@ -382,6 +418,7 @@ def state(user=Depends(current_user)):
         accounts = rows(c, 'accounts')
         visible_entities = visible | {r['id'] for table in ('overtime', 'guards', 'timers') for r in rows(c, table) if r['user_id'] in visible}
         result = {'user': public_user(user), 'can_approve': user['role'] == 'MANAGER' or bool(group_ids) and user['role'] == 'USER', 'scope': list(group_ids), 'version': VERSION, 'timezone': str(TZ), 'server_time': now(),
+                  'country_codes':sorted(COUNTRY_CODES),'platforms':PLATFORMS,'service_catalog':SERVICE_CATALOG,
                   'accounts': accounts if user['role'] == 'ADMIN' else [a for a in accounts if any(g['account_id'] == a['id'] for g in shown_groups)],
                   'groups': shown_groups, 'people': [public_user(p) for p in people if p['id'] in visible or p['role'] == 'MANAGER' and any(g['manager_id'] == p['id'] for g in shown_groups)],
                   'overtime': [r for r in rows(c, 'overtime') if r['user_id'] in visible],
@@ -392,8 +429,17 @@ def state(user=Depends(current_user)):
                   'windows': [r for r in rows(c, 'windows') if user['role'] == 'ADMIN' or r['group_id'] in own_ids],
                   'rules': [dict(r, segments=json.loads(r['segments'])) for r in rows(c, 'rules') if user['role'] == 'ADMIN' or r['manager_id'] == user['id'] or any(g['manager_id'] == r['manager_id'] for g in shown_groups)],
                   'delegations': [dict(d, group_ids=[g['id'] for g in rows(c, 'groups') if g['manager_id']==d['manager_id']] if not d['revoked_at'] else json.loads(d['group_ids'])) for d in rows(c, 'delegations') if user['role'] == 'ADMIN' or d['manager_id'] == user['id'] or d['lead_id'] == user['id']],
+                  'transfer_requests':[r for r in rows(c,'transfer_requests') if user['role']=='ADMIN' or r['requested_by']==user['id']],
                   'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
                   'audit': [a for a in rows(c, 'audit') if user['role'] == 'ADMIN' or a['actor_id'] in visible or a['entity_id'] in visible_entities][-300:]}
+        people_by_id={p['id']:p for p in people}
+        for request in result['transfer_requests']:
+            target=people_by_id.get(request['user_id'],{});author=people_by_id.get(request['requested_by'],{})
+            request['user_name']=(target.get('first','')+' '+target.get('last','')).strip()
+            request['employee_id']=target.get('employee_id','')
+            request['requested_by_name']=(author.get('first','')+' '+author.get('last','')).strip()
+        origins={r['record_id']:json.loads(r['snapshot']) for r in rows(c,'record_origins')}
+        for record in result['overtime']+result['guards']:record['origin_info']=origins.get(record['id'])
         for o in result['overtime']:
             o['worked_seconds']=sum(max(0,(parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds()) for t in result['timer_segments'] if t['overtime_id']==o['id'] and t['end_at'])
         actor_ids={event['actor_id'] for event in result['audit']}
@@ -569,18 +615,46 @@ def reactivate_person(identity: str, data: dict=Body(...), actor=Depends(admin))
     return {'id':identity,'activation_code':code,'username':user['username']}
 
 
+def normalized_key(value):
+    raw=''.join(ch for ch in unicodedata.normalize('NFD',str(value)) if not unicodedata.combining(ch)).upper()
+    result=re.sub('[^A-Z0-9]+','-',raw).strip('-')
+    result={'Z-OS':'ZOS','SO-LINUX':'LINUX','SO-UNIX':'UNIX','BD-ORACLE':'ORACLE'}.get(result,result)
+    if not result or len(result)>24:fail('Usa una clave de hasta 24 letras, números o guiones.')
+    return result
+
+
+def standard_group_code(c, account, platform, service, exclude=''):
+    if account['country_code'] not in COUNTRY_CODES:fail('Primero define el país de la Cuenta en Organización.')
+    if platform not in PLATFORMS:fail('Selecciona la plataforma del Grupo.')
+    stem=account_display_code(account)+'-'+platform+'-'+service;number=1
+    while True:
+        candidate=stem if number==1 else stem+'-'+str(number).zfill(2)
+        if not c.execute('SELECT 1 FROM groups WHERE (code=? COLLATE NOCASE OR standard_code=? COLLATE NOCASE) AND id!=?',(candidate,candidate,exclude)).fetchone():return candidate
+        number+=1
+
+
 @app.post('/api/accounts')
 @app.put('/api/accounts/{identity}')
 def save_account(data: dict = Body(...), identity: str = '', actor=Depends(admin)):
-    code, name = text(data, 'code').upper(), text(data, 'name')
+    name=text(data,'name')
     with connection(True) as c:
-        if identity:
-            get(c, 'accounts', identity)
-            c.execute('UPDATE accounts SET code=?,name=? WHERE id=?', (code, name, identity))
+        old=get(c,'accounts',identity) if identity else None
+        country=str(data.get('country_code',old['country_code'] if old else '')).upper().strip()
+        if country and country not in COUNTRY_CODES:fail('Selecciona un país válido (ISO de dos letras).')
+        supplied=data.get('base_code') or data.get('code') or (old['base_code'] if old else '')
+        if old and supplied==old['code']:supplied=old['base_code'] or old['code']
+        base=normalized_key(supplied)
+        if country and base.startswith(country+'-'):base=base[len(country)+1:]
+        if old:
+            if c.execute('SELECT 1 FROM groups WHERE account_id=?',(identity,)).fetchone() and ((old['country_code'] and country!=old['country_code']) or base!=old['base_code']):
+                fail('Una Cuenta con Grupos conserva su país y clave. Traslada primero los Grupos para cambiar esa identidad.')
+            legacy=old['code']!=account_display_code(old) or not old['country_code']
+            code=old['code'] if legacy else country+'-'+base if country else base
+            c.execute('UPDATE accounts SET code=?,name=?,country_code=?,base_code=? WHERE id=?',(code,name,country,base,identity))
         else:
-            identity = uid()
-            c.execute('INSERT INTO accounts VALUES(?,?,?)', (identity, code, name))
-        audit(c, actor, 'SAVE_ACCOUNT', identity)
+            identity=uid();code=country+'-'+base if country else base
+            c.execute('INSERT INTO accounts(id,code,name,country_code,base_code) VALUES(?,?,?,?,?)',(identity,code,name,country,base))
+        audit(c,actor,'SAVE_ACCOUNT',identity,{'country_code':country,'base_code':base})
     return {'id': identity}
 
 
@@ -610,8 +684,19 @@ def validate_manager_leads(c, manager_ids):
 def save_group(data: dict = Body(...), identity: str = '', actor=Depends(admin)):
     aid, mid = text(data, 'account_id'), data.get('manager_id') or None
     with connection(True) as c:
-        get(c, 'accounts', aid)
+        account=get(c, 'accounts', aid)
         old = get(c, 'groups', identity) if identity else None
+        platform=str(data.get('platform_code',old['platform_code'] if old else '')).upper()
+        service=normalized_key(data.get('service_key') or old['service_key']) if data.get('service_key') or old and old['service_key'] else ''
+        standard=old['standard_code'] if old else ''
+        if service:
+            if platform not in PLATFORMS:fail('Selecciona la plataforma del Grupo.')
+            changed=not old or old['account_id']!=aid or old['platform_code']!=platform or old['service_key']!=service or not standard
+            if changed:standard=standard_group_code(c,account,platform,service,identity)
+            code=standard if not old or old['code']==old['standard_code'] else old['code']
+        else:
+            code=text(data,'code').upper() if data.get('code') else old['code'] if old else ''
+            if not code:fail('Selecciona la plataforma y especialidad del Grupo.')
         if mid:
             m = get(c, 'users', mid)
             if m['role'] != 'MANAGER' or m['status']=='DISABLED' or m['account_id'] != aid:
@@ -626,7 +711,7 @@ def save_group(data: dict = Body(...), identity: str = '', actor=Depends(admin))
                     fail('Un Grupo con personas activas necesita un Manager de destino activo.')
                 reopen_recoveries(c,actor,[p['id'] for p in members],transfer_reason)
                 audit(c,actor,'TRANSFER_GROUP',identity,{'from_manager':old['manager_id'],'to_manager':mid,'reason':transfer_reason})
-            c.execute('UPDATE groups SET code=?,name=?,account_id=?,manager_id=? WHERE id=?', (text(data, 'code').upper(), text(data, 'name'), aid, mid, identity))
+            c.execute('UPDATE groups SET code=?,name=?,account_id=?,manager_id=?,platform_code=?,service_key=?,standard_code=? WHERE id=?', (code,text(data,'name'),aid,mid,platform,service,standard,identity))
             if old['manager_id'] != mid:
                 # A change of Manager never silently transfers delegated approval rights.
                 for d in rows(c, 'delegations'):
@@ -634,7 +719,7 @@ def save_group(data: dict = Body(...), identity: str = '', actor=Depends(admin))
                         c.execute('UPDATE delegations SET revoked_at=? WHERE id=?', (now(), d['id']))
         else:
             identity = uid()
-            c.execute('INSERT INTO groups VALUES(?,?,?,?,?)', (identity, aid, mid, text(data, 'code').upper(), text(data, 'name')))
+            c.execute('INSERT INTO groups(id,account_id,manager_id,code,name,platform_code,service_key,standard_code) VALUES(?,?,?,?,?,?,?,?)', (identity,aid,mid,code,text(data,'name'),platform,service,standard))
         validate_manager_leads(c,[mid])
         audit(c, actor, 'SAVE_GROUP', identity)
     return {'id': identity}
@@ -662,7 +747,7 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
             if text(data,'expected_group_id')!=old['group_id']:
                 fail('El Técnico cambió de Grupo desde que abriste el traslado. Actualiza la organización.',409)
             # Read editable identity fields under the same write lock; moving never replays a stale profile.
-            data={**old,'group_id':text(data,'group_id'),'transfer_reason':text(data,'transfer_reason')}
+            data={**old,'group_id':text(data,'group_id'),'transfer_reason':text(data,'transfer_reason'),'transfer_request_id':data.get('transfer_request_id')}
         role = old['role'] if old else text(data, 'role')
         if role not in ('ADMIN', 'MANAGER', 'USER'):
             fail('Rol no válido.')
@@ -702,6 +787,16 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
             if c.execute('SELECT 1 FROM timers WHERE user_id=? AND end_at IS NULL',(identity,)).fetchone():
                 fail('Detén el Timer antes de transferir al Técnico de Grupo.')
             transfer_reason=text(data,'transfer_reason')
+            request_id=data.get('transfer_request_id')
+            if request_id:
+                request=get(c,'transfer_requests',request_id)
+                if request['status']!='SUBMITTED' or request['user_id']!=identity or request['source_group_id']!=old['group_id']:
+                    fail('La solicitud cambió o el Técnico ya fue trasladado. Revisa la organización.',409)
+            for table in ('overtime','guards'):
+                for record in c.execute('SELECT id FROM '+table+' WHERE user_id=?',(identity,)).fetchall():
+                    capture_origin(c,record['id'],old,inferred=True)
+            if request_id:
+                c.execute("UPDATE transfer_requests SET status='APPROVED',decided_by=?,decided_at=?,decision_reason=?,destination_group_id=? WHERE id=?",(actor['id'],now(),transfer_reason,gid,request_id))
             old_group=get(c,'groups',old['group_id']);new_group=get(c,'groups',gid)
             if old['status']!='DISABLED' and (not new_group['manager_id'] or get(c,'users',new_group['manager_id'])['status']!='ACTIVE'):
                 fail('El Grupo de destino necesita un Manager activo.')
@@ -747,6 +842,38 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
             validate_manager_leads(c,[identity])
         audit(c, actor, 'SAVE_PERSON', identity)
     return {'id': identity, 'activation_code': code}
+
+
+def capture_origin(c, record_id, user, inferred=False):
+    g=dict(get(c,'groups',user['group_id']));a=dict(get(c,'accounts',g['account_id']))
+    snapshot={'group_id':g['id'],'group_name':g['name'],'group_code':group_display_code(g,a),'account_name':a['name'],'account_code':account_display_code(a),'manager_id':g['manager_id'],'inferred':inferred}
+    c.execute('INSERT OR IGNORE INTO record_origins VALUES(?,?)',(record_id,json.dumps(snapshot)))
+
+
+@app.post('/api/transfer-requests')
+def request_transfer(data:dict=Body(...),actor=Depends(current_user)):
+    if actor['role']!='MANAGER':fail('Sólo el Manager solicita cambios a Admin.',403)
+    with connection(True) as c:
+        target=get(c,'users',text(data,'user_id'))
+        if target['role']!='USER' or target['status']=='DISABLED' or get(c,'groups',target['group_id'])['manager_id']!=actor['id']:
+            fail('El Técnico debe pertenecer a tu equipo activo.',403)
+        destination,reason=text(data,'destination'),text(data,'reason')
+        if len(destination)>160 or len(reason)>2000:fail('Resume el destino en 160 caracteres y el motivo en 2000.')
+        identity=uid()
+        c.execute('INSERT INTO transfer_requests(id,user_id,requested_by,source_group_id,destination,reason,status,created_at) VALUES(?,?,?,?,?,?,?,?)',(identity,target['id'],actor['id'],target['group_id'],destination,reason,'SUBMITTED',now()))
+        audit(c,actor,'REQUEST_TRANSFER',identity,{'user_id':target['id'],'destination':destination})
+    return {'id':identity}
+
+
+@app.post('/api/admin/transfer-requests/{identity}/reject')
+def reject_transfer(identity:str,data:dict=Body(...),actor=Depends(admin)):
+    with connection(True) as c:
+        request=get(c,'transfer_requests',identity)
+        if request['status']!='SUBMITTED':fail('La solicitud ya fue resuelta.',409)
+        reason=text(data,'reason')
+        c.execute("UPDATE transfer_requests SET status='REJECTED',decided_at=?,decided_by=?,decision_reason=? WHERE id=?",(now(),actor['id'],reason,identity))
+        audit(c,actor,'REJECT_TRANSFER',identity,{'reason':reason})
+    return {'ok':True}
 
 
 @app.post('/api/admin/people/{identity}/transfer')
@@ -1008,6 +1135,7 @@ def add_guard(data: dict = Body(...), actor=Depends(current_user)):
             fail(f"La regla {rule['name']} aplica desde {rule['effective_from']}; tu Guardia empieza el {a.isoformat()}, antes de su vigencia.")
         snapshot = dict(rule, segments=json.loads(rule['segments']))
         c.execute('INSERT INTO guards VALUES(?,?,?,?,?,?,?,?)', (identity, actor['id'], str(a), str(b), json.dumps(snapshot), 'SUBMITTED', None, now()))
+        capture_origin(c,identity,actor)
         audit(c, actor, 'REQUEST_GUARD', identity)
     return {'id': identity}
 
@@ -1050,6 +1178,7 @@ def insert_ot(c, actor, data, window=None):
     status = 'APPROVED' if window else 'DOCUMENTATION' if capture == 'EMERGENCY' else 'SUBMITTED'
     c.execute('INSERT INTO overtime VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
               (identity, actor['id'], window['id'] if window else None, capture, a, b, actual_a, actual_b, ref, description, text(data, 'justification', False), text(data, 'impact', False), text(data, 'in_lieu', False), status, execution, 0, None, now(), now()))
+    capture_origin(c,identity,actor)
     return identity
 
 
@@ -1265,7 +1394,7 @@ def subtract_intervals(a, b, cuts):
     return parts
 
 
-def accounting(c, visible, month=None):
+def accounting(c, visible, month=None, record_ids=None):
     if month:
         try:
             first = date.fromisoformat(month + '-01')
@@ -1275,6 +1404,8 @@ def accounting(c, visible, month=None):
         upper = datetime.combine((first.replace(day=28) + timedelta(days=4)).replace(day=1), time(), TZ)
     people = {u['id']: u for u in rows(c, 'users')}
     approved = [o for o in rows(c, 'overtime') if o['user_id'] in visible and o['status'] == 'APPROVED' and o['execution'] == 'COMPLETED' and o['start_at'] and o['end_at']]
+    all_approved=approved
+    approved=[o for o in approved if record_ids is None or o['id'] in record_ids]
     ots = {}
     segments={}
     for t in rows(c,'timers'):
@@ -1282,7 +1413,7 @@ def accounting(c, visible, month=None):
             segments.setdefault(t['overtime_id'],[]).append((parse_at(t['start_at']),parse_at(t['end_at'])))
     def actual_parts(o):
         return union_intervals(segments.get(o['id'],[(parse_at(o['start_at']),parse_at(o['end_at']))])) if o['capture_type']=='PLANNED' else [(parse_at(o['start_at']),parse_at(o['end_at']))]
-    for o in approved:
+    for o in all_approved:
         ots.setdefault(o['user_id'], []).extend(actual_parts(o))
     output = []
 
@@ -1309,7 +1440,7 @@ def accounting(c, visible, month=None):
                 prior.append((a, b))
     guard_intervals = {}
     for g in rows(c, 'guards'):
-        if g['user_id'] not in visible or g['status'] != 'APPROVED':
+        if g['user_id'] not in visible or g['status'] != 'APPROVED' or record_ids is not None and g['id'] not in record_ids:
             continue
         rule = json.loads(g['rule_snapshot'])
         day, last = date.fromisoformat(g['start_date']), date.fromisoformat(g['end_date'])
@@ -1357,7 +1488,76 @@ def capture(month: str, user_id: str | None = None, group_id: str | None = None,
 ANALYTICS_TYPES = ('EMERGENCY', 'PLANNED', 'HISTORICAL', 'GUARD')
 
 
-def analytics_report(c, actor, month, user_id=None, group_id=None, personal=False):
+def analytics_months(month, months=None):
+    selected=sorted(set((months.split(',') if months else [month])+[month]))
+    if len(selected)>24:
+        fail('Selecciona hasta 24 meses para la comparativa.')
+    for item in selected:
+        try:
+            if len(item)!=7 or item[4]!='-':
+                raise ValueError()
+            date.fromisoformat(item+'-01')
+        except ValueError:
+            fail('Selecciona meses válidos en formato AAAA-MM.')
+    return selected
+
+
+def analytics_records(c, visible, selected_months, query='', status='', record_type=''):
+    def normalized(value):
+        return ''.join(ch for ch in unicodedata.normalize('NFD',str(value)) if not unicodedata.combining(ch)).casefold()
+    if len(query)>500:fail('La búsqueda admite hasta 500 caracteres.')
+    tokens=normalized(query).split()
+    if status and status not in ('SUBMITTED','APPROVED','REJECTED','DOCUMENTATION','RUNNING','PAUSED','CANCELLED'):
+        fail('Estado de búsqueda inválido.')
+    if record_type and record_type not in (*ANALYTICS_TYPES,'OT'):
+        fail('Tipo de búsqueda inválido.')
+    people={p['id']:p for p in rows(c,'users')};groups={g['id']:g for g in rows(c,'groups')}
+    periods=[]
+    for month in selected_months or []:
+        first=date.fromisoformat(month+'-01');last=(first.replace(day=28)+timedelta(days=4)).replace(day=1)
+        periods.append((datetime.combine(first,time(),TZ),datetime.combine(last,time(),TZ)))
+    extensions={}
+    for e in rows(c,'ot_extensions'):
+        extensions.setdefault(e['overtime_id'],[]).append(e['reason']+' '+e['decision_reason']+' extensión')
+    result=[]
+    for kind,table in [('ot','overtime'),('guard','guards')]:
+        for r in rows(c,table):
+            if r['user_id'] not in visible:
+                continue
+            p=people[r['user_id']];g=groups.get(p['group_id'],{})
+            category=r['capture_type'] if kind=='ot' else 'GUARD'
+            effective_status=r.get('execution') if r.get('execution') in ('RUNNING','PAUSED') else r['status']
+            if status and effective_status!=status:
+                continue
+            if record_type and not (category==record_type or record_type=='OT' and category!='GUARD'):
+                continue
+            if kind=='ot':
+                start=r['start_at'] or r['scheduled_start'] or r['created_at'];end=r['end_at'] or r['scheduled_end'] or now()
+                reference=r['reference'];description=r['description']
+            else:
+                snapshot=json.loads(r['rule_snapshot']);reference=snapshot['name'];description='Guardia'
+                day=date.fromisoformat(r['start_date']);last=date.fromisoformat(r['end_date']);intervals=[]
+                while day<=last:
+                    for segment in snapshot['segments']:
+                        if int(segment['day'])!=day.weekday():continue
+                        a=datetime.combine(day,time.fromisoformat(segment['start']),TZ);b=datetime.combine(day,time.fromisoformat(segment['end']),TZ)
+                        if b<=a:b+=timedelta(days=1)
+                        if snapshot.get('coverage_end_at'):b=min(b,parse_at(snapshot['coverage_end_at']).astimezone(TZ))
+                        if b>a:intervals.append((a,b))
+                    day+=timedelta(days=1)
+                start=min(a for a,b in intervals).isoformat() if intervals else r['start_date']+'T00:00:00'
+                end=max(b for a,b in intervals).isoformat() if intervals else (date.fromisoformat(r['end_date'])+timedelta(days=1)).isoformat()+'T00:00:00'
+            a,b=parse_at(start),parse_at(end)
+            if selected_months is not None and not any(a<upper and (b>lower or a==b and a>=lower) for lower,upper in periods):continue
+            aliases={'PLANNED':'OT programada','HISTORICAL':'OT histórica','EMERGENCY':'OT emergente emergencia','GUARD':'Guardia'}
+            text=' '.join(str(v or '') for v in [r['id'],reference,description,r.get('justification'),p['first'],p['last'],p['employee_id'],g.get('name'),g.get('code'),g.get('display_code'),start,end,aliases[category],*extensions.get(r['id'],[])])
+            haystack=normalized(text)
+            if not all(token in haystack for token in tokens):continue
+            result.append({'id':r['id'],'kind':kind,'capture_type':category,'user_id':p['id'],'name':p['first']+' '+p['last'],'employee_id':p['employee_id'],'group_id':p['group_id'],'group_name':g.get('name',''),'reference':reference,'description':description,'from_at':start,'to_at':end,'status':r['status'],'display_status':effective_status,'execution':r.get('execution'),'created_at':r['created_at']})
+    return sorted(result,key=lambda r:(r['created_at'],r['id']),reverse=True)
+
+
+def analytics_report(c, actor, month, user_id=None, group_id=None, personal=False, query='', status='', record_type='', months=None, period='MONTH'):
     """Aggregate accounting rows with separate personal/team authorization."""
     if personal:
         operational(actor)
@@ -1383,10 +1583,29 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
         date.fromisoformat(month + '-01')
     except ValueError:
         fail('Selecciona un mes válido en formato AAAA-MM.')
-    detail = accounting(c, visible, month)
+    if period not in ('MONTH','ALL'):
+        fail('Periodo de búsqueda inválido.')
+    selected_months=analytics_months(month,months)
+    matched=analytics_records(c,visible,None if period=='ALL' else selected_months,query,status,record_type)
+    matching_ids={r['id'] for r in matched}
+    if period=='ALL':
+        detail=accounting(c,visible,None,matching_ids)
+        found=set(row['date'][:7] for row in detail)
+        for r in matched:
+            a=parse_at(r['from_at']).astimezone(TZ);b=parse_at(r['to_at']).astimezone(TZ)
+            cursor=a.date().replace(day=1);last=(b-timedelta(microseconds=1) if b>a else b).date().replace(day=1)
+            while cursor<=last:
+                found.add(cursor.strftime('%Y-%m'));cursor=(cursor.replace(day=28)+timedelta(days=4)).replace(day=1)
+        selected_months=sorted(found) or [month]
+        period_rows={key:[r for r in detail if r['date'].startswith(key)] for key in selected_months}
+    else:
+        period_rows={key:accounting(c,visible,key,matching_ids) for key in selected_months}
+        detail=[row for key in selected_months for row in period_rows[key]]
+    if query or status or record_type:
+        visible &= {r['user_id'] for r in matched}
     people = [p for p in rows(c, 'users') if p['id'] in visible]
     shown_groups = [g for g in rows(c, 'groups') if g['id'] in allowed_groups and (not group_id or g['id'] == group_id)]
-    if user_id:
+    if user_id or query or status or record_type:
         shown_groups = [g for g in shown_groups if any(p['group_id'] == g['id'] for p in people)]
     group_names = {g['id']: g['name'] for g in shown_groups}
 
@@ -1406,7 +1625,7 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
         return {key: round(value, 4) for key, value in totals.items()}
 
     summary = empty_totals()
-    by_group = {g['id']: {'id': g['id'], 'code': g['code'], 'name': g['name'], 'user_count': sum(p['group_id'] == g['id'] for p in people), 'minutes': empty_totals()} for g in shown_groups}
+    by_group = {g['id']: {'id': g['id'], 'code': g.get('display_code',g['code']), 'name': g['name'], 'user_count': sum(p['group_id'] == g['id'] for p in people), 'minutes': empty_totals()} for g in shown_groups}
     by_user = {p['id']: {'id': p['id'], 'name': f"{p['first']} {p['last']}", 'employee_id': p['employee_id'], 'group_id': p['group_id'], 'group_name': group_names.get(p['group_id'], ''), 'minutes': empty_totals()} for p in people}
     by_day = {}
     for record in detail:
@@ -1418,7 +1637,14 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
         add(by_day.setdefault(record['date'], empty_totals()), record)
     for item in [*by_group.values(), *by_user.values()]:
         item['minutes'] = rounded(item['minutes'])
-    return {'month': month, 'timezone': str(TZ), 'basis': 'APPROVED_ACTUAL', 'filters': {'user_id': user_id, 'group_id': group_id},
+    comparisons=[]
+    for key in selected_months:
+        totals=empty_totals()
+        for row in period_rows[key]:add(totals,row)
+        comparisons.append({'month':key,'minutes':rounded(totals)})
+    counts={}
+    for record in matched:counts[record['display_status']]=counts.get(record['display_status'],0)+1
+    return {'month': month, 'months':selected_months,'comparison':comparisons,'records':matched,'record_counts':counts,'record_count':len(matched),'timezone': str(TZ), 'basis': 'APPROVED_ACTUAL', 'filters': {'user_id': user_id, 'group_id': group_id,'q':query,'status':status,'record_type':record_type,'period':period},
             'mode': 'PERSONAL' if personal else 'TEAM', 'summary': rounded(summary),
             'groups': sorted(by_group.values(), key=lambda g: (-g['minutes']['total_minutes'], g['name'])),
             'users': sorted(by_user.values(), key=lambda u: (-u['minutes']['total_minutes'], u['name'])),
@@ -1426,9 +1652,9 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
 
 
 @app.get('/api/analytics')
-def analytics(month: str, user_id: str | None = None, group_id: str | None = None, actor=Depends(current_user)):
+def analytics(month: str, user_id: str | None = None, group_id: str | None = None, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', actor=Depends(current_user)):
     with connection() as c:
-        return analytics_report(c, actor, month, user_id, group_id)
+        return analytics_report(c, actor, month, user_id, group_id, query=q, status=status, record_type=record_type, months=months, period=period)
 
 
 def personal_analytics_query(request):
@@ -1444,9 +1670,9 @@ def my_analytics(request: Request, month: str, actor=Depends(current_user)):
 
 
 @app.get('/api/analytics.xlsx')
-def analytics_excel(month: str, user_id: str | None = None, group_id: str | None = None, actor=Depends(current_user)):
+def analytics_excel(month: str, user_id: str | None = None, group_id: str | None = None, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', actor=Depends(current_user)):
     with connection() as c:
-        report = analytics_report(c, actor, month, user_id, group_id)
+        report = analytics_report(c, actor, month, user_id, group_id, query=q, status=status, record_type=record_type, months=months, period=period)
     return analytics_workbook(report)
 
 
@@ -1466,7 +1692,7 @@ def analytics_workbook(report):
     values = lambda totals: [round(totals[key] / 60, 4) for key in (*ANALYTICS_TYPES, 'total_minutes')]
     summary = wb.active
     summary.title = 'Resumen'
-    summary.append(['Mes', month]); summary.append(['Zona horaria', report['timezone']])
+    summary.append(['Periodos' if len(report['months'])>1 else 'Mes', ', '.join(report['months'])]); summary.append(['Zona horaria', report['timezone']])
     summary.append(['Criterio', 'Tiempo real aprobado; OT única y Guardia neta. Grupo actual del Técnico.'])
     summary.append(['Tipo', 'Horas'])
     for label, amount in zip(labels, values(report['summary'])):
@@ -1481,6 +1707,14 @@ def analytics_workbook(report):
     names = dict(zip(ANALYTICS_TYPES, ['OT de emergencia', 'OT programada', 'OT histórica', 'Guardia neta']))
     for row in report['rows']:
         detail.append([row['date'], safe(row['employee_id']), safe(row['name']), safe(row['group_name']), names[row['capture_type']], row['start'], row['end'], row['hours'], safe(row['reference'])])
+    if report['mode']=='TEAM':
+        records=wb.create_sheet('Registros');records.append(['Employee ID','Técnico','Grupo','Tipo','Referencia','Descripción','Inicio','Fin','Estado'])
+        for r in report['records']:
+            records.append([safe(r['employee_id']),safe(r['name']),safe(r['group_name']),r['capture_type'],safe(r['reference']),safe(r['description']),r['from_at'],r['to_at'],r['display_status']])
+        summary.append(['Búsqueda',safe(report['filters']['q'])]);summary.append(['Periodos',', '.join(report['months'])]);summary.append(['Registros encontrados',report['record_count']])
+        if len(report['comparison'])>1:
+            comparison=wb.create_sheet('Comparativa');comparison.append(['Mes',*labels])
+            for item in report['comparison']:comparison.append([item['month'],*values(item['minutes'])])
     for sheet in wb:
         for cell in sheet[1]:
             cell.font = Font(bold=True, color='FFFFFF'); cell.fill = PatternFill('solid', fgColor='1C5185')
@@ -1494,7 +1728,8 @@ def analytics_workbook(report):
                 if isinstance(cell.value, float):
                     cell.number_format = '0.00'
     stream = io.BytesIO(); wb.save(stream); stream.seek(0)
-    return StreamingResponse(stream, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment; filename="Operational_Pulse_Analitica_{month}.xlsx"'})
+    period_label=report['months'][0]+'_'+report['months'][-1] if len(report['months'])>1 else month
+    return StreamingResponse(stream, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment; filename="Operational_Pulse_Analitica_{period_label}.xlsx"'})
 
 
 @app.get('/api/export.xlsx')

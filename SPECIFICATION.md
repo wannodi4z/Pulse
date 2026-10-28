@@ -1,4 +1,4 @@
-# Operational Pulse 1.0.5 · especificación de la implementación nueva
+# Operational Pulse 1.1.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -159,3 +159,24 @@ Los usuarios de pruebas únicamente se crean mediante iniciar_pruebas.command/sc
 El ciclo del Timer planificado es SCHEDULED → RUNNING → PAUSED → RUNNING, o COMPLETED al finalizar. Un reloj de servidor y la reconciliación transaccional cierran el tramo exactamente en scheduled_end. Una extensión autorizada actualiza ese límite, pero no reanuda una OT pausada. Se conserva la primera fecha de inicio y cada tramo en timers; la contabilidad une los tramos cerrados, no el intervalo exterior. Históricas y emergencias conservan su cálculo previo. El tiempo real completo requiere aprobación posterior.
 
 API: POST /api/overtime/{id}/extensions, POST /api/extensions/{id}/decision, DELETE /api/extensions/{id}, POST /api/overtime/{id}/finish. El estado filtra extensiones y segmentos por la autoridad vigente. Detener/finalizar revoca solicitudes pendientes; una baja administrativa conserva el trabajo pausado y cierra solicitudes.
+
+
+## Estándar internacional y orden de administración · v1.1.0
+
+La Cuenta se crea primero; contiene varios Managers. Cada Manager contiene Grupos por especialidad y cada Grupo contiene Técnicos. País es un atributo de la Cuenta, no una capa adicional de navegación. Plataforma clasifica el Grupo, no añade una capa entre Manager y Técnico. Un Manager puede administrar especialidades de Mainframe y OPEN / Distribuidos de su misma Cuenta.
+
+Varias Cuentas pueden pertenecer al mismo país. Código de Cuenta: `MX-BNTE`. Código de Grupo: `MX-BNTE-MF-ZOS`, `MX-BNTE-MF-CICS-MQ`, `MX-BNTE-MF-DB2`, `MX-BNTE-OPEN-LINUX`, `MX-BNTE-OPEN-UNIX`, `MX-BNTE-OPEN-ORACLE`. El sistema genera el código y añade `-02`, `-03` si se repite la especialidad. Se permiten especialidades adicionales.
+
+Las claves, IDs, relaciones e historial anteriores se conservan; las claves estandarizadas son metadatos adicionales de las entidades existentes. Un cambio de Manager dentro de la misma Cuenta no cambia el código de sus Grupos.
+
+## Consulta unificada y cronología personal · v1.1.0
+
+Analítica une historial y métricas: filtros, búsqueda y selección de meses determinan registros y horas aprobadas. Comparaciones de hasta 24 meses y Excel usan idénticos criterios. Pendientes/rechazados no aportan horas. Aprobaciones sólo muestra solicitudes/extensiones pendientes. El acceso al equipo requiere Manager o Lead delegado; el Técnico sólo consulta sus registros.
+
+Mi tiempo ordena OT por inicio real o programado, no por creación. Capturas históricas tardías se insertan cronológicamente y conservan fecha de captura. Incluye periodos que cruzan el mes seleccionado. Usa las mismas funciones de detalle, Timer, aprobación y extensión existentes; no crea registros ni cuenta tiempo programado como trabajado. Actualiza después de guardar y con la sincronización habitual de estado.
+
+## Solicitudes de cambio y continuidad del Técnico · v1.1.0
+
+Manager solicita Grupo/especialidad de destino y motivo para un Técnico propio. No se expone el directorio ajeno ni se modifica la persona al solicitar. Admin revisa todas las solicitudes desde Organización y ejecuta usando el traslado existente o rechaza con motivo. La ejecución valida estado pendiente, Técnico/origen vigentes, Timer detenido, destino con Manager activo y Lead único; resolución y traslado se guardan en una transacción. Los Managers sólo ven sus solicitudes.
+
+Los registros permanecen ligados al mismo user_id. Nueva autoridad: responsable actual del Técnico; el anterior pierde acceso. OT/Guardias mantienen datos, aprobaciones y tramos. record_origins conserva el contexto en creación; registros anteriores lo incorporan al trasladarse con marca inferred, sin afirmar un origen que no se había registrado. Detalle muestra la referencia de origen; analítica agrega por pertenencia actual. No se reescriben los tiempos ni snapshots de las reglas de Guardia.

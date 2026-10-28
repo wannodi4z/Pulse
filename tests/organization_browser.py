@@ -20,7 +20,7 @@ try:
     account, first_group, manager, _, _, _ = fixture.organization()
     for i in range(2, 21):
         fixture.group(account, f'GROUP-{i:02}', manager['id'])
-    other_account = fixture.account('OTHER')
+    other_account = fixture.post('/api/accounts',{'code':'OTHER','name':'Otra cuenta','country_code':'MX'})['id']
     other_groups = [fixture.group(other_account, f'OTHER-{i}') for i in range(5)]
     other_manager, _, _ = fixture.person('MANAGER', 'M002', account=other_account, groups=other_groups)
     accent = fixture.post('/api/groups', {'account_id':other_account, 'manager_id':other_manager['id'], 'code':'ANALISIS', 'name':'Infraestructura de Análisis'})['id']
@@ -87,7 +87,8 @@ try:
         # The direct locator also finds a Group created from the redesigned dialog.
         page.set_viewport_size({'width':1280,'height':650})
         page.locator('[data-account="'+other_account+'"] [data-action=group-new]').click()
-        page.locator('#modal [name=code]').fill('CREATED-UI')
+        page.locator('#modal [name=platform_code]').select_option('OPEN')
+        page.locator('#modal [name=service_key]').fill('CREATED-UI')
         page.locator('#modal [name=name]').fill('Grupo creado en interfaz')
         page.locator('#modal [name=manager_id]').select_option(other_manager['id'])
         page.locator('#modal [type=submit]').click();expect(page.locator('#modal')).not_to_be_visible();page.wait_for_function('()=>!busy')

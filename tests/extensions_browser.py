@@ -49,7 +49,7 @@ try:
         expect(page.locator('[data-action=timer-planned]')).to_have_count(1,timeout=8000)
         page.locator('[data-action=timer-planned]').evaluate('(el)=>PulseLayout.reveal(el)');page.locator('[data-action=timer-planned]').click()
         expect(page.locator('.timer-card')).to_have_count(1)
-        mgr=page_for(manager_context,'teamTime')
+        mgr=page_for(manager_context,'dashboard')
         assert mgr.locator('.timer-card').count()==2
         expect(mgr.locator('.timer-list')).to_contain_text('T001');expect(mgr.locator('.timer-list')).to_contain_text('SECOND')
         expect(mgr.locator('.timer-list')).to_contain_text('Grupo G1');expect(mgr.locator('.timer-list')).to_contain_text('Grupo G2')

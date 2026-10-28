@@ -17,7 +17,7 @@ def prepare():
         existing = c.execute("SELECT id FROM accounts WHERE code='PULSE-PRUEBAS'").fetchone()
         account = existing['id'] if existing else server.uid()
         if not existing:
-            c.execute('INSERT INTO accounts VALUES(?,?,?)', (account, 'PULSE-PRUEBAS', 'Cuenta de pruebas'))
+            c.execute('INSERT INTO accounts(id,code,name) VALUES(?,?,?)', (account, 'PULSE-PRUEBAS', 'Cuenta de pruebas'))
         manager = c.execute("SELECT * FROM users WHERE employee_id='MGR0001'").fetchone()
         if manager and manager['role'] != 'MANAGER':
             raise ValueError('MGR0001 ya existe con otro rol. No se modificó.')
@@ -29,7 +29,7 @@ def prepare():
         existing_group = c.execute("SELECT * FROM groups WHERE code='PULSE-GRUPO-PRUEBAS'").fetchone()
         group_id = existing_group['id'] if existing_group else server.uid()
         if not existing_group:
-            c.execute('INSERT INTO groups VALUES(?,?,?,?,?)', (group_id,account,manager_id,'PULSE-GRUPO-PRUEBAS','Grupo de pruebas'))
+            c.execute('INSERT INTO groups(id,account_id,manager_id,code,name) VALUES(?,?,?,?,?)', (group_id,account,manager_id,'PULSE-GRUPO-PRUEBAS','Grupo de pruebas'))
         for employee,password,first,lead in [('SL0001','lead120261','Lead',1),('951357','tecnico12026','Técnico',0)]:
             user = c.execute('SELECT * FROM users WHERE employee_id=?',(employee,)).fetchone()
             if user:

@@ -409,7 +409,7 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(mc.delete('/api/delegations/'+d).status_code,200)
         self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,403)
         exported=mc.get('/api/analytics.xlsx?month=2026-01');self.assertEqual(exported.status_code,200)
-        wb=load_workbook(io.BytesIO(exported.content));self.assertEqual(wb.sheetnames,['Resumen','Por grupo','Por técnico','Detalle'])
+        wb=load_workbook(io.BytesIO(exported.content));self.assertEqual(wb.sheetnames,['Resumen','Por grupo','Por técnico','Detalle','Registros'])
         self.assertEqual(sum(row[-1] for row in list(wb['Por grupo'].values)[1:]),11)
         personal=c1.get('/api/my-analytics.xlsx?month=2026-01');self.assertEqual(personal.status_code,200)
         wb=load_workbook(io.BytesIO(personal.content));values=list(wb['Por técnico'].values)[1:]

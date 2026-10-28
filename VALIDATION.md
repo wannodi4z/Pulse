@@ -1,4 +1,45 @@
-# Validación ejecutada · Operational Pulse 1.0.5
+# Validación ejecutada · Operational Pulse 1.1.0
+
+## Entrega v1.1.0 · 28 de octubre de 2026
+
+Validación real en Linux con Python 3.12, SQLite temporal, FastAPI TestClient y Chromium `/usr/bin/chromium` headless, zoom nativo (sin CSS zoom ni reducción de fuente global). No se probó físicamente en MacBook Air M1, VS Code de Mac ni Safari. Las pruebas de navegador sí se ejecutaron; no se limita la verificación a sintaxis.
+
+- `node --check static/app.js`, `node --check static/layout.js` y compilación Python de servidor/scripts/tests: correctas. Un solo nav/content/app/render/bind y una implementación de cada página principal.
+- `python -m unittest discover -s tests -p 'test_*.py'`: **47 pruebas funcionales PASS**. Incluye instalación limpia sólo admin1/admin2, reinicio sin demos, relaciones y Lead único; Guardia por intervalos, OT/timers/extensiones; analítica, permisos y libros Excel; códigos internacionales; aprovisionamiento Banorte idempotente y conflictos atómicos; solicitudes y movimientos de Técnicos conservando OT/Guardias.
+- `tests/browser_smoke.py`: flujo completo PASS, cero errores JavaScript: navegación, activación, recuperación/regeneración, organización y movimiento, delegación, OT, Guardia, Timer, aprobaciones, analítica, Excel, Claim y ADP.
+- `tests/layout_smoke.py`: **54 combinaciones** de pantalla/rol/vista PASS; arrastre real, cancelar, teclado y bloqueo de traslado con Timer activo. Las dimensiones de escritorio incluyen 1440×780, 1366×700 y 1280×650. No hay una segunda vista de Historial: se integra en Analítica.
+- `tests/organization_browser.py`: PASS, 26 Grupos, búsqueda por código/nombre/Manager, sin acentos, salto entre Cuentas, teclado/ratón, vacíos y creación de Grupo con código automático. Modales medidos a 1440×780, 1280×650 y 390×844.
+- `tests/analytics_browser.py`: PASS, búsqueda global de referencia conserva foco y recalcula registros/totales; pendientes excluidos de horas; comparación de enero/febrero/marzo con 2/3/0 horas y Excel coincidente; Aprobaciones sólo pendientes; vistas y gráficas a 1440/1280/390 sin controles recortados.
+- `tests/timeline_browser.py`: PASS, OT histórica incorporada por fecha de trabajo mediante sincronización sin recargar; orden cronológico, privacidad de otros Técnicos, pendientes con cero horas aprobadas; programación futura informa disponibilidad sin Timer anticipado; Detalle y ajuste a 1440/1280/390.
+- `tests/transfers_browser.py`: PASS, Manager solicita desde Mi equipo, Admin revisa y ejecuta desde Organización, nuevo Manager ve OT previa pendiente, origen conservado. Modales de solicitud/revisión medidos a 1440/1280/390; formularios extensos se presentan en pasos cuando hace falta, sin scroll del modal.
+- `tests/extensions_browser.py`: PASS, dos Técnicos/Grupos con Timer visibles en Panel del Manager, pausa exacta con todas las páginas cerradas, solicitar/autorizar/reanudar/finalizar en UI, espera excluida y refresco diferido al cerrar un diálogo.
+- `tests/rules_browser.py`: PASS, cinco intervalos, recarga/reapertura, modificar/agregar/eliminar y guardar; comparación exacta de valores a 1280×650.
+- `tests/ot_browser.py`: PASS, confirmaciones/códigos/resultados de acceso en tres dimensiones; clasificación automática pasada/futura/en curso con otra zona horaria del navegador y OT histórica persistida.
+- `scripts/prepare_banorte_users.py` ejecutado explícitamente en la base normal del entorno de desarrollo: Banorte/MX-BNTE, seis Grupos Mainframe/OPEN; login real API de MGR0001, SL0001 y 951357 con las contraseñas solicitadas. La base del Mac sólo se actualizará cuando se ejecute `bash configurar_banorte.command` allí. No se incluye SQLite ni claves en la entrega.
+
+Límites: los tamaños comprobados son viewports de navegador, no una reproducción física de la pantalla del Mac. Los registros anteriores sin origen registrado incorporan una referencia marcada como inferida al trasladarse. Analítica agrupa según pertenencia actual del Técnico; Detalle conserva el contexto de origen. No se generaron notificaciones ni se desplegó un servidor público.
+
+Comandos de esta entrega:
+
+```bash
+node --check static/app.js
+node --check static/layout.js
+.venv/bin/python -m compileall -q server.py scripts tests
+.venv/bin/python -m unittest discover -s tests -p 'test_*.py'
+PULSE_CHROMIUM_EXECUTABLE=/usr/bin/chromium .venv/bin/python tests/browser_smoke.py
+PULSE_CHROMIUM_EXECUTABLE=/usr/bin/chromium .venv/bin/python tests/layout_smoke.py
+.venv/bin/python tests/organization_browser.py
+.venv/bin/python tests/analytics_browser.py
+.venv/bin/python tests/timeline_browser.py
+.venv/bin/python tests/transfers_browser.py
+.venv/bin/python tests/extensions_browser.py
+.venv/bin/python tests/rules_browser.py
+.venv/bin/python tests/ot_browser.py
+```
+
+## Registro de validaciones anteriores
+
+Los apartados siguientes son históricos; los conteos y comandos de versiones anteriores no describen la entrega actual.
 
 Fecha: 27 de octubre de 2026, zona de referencia America/Mexico_City.
 

@@ -25,7 +25,6 @@ window.PulseLayout=(()=>{
     const bundle=(nodes,label)=>{nodes=nodes.filter(Boolean);if(!nodes.length)return;const section=document.createElement('section');section.className='workspace-view';section.dataset.viewLabel=label;main.insertBefore(section,nodes[0]);nodes.forEach(n=>section.append(n));return section;};
     if(key==='organization'){pin('.organization-finder');pin('.organization-summary');}
     if(key==='teamTime')pin('.filters');
-    if(key==='analytics'){pin('.team-view-tabs');pin('.filters');}
     if(key==='team')pin('.delegation-summary');
     if(key==='time'){
       pin('.time-actions');
@@ -33,9 +32,9 @@ window.PulseLayout=(()=>{
     }
     if(key==='claim'||key==='adp')pin('.capture-summary');
     if(key==='analytics'||key==='myAnalytics'){
-      pin('.analytics-filters');pin('.analytics-personal-scope');
+      pin('.analytics-filters');pin('.analytics-personal-scope');if(key==='analytics')pin('.analytics-metrics');
       const charts=q(':scope > .analytics-charts',main),metrics=q(':scope > .analytics-metrics',main),criteria=q(':scope > .analytics-criteria',main),method=q(':scope > .analytics-method',main);
-      bundle([metrics,charts,criteria,method],'Resumen mensual');
+      if(key==='myAnalytics')bundle([metrics,charts,criteria,method],'Resumen mensual');
     }
     if(key==='dashboard'){
       q(':scope > .welcome-banner',main)?.remove();
