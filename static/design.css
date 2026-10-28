@@ -356,3 +356,17 @@ dialog.organizer-dialog:not([open]){display:none!important}
 @media(max-width:1100px) and (min-width:701px){.manager-main-actions{flex-direction:column;gap:5px!important}.manager-main-actions .entity-more{position:absolute;right:8px;top:9px}.manager-header{position:relative;padding-right:32px!important}.manager-primary{min-width:145px;flex-basis:180px}.manager-backup-inline{min-width:220px}.account-main-actions button{font-size:11px!important;padding:6px 8px!important}.manager-jump{width:170px;flex-basis:170px}}
 @media(max-width:700px){.account-main-actions{flex-wrap:wrap}.manager-jump{max-width:none;flex-basis:100%;width:100%;margin:3px 0}.manager-main-actions{flex-wrap:wrap;margin-left:auto}.manager-primary{flex:1;min-width:140px}.manager-backup-inline{min-width:0;flex-basis:100%}.manager-backup-inline .backup-identity strong{font-size:12px!important}.account-main-actions button,.manager-main-actions button,.manager-backup-inline .secondary{font-size:11px!important;min-height:32px!important;padding:6px 8px!important}}
 .organization-context{padding-bottom:6px!important}#main:has(.organization-context)>.viewport-sections{padding-bottom:6px}
+
+/* Organization keeps every Manager in the Account; only the content area scrolls. */
+.organization-stage{overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+.organization-stage .account-body>.manager-block{display:block!important;border-bottom:1px solid #e4ebf3;padding-bottom:18px;margin-bottom:18px}
+.organization-stage .manager-header{display:grid;grid-template-columns:minmax(170px,1fr) minmax(250px,1.5fr);align-items:center;gap:14px}
+.organization-stage .manager-backup-inline{display:grid;grid-template-columns:1fr;max-width:none;min-width:0}
+.organization-stage .manager-backup-inline .direct-lead-person{align-items:center}
+.organization-stage .manager-main-actions{grid-column:1/-1;flex-direction:row;justify-content:flex-end;position:static}
+.organization-stage .manager-main-actions .entity-more{position:static}
+.organization-stage .manager-backup-inline button.secondary,.organization-stage .manager-backup-inline .entity-more,.organization-stage .manager-main-actions button{height:34px!important;min-height:34px!important;box-sizing:border-box;margin:0;align-self:center}
+.organization-stage .manager-backup-inline .entity-more{width:34px;min-width:34px}
+.organization-stage .group-grid>.empty-state{grid-column:1/-1;text-align:center}
+@media(max-width:700px){.organization-stage .manager-header{grid-template-columns:1fr}.organization-stage .manager-main-actions{justify-content:flex-start;flex-wrap:wrap}}
+.organization-stage .manager-main-actions>.entity-more{order:0}

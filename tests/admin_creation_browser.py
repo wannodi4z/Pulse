@@ -24,12 +24,15 @@ try:
   for width,height in [(1440,780),(1366,700),(1280,650)]:
    page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(150)
    assert page.evaluate('document.documentElement.scrollHeight<=innerHeight && document.documentElement.scrollWidth<=innerWidth')
-   issues=block.evaluate('''el=>{const b=document.querySelector('.viewport-stage').getBoundingClientRect();const buttons=[...el.querySelectorAll('button,select')].filter(n=>n.getClientRects().length);return buttons.map(n=>{const r=n.getBoundingClientRect();return {text:n.textContent.slice(0,30),bottom:r.bottom-b.bottom,right:r.right-b.right,left:r.left-b.left}}).filter(r=>r.bottom>2||r.right>1||r.left< -1)}''');assert not issues,(width,issues)
-   lead=block.locator('.direct-lead-person:visible .backup-identity strong');assert lead.evaluate('(el)=>getComputedStyle(el).whiteSpace!=="nowrap"&&el.scrollHeight<=el.clientHeight+1')
-   buttons=block.locator('.manager-main-actions:visible button').all()
+   expect(block.locator('.manager-block')).to_have_count(2)
+   expect(page.locator('[data-action=organization-density]')).to_have_count(0)
+   expect(block.locator('[data-manager-jump]')).to_have_count(0)
+   buttons=block.locator('.manager-main-actions:visible').first.locator('button:visible').all()
    boxes=[b.bounding_box() for b in buttons]
-   assert all(b['height']>=30 for b in boxes)
-   assert all(boxes[i]['x']+boxes[i]['width']<=boxes[i+1]['x']+1 for i in range(len(boxes)-1))
+   assert all(b['height']==34 for b in boxes)
+   assert max(b['y'] for b in boxes)-min(b['y'] for b in boxes)<1
+   assert block.locator('.manager-block.viewport-off').count()==0
+   assert all(boxes[i]['x']+boxes[i]['width']<=boxes[i+1]['x']+1 for i in range(len(boxes)-1)), (width,boxes)
   def fill(name,value):
    node=page.locator('#modal [name='+name+']');node.evaluate('(el)=>PulseLayout.reveal(el)');node.fill(value)
   def save():
@@ -43,7 +46,8 @@ try:
   expect(page.locator('#modal [name=account_id]')).to_have_value(a['id']);save();expect(page.locator('.secret-code')).to_be_visible();code=page.locator('.secret-code').inner_text()
   assert context.request.post(base+'/api/activate',data={'identity':'EXTRA-MGR','code':code,'password':'ExtraManager2026!'}).ok
   page.locator('#modal [data-action=close]').first.click();state=context.request.get(base+'/api/state').json();extra=next(u for u in state['people'] if u['employee_id']=='EXTRA-MGR')
-  expect(block.locator('[data-manager-jump]')).to_have_value(extra['id'])
+  expect(block.locator('.manager-block')).to_have_count(3)
+  expect(block.locator('[data-manager="'+extra['id']+'"] .group-grid')).to_contain_text('Sin Grupos asignados')
   manager=block.locator('[data-manager="'+extra['id']+'"]');expect(manager.locator('[data-action=lead-new]')).to_be_visible();manager.locator('[data-action=lead-new]').click()
   expect(page.locator('#modal [name=manager_id]')).to_have_value(extra['id']);expect(page.locator('#modal [name=is_lead]')).to_be_checked()
   expect(page.locator('#modal [name=group_id]')).not_to_be_visible()
@@ -58,7 +62,7 @@ try:
   lead=next(u for u in state['people'] if u['employee_id']=='EXTRA-LEAD');assert lead['manager_id']==extra['id'] and lead['group_id'] is None
   assert any(g['name']=='Laboratorio del Manager adicional' and g['manager_id']==extra['id'] for g in state['groups'])
   assert not errors,errors
-  print('PASS: two Managers per Account and four direct Leads; visible aligned Account/Manager/Lead actions and full Lead names at 1440/1366/1280; Manager selector; third Manager created without cap; new Manager focused automatically; direct Add Lead with correct parent; Edit Lead after assignment; contextual Add Group saves correct owner; zero JS errors')
+  print('PASS: two Managers per Account and four direct Leads; visible aligned Account/Manager/Lead actions and full Lead names at 1440/1366/1280; all Manager blocks retained without selector or density toggle; third Manager created without cap; new Manager focused automatically; direct Add Lead with correct parent; Edit Lead after assignment; contextual Add Group saves correct owner; zero JS errors')
   browser.close()
 finally:
  if process:process.terminate();process.wait(timeout=10)

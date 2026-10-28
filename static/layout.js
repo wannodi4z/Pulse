@@ -54,7 +54,7 @@ window.PulseLayout=(()=>{
     const heading=q(':scope > .page-heading',main),footer=q(':scope > .main-footer',main);
     const {sticky,items}=compose(main,key,heading,footer);
     if(!items.length)return;
-    const stage=document.createElement('div');stage.className='viewport-stage';main.insertBefore(stage,footer);
+    const stage=document.createElement('div');stage.className='viewport-stage'+(key==='organization'?' organization-stage':'');main.insertBefore(stage,footer);
     sticky.forEach(n=>main.insertBefore(n,stage));
     items.forEach(n=>stage.append(n));
     const bar=document.createElement('nav');bar.className='viewport-sections';bar.setAttribute('aria-label','Secciones de esta página');
@@ -77,7 +77,7 @@ window.PulseLayout=(()=>{
     const lists=all(selectors,root).reverse();
     if(root.matches(selectors))lists.push(root);
     lists.forEach((list,li)=>{
-      if(list._viewport||!list.getClientRects().length)return;
+      if(list.matches('.account-body')||list._viewport||!list.getClientRects().length)return;
       if(list.matches('.rule-segments')&&root.getBoundingClientRect().height<=budget)return;
       const children=[...list.children].filter(n=>!n.classList.contains('viewport-pagination'));
       if(children.length<2)return;

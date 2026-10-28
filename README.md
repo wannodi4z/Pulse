@@ -1,6 +1,12 @@
-# Operational Pulse · 1.1.4
+# Operational Pulse · 1.1.5
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Ajustes de Organización · v1.1.5
+
+Vista detallada fija sin botón de alternancia. Cada Cuenta muestra todos sus Managers, incluso sin Grupos; se eliminó el selector que ocultaba a los demás. Los botones Editar Lead, su menú y las acciones del Manager comparten fila y altura. Si hay muchos equipos, el área central tiene desplazamiento interno para conservarlos accesibles.
+
+Validación: sintaxis JavaScript, compilación Python y flujo Admin en Chromium a 1440×780, 1366×700 y 1280×650; creación de un tercer Manager, su Lead y su Grupo. No se ejecutaron pruebas en un Mac físico.
 
 ## Proyecto completo de pruebas · v1.1.4
 
