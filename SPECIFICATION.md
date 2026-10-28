@@ -1,4 +1,4 @@
-# Operational Pulse 1.1.2 · especificación de la implementación nueva
+# Operational Pulse 1.1.3 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -187,3 +187,11 @@ Los registros permanecen ligados al mismo user_id. Nueva autoridad: responsable 
 ## Distribución de pruebas v1.1.2
 
 El fixture SQLite contiene únicamente los dos administradores, los tres accesos de ejemplo activos, Banorte y seis Grupos, además de auditoría de configuración. No hay sesiones, registros de tiempo ni delegaciones. Se copia atómicamente a la base predeterminada sólo si ésta no existe y no se definió PULSE_DB_PATH. Una base existente gana incluso si otra instancia la creó durante el inicio. Nunca se reponen contraseñas ni se restauran ejemplos en reinicios. El modo limpio sigue disponible con ruta explícita o sin fixtures.
+
+## Organización y ejemplos v1.1.3
+
+Vista inicial de cuatro Grupos en 2×2, probada a 1440×780 y 1280×650. Detalle accesible desde el conteo de personas o selector de densidad. Lead en cabecera de Manager con acción directa Agregar/Editar, fuera de la cuadrícula de Grupos. Recuento de Técnicos excluye Leads.
+
+Organizador Admin con origen/destino, búsqueda de personas, arrastre nativo y alternativa por botones, cambios temporales deshacibles y revisión con motivo. POST /api/admin/organization/transfers valida de uno a cien movimientos únicos en una transacción SQLite: Admin, Técnico vigente sin capacidad Lead, origen actual, destino con Manager activo y sin Timer en ejecución. Si falla uno no se aplica ninguno. Preserva los registros y sus snapshots, actualiza pertenencia, revoca autoridad anterior, reabre recuperaciones cuando cambia responsable, invalida sesiones y registra auditoría por persona y lote. No decide automáticamente solicitudes administrativas anteriores; una solicitud desactualizada se revisa/rechaza explícitamente.
+
+La base de ejemplo contiene Banorte y Acme México, un Manager y un Lead directo por Cuenta, doce Técnicos y nueve Grupos. 951357 corresponde a Samuel Alejandro Díaz Chávez. scripts/prepare_example_teams.py es un configurador explícito para instalaciones anteriores, usado por configurar_banorte.command. El inicio ordinario sólo copia el fixture si no existe la base predeterminada y no se especificó PULSE_DB_PATH.

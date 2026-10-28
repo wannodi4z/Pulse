@@ -54,7 +54,7 @@ class BanorteSetupTests(unittest.TestCase):
             self.assertIsNotNone(c.execute('SELECT id FROM overtime WHERE id=?',(ot,)).fetchone())
             for original in (lead,tech):
                 saved=dict(c.execute('SELECT * FROM users WHERE id=?',(original['id'],)).fetchone())
-                self.assertEqual(saved['group_id'],None if original['is_lead'] else group);self.assertEqual(saved['first'],original['first']);self.assertEqual(saved['last'],original['last'])
+                self.assertEqual(saved['group_id'],None if original['is_lead'] else group);self.assertEqual(saved['first'],'Samuel Alejandro' if original['employee_id']=='951357' else original['first']);self.assertEqual(saved['last'],'Díaz Chávez' if original['employee_id']=='951357' else original['last'])
             self.assertEqual(c.execute('SELECT count(*) FROM groups WHERE manager_id=?',(manager['id'],)).fetchone()[0],7)
         self.f.login(tc,'951357','tecnico12026')
 

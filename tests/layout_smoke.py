@@ -39,6 +39,7 @@ def run():
                     # Actual HTML drag-and-drop: preview/cancel, confirm and keyboard fallback.
                     login('admin1','admin12026');page.goto(base);page.locator('.sidebar [data-page=organization]').click()
                     page.wait_for_function('()=>page==="organization" && document.querySelector(".account-block")')
+                    page.locator("[data-action=organization-density]").click();page.wait_for_function("()=>!busy")
                     state=context.request.get(base+'/api/state').json();tech=next(n for n in state['people'] if n['employee_id']=='T1')
                     card=page.locator('[data-person="'+tech['id']+'"]');target=page.locator('[data-group="'+groups[0]+'"] > header')
                     card.evaluate('(el)=>PulseLayout.reveal(el)')
@@ -80,7 +81,7 @@ def run():
                     timer_context=browser.new_context();timer_api=timer_context.request
                     assert timer_api.post(base+'/api/login',data={'identity':'T2','password':'Password2026!'}).ok
                     running=timer_api.post(base+'/api/timers/start',data={}).json()
-                    page.reload();page.locator('.sidebar [data-page=organization]').click()
+                    page.reload();page.locator('.sidebar [data-page=organization]').click();page.wait_for_function('()=>!busy');page.locator('[data-action=organization-density]').click();page.wait_for_function('()=>!busy')
                     timer_user=next(n for n in context.request.get(base+'/api/state').json()['people'] if n['employee_id']=='T2')
                     timer_card=page.locator('[data-person="'+timer_user['id']+'"]');timer_card.evaluate('(el)=>PulseLayout.reveal(el)')
                     expect(timer_card).to_have_attribute('draggable','false')

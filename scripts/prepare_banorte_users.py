@@ -18,7 +18,7 @@ def provision():
         elif not account['country_code']:
             c.execute("UPDATE accounts SET country_code='MX',base_code='BNTE' WHERE id=?",(aid,))
         account=dict(server.get(c,'accounts',aid))
-        specs=[('MGR0001','manager12026','MANAGER','Manager',False),('SL0001','lead120261','USER','Lead',True),('951357','tecnico12026','USER','Técnico',False)]
+        specs=[('MGR0001','manager12026','MANAGER','Manager',False),('SL0001','lead120261','USER','Francisco',True),('951357','tecnico12026','USER','Samuel Alejandro',False)]
         existing={emp:c.execute('SELECT * FROM users WHERE employee_id=?',(emp,)).fetchone() for emp,*_ in specs}
         for emp,_,role,_,_ in specs:
             user=existing[emp]
@@ -31,7 +31,7 @@ def provision():
             raise ValueError('MGR0001 pertenece a otra Cuenta. Usa Organización para transferirlo primero.')
         if not manager:
             c.execute('INSERT INTO users(id,role,username,employee_id,first,last,email,account_id,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
-                      (mid,'MANAGER','MGR0001','MGR0001','Manager','Pruebas','manager@example.test',aid,'PENDING_ACTIVATION',server.now()))
+                      (mid,'MANAGER','MGR0001','MGR0001','Yao','Pegueros','manager@example.test',aid,'PENDING_ACTIVATION',server.now()))
         groups=[]
         for n,(platform,service,label) in enumerate([('MF','ZOS','z/OS'),('OPEN','LINUX','Linux'),('MF','CICS-MQ','CICS/MQ'),('MF','DB2','Db2'),('OPEN','UNIX','Unix'),('OPEN','ORACLE','Oracle')],1):
             code=f'BNTE-PRUEBA-{n:02}'
@@ -60,12 +60,17 @@ def provision():
                     gid=user['group_id']  # Keep existing Banorte memberships and all their history.
                 if not user:
                     c.execute('INSERT INTO users(id,role,username,employee_id,first,last,email,group_id,is_lead,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-                              (identity,role,emp,emp,first,'Pruebas',emp+'@example.test',gid,int(lead),'PENDING_ACTIVATION',server.now()))
+                              (identity,role,emp,emp,first,'Cervantes Marquez' if lead else 'Díaz Chávez',emp+'@example.test',gid,int(lead),'PENDING_ACTIVATION',server.now()))
                 else:
                     c.execute('UPDATE users SET group_id=?,is_lead=?,manager_id=? WHERE id=?',(gid,int(lead),mid if lead else None,identity))
                     if user['is_lead'] and not lead:
                         server.revoke_authority(c,None,'Configuración explícita de accesos BNTE',lead_ids=[identity])
             if role=='USER':c.execute('UPDATE users SET manager_id=? WHERE id=?',(mid if lead else None,identity))
+            if emp=='951357':
+                saved=server.get(c,'users',identity)
+                if saved['first']!='Samuel Alejandro' or saved['last']!='Díaz Chávez':
+                    c.execute('UPDATE users SET first=?,last=? WHERE id=?',('Samuel Alejandro','Díaz Chávez',identity))
+                    server.audit(c,None,'CONFIGURE_EXAMPLE_IDENTITY',identity,{'employee_id':emp})
             current=server.get(c,'users',identity)
             changed=current['status']!='ACTIVE' or not server.password_matches(password,current['password_hash'])
             if changed:

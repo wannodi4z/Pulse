@@ -2,6 +2,12 @@
 
 La entrega vigente es la primera entrada. Las versiones repetidas en entradas antiguas corresponden a reinicios de numeración solicitados durante el diseño.
 
+## v1.1.3 · 28 de octubre de 2026
+
+- Ejemplos ampliados a dos Cuentas, dos Managers, sus dos Leads, doce Técnicos y nueve Grupos; 951357 es Samuel Alejandro Díaz Chávez. Se conservan los tres accesos originales.
+- Organización muestra cuatro Grupos en 2×2, con vista detallada disponible. Lead en cabecera del Manager, con Agregar/Editar explícitos.
+- Organizador por arrastres con dos Grupos a la vista, búsqueda, alternativa por botones, deshacer, cancelar y revisión de varios movimientos con motivo. Aplicación atómica por Admin, preservando OT/Guardias/historial y validando Timers, permisos y origen vigente.
+
 ## v1.1.2 · 28 de octubre de 2026
 
 - ZIP de pruebas con Banorte, seis Grupos y los tres usuarios solicitados ya activos. El primer inicio prepara la base de ejemplo automáticamente sólo si falta la base por defecto; no requiere configurador aparte.

@@ -1,4 +1,13 @@
-# Validación ejecutada · Operational Pulse 1.1.2
+# Validación ejecutada · Operational Pulse 1.1.3
+
+## Entrega v1.1.3 · 28 de octubre de 2026
+
+- **59 pruebas API PASS** en Linux/Python 3.12. Incluyen los accesos originales y nuevos sin configurador en una carpeta nueva; nombre de Samuel; conservación en reinicios; lote Admin entre Cuentas con OT/Guardias intactas y nueva autoridad; rollback de todos los movimientos si un Timer está activo; bloqueo de otros roles, Leads, duplicados y origen desactualizado.
+- `tests/organizer_browser.py` PASS con Chromium real: cuatro Grupos visibles a 1440×780 y 1280×650 sin controles fuera del área central; Lead en cabecera con Agregar/Editar; arrastre nativo con borrador y cancelación sin escritura; alternativa por botones; revisión y confirmación entre Cuentas. Tablero y revisión medidos a 1440×780, 1280×650 y 390×844; cero errores JavaScript.
+- `tests/browser_smoke.py`: flujo completo PASS, cero errores JavaScript; navegación, organización detallada, usuarios/Lead, OT/Guardias, Timers, aprobaciones, analítica, Excel, Claim/ADP y ciclo de baja/reactivación.
+- `tests/layout_smoke.py`: 54 combinaciones PASS, arrastre nativo, cancelación, alternativa de teclado y bloqueo con Timer activo.
+- Sintaxis de app.js/layout.js y compilación Python correctas. Base incluida sin sesiones, OT, Guardias, Timers ni delegación; usuarios de ejemplo activos.
+- No se probó físicamente en MacBook Air M1 ni Safari. Las listas extensas se paginan; se verificaron los tamaños indicados con zoom nativo, sin escalado CSS.
 
 ## Entrega v1.1.2 · 28 de octubre de 2026
 

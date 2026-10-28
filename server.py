@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.1.2'
+VERSION = '1.1.3'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -906,6 +906,38 @@ def capture_origin(c, record_id, user, inferred=False):
     g=dict(get(c,'groups',user['group_id']));a=dict(get(c,'accounts',g['account_id']))
     snapshot={'group_id':g['id'],'group_name':g['name'],'group_code':group_display_code(g,a),'account_name':a['name'],'account_code':account_display_code(a),'manager_id':g['manager_id'],'inferred':inferred}
     c.execute('INSERT OR IGNORE INTO record_origins VALUES(?,?)',(record_id,json.dumps(snapshot)))
+
+
+@app.post('/api/admin/organization/transfers')
+def organize_technicians(data:dict=Body(...),actor=Depends(admin)):
+    reason=text(data,'reason');moves=data.get('moves')
+    if not isinstance(moves,list) or not 1<=len(moves)<=100:fail('Revisa entre 1 y 100 movimientos por operación.')
+    with connection(True) as c:
+        prepared=[];seen=set()
+        for move in moves:
+            if not isinstance(move,dict):fail('Movimiento no válido.')
+            identity=text(move,'user_id')
+            if identity in seen:fail('Un Técnico sólo puede tener un destino en esta operación.')
+            seen.add(identity);user=get(c,'users',identity)
+            if user['role']!='USER' or user['is_lead'] or user['status']=='DISABLED':fail('Sólo se organizan Técnicos vigentes. El Lead se asigna directamente al Manager.')
+            if text(move,'from_group_id')!=user['group_id']:fail('Un Técnico cambió de Grupo. Cierra el organizador y actualiza antes de intentarlo otra vez.',409)
+            destination=get(c,'groups',text(move,'to_group_id'))
+            if destination['id']==user['group_id']:fail('El origen y destino deben ser distintos.')
+            if not destination['manager_id'] or get(c,'users',destination['manager_id'])['status']!='ACTIVE':fail('El Grupo de destino necesita un Manager activo.')
+            if c.execute('SELECT 1 FROM timers WHERE user_id=? AND end_at IS NULL',(identity,)).fetchone():fail('Detén el Timer de '+user['employee_id']+' antes de moverlo.')
+            prepared.append((user,destination))
+        batch_id=uid()
+        for user,destination in prepared:
+            old_owner=owner_manager(c,user)
+            for table in ('overtime','guards'):
+                for record in c.execute('SELECT id FROM '+table+' WHERE user_id=?',(user['id'],)).fetchall():capture_origin(c,record['id'],user,inferred=True)
+            revoke_authority(c,actor,reason,lead_ids=[user['id']])
+            if old_owner!=destination['manager_id']:reopen_recoveries(c,actor,[user['id']],reason)
+            invalidate_sessions(c,user['id'])
+            c.execute('UPDATE users SET group_id=? WHERE id=?',(destination['id'],user['id']))
+            audit(c,actor,'TRANSFER_PERSON',user['id'],{'from_group':user['group_id'],'to_group':destination['id'],'from_manager':old_owner,'to_manager':destination['manager_id'],'reason':reason,'batch_id':batch_id})
+        audit(c,actor,'ORGANIZE_TECHNICIANS',batch_id,{'count':len(prepared),'reason':reason})
+    return {'ok':True,'moved':len(prepared),'batch_id':batch_id}
 
 
 @app.post('/api/transfer-requests')

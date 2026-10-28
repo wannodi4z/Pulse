@@ -23,7 +23,7 @@ window.PulseLayout=(()=>{
     const sticky=[];
     const pin=selector=>{const node=q(':scope > '+selector,main);if(node){node.classList.add('workspace-context');sticky.push(node);}};
     const bundle=(nodes,label)=>{nodes=nodes.filter(Boolean);if(!nodes.length)return;const section=document.createElement('section');section.className='workspace-view';section.dataset.viewLabel=label;main.insertBefore(section,nodes[0]);nodes.forEach(n=>section.append(n));return section;};
-    if(key==='organization'){pin('.organization-finder');pin('.organization-summary');}
+    if(key==='organization'){const context=bundle([q(':scope > .organization-finder',main),q(':scope > .organization-summary',main)],'Buscar y filtrar');if(context){context.classList.add('organization-context');pin('.organization-context');}}
     if(key==='teamTime')pin('.filters');
     if(key==='team')pin('.delegation-summary');
     if(key==='time'){
@@ -77,14 +77,14 @@ window.PulseLayout=(()=>{
     const lists=all(selectors,root).reverse();
     if(root.matches(selectors))lists.push(root);
     lists.forEach((list,li)=>{
-      if(list._viewport)return;
+      if(list._viewport||!list.getClientRects().length)return;
       if(list.matches('.rule-segments')&&root.getBoundingClientRect().height<=budget)return;
       const children=[...list.children].filter(n=>!n.classList.contains('viewport-pagination'));
       if(children.length<2)return;
       const table=list.tagName==='TBODY';const height=children.reduce((total,n)=>total+n.getBoundingClientRect().height,0);
       if(height<Math.max(130,budget*.55)&&root.getBoundingClientRect().height<=budget)return;
       const overhead=Math.max(70,root.getBoundingClientRect().height-height)+42;
-      let size=table?Math.max(1,Math.floor((budget-overhead)/Math.max(45,height/children.length))):list.matches('.organization-board')&&innerWidth>=1050?2:1;
+      let size=table?Math.max(1,Math.floor((budget-overhead)/Math.max(45,height/children.length))):list.matches('.organization-board')&&innerWidth>=1050?(root.classList.contains('organization-overview')?4:2):1;
       size=Math.min(size,children.length);if(size>=children.length)return;
       const count=Math.ceil(children.length/size),id=key+':list:'+li;
       const label=table?'Filas':list.matches('.timer-list')?'Timers':list.matches('.timer-segment-list')?'Tramos':list.matches('.technicians')?'Técnicos':list.matches('.group-grid')?(q('.direct-lead',list)?'Grupos y Lead':'Grupos'):list.matches('.account-body')?'Managers':list.matches('.rule-intervals')?'Intervalos':list.matches('.rule-segments')?'Días':list.matches('.rules-grid')?'Reglas':'Elementos';
