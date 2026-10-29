@@ -489,10 +489,16 @@ function groupModal(id='',aid='',mid=''){
   const g=group(id)||{},selected=g.account_id||aid||state.accounts[0]?.id;
   if(!selected)return toast('Crea una Cuenta primero.',true);
   if(isManager()){
-   showModal(id?'Editar Grupo':'Nuevo Grupo',form('group',`<input type="hidden" name="account_id" value="${esc(me().account_id)}"><input type="hidden" name="manager_id" value="${esc(me().id)}"><input type="hidden" name="platform_code" value="${esc(g.platform_code||'')}"><p class="admin-dialog-intro">El Grupo pertenecerá a tu equipo y a tu Cuenta. Después podrás agregar o mover Técnicos.</p>${field('service_key','Especialidad *',g.service_key||'','text','required maxlength="50" list="service-catalog" placeholder="Ej. Linux, Oracle o z/OS"')}${field('name','Nombre del Grupo *',g.name,'text','required maxlength="100"')}<datalist id="service-catalog"></datalist><p class="code-preview">Código sugerido: <output name="code_preview"></output>. Se confirma al guardar.</p>`,id,id?'Guardar cambios':'Crear Grupo'));$('#modal').classList.add('admin-dialog');syncGroupCode();return;
+   showModal(id?'Editar Grupo':'Nuevo Grupo',form('group',`<input type="hidden" name="account_id" value="${esc(me().account_id)}"><input type="hidden" name="manager_id" value="${esc(me().id)}"><input type="hidden" name="platform_code" value="${esc(g.platform_code||'')}"><p class="admin-dialog-intro">El Grupo pertenecerá a tu equipo y a tu Cuenta. Después podrás agregar o mover Técnicos.</p>${field('service_key','Especialidad *',g.service_key||'','text','required maxlength="50" list="service-catalog" placeholder="Ej. Linux, Oracle o z/OS"')}${field('name','Nombre del Grupo *',g.name,'text','required maxlength="100"')}<datalist id="service-catalog"></datalist><p class="code-preview">Código sugerido: <output name="code_preview"></output>. Se confirma al guardar.</p>`,id,id?'Guardar cambios':'Crear Grupo'));$('#modal').classList.add('admin-dialog');syncGroupCode();if(id)$('#modal .dialog-footer').insertAdjacentHTML('afterbegin',btn('Eliminar Grupo','group-delete',id,'secondary group-removal-trigger'));return;
   }
   showModal(id?'Editar Grupo':'Nuevo Grupo',form('group',`<p class="entity-form-note">Busca una especialidad o escribe una nueva. Se guardará en el catálogo de esta Cuenta.</p><input type="hidden" name="platform_code" value="${esc(g.platform_code||'')}"><div class="form-grid">${select('account_id','Cuenta *',options(state.accounts,selected,x=>entityCode(x)+' · '+x.name),'required')}${select('manager_id','Manager',managerOptions(selected,g.manager_id||mid))}</div><div class="form-grid">${field('service_key','Especialidad *',g.service_key||'','text','required maxlength="50" list="service-catalog" placeholder="Ej. Linux y Oracle" autocomplete="off"')}${field('name','Nombre del Grupo *',g.name,'text','required maxlength="100" placeholder="Ej. Operación distribuida · Producción"')}</div><datalist id="service-catalog"></datalist><p class="entity-form-note code-preview">Código: <output name="code_preview"></output></p>`,id,id?'Guardar cambios':'Crear Grupo'));
   $('#modal').classList.add('entity-dialog','group-dialog');syncGroupCode();
+}
+async function groupRemovalModal(id){
+ const impact=await api('/api/groups/'+id+'/removal-impact'),members=impact.members;
+ showModal('Eliminar Grupo',form('group-removal',`<input type="hidden" name="expected" value="${esc(impact.expected)}"><div class="group-removal-summary"><span class="entity-overline">GRUPO A ELIMINAR</span><strong>${esc(impact.group.name)}</strong><small>${esc(entityCode(impact.group))} · ${members.length} Técnicos</small></div><p class="callout">${members.length?'Antes de eliminar el Grupo, mueve a todos sus Técnicos a otro Grupo de tu equipo.':'Este Grupo no tiene Técnicos asignados.'} Se conservan la identidad y el historial de OT, Guardias y traslados.</p>${members.length?`<div class="group-removal-members">${members.map(p=>`<span>${esc(full(p))}<small>${esc(p.employee_id)} · ${esc(statuses[p.status])}</small></span>`).join('')}</div>${select('destination_group_id','Mover Técnicos al Grupo *',options(impact.destinations,'',g=>g.name+' · '+entityCode(g),'Selecciona el Grupo receptor'),'required')}${!impact.destinations.length?'<p class="group-removal-warning">Crea primero otro Grupo en tu equipo para recibir a los Técnicos.</p>':''}`:''}${field('reason','Motivo *','','text','required maxlength="2000"')}<label class="checkbox"><input type="checkbox" name="confirm" required><span>Revisé el destino y confirmo eliminar el Grupo.</span></label>`,id,members.length?'Mover y eliminar Grupo':'Eliminar Grupo'));
+ $('#modal').classList.add('admin-dialog','group-removal-dialog');$('#modal .form-instructions')?.remove();
+ if(members.length&&!impact.destinations.length)$('#modal [type=submit]').disabled=true;
 }
 function syncGroupCode(){
  const f=$('[data-form=group]');if(!f)return;
@@ -807,7 +813,6 @@ async function perform(action,id,button){
   if(action!=='entity-menu')closeEntityMenu();
   const confirmations={
     'account-delete':['Eliminar Cuenta','Sólo se puede eliminar una Cuenta vacía. Primero mueve o elimina sus Grupos.'],
-    'group-delete':['Eliminar Grupo','Sólo se elimina un Grupo sin personas ni historial. Conserva los Grupos con registros para mantener su trazabilidad.'],
     'activation-code':['Regenerar activación','El código anterior dejará de funcionar. Comparte el nuevo código con la persona por un canal corporativo.'],
     'rule-delete':['Eliminar regla de Guardia','La regla dejará de estar disponible para nuevas solicitudes. Las Guardias existentes conservan su cobertura y su historial.'],
     'paused-finish':['Finalizar OT pausada','Se enviará a revisión únicamente el tiempo trabajado. Las solicitudes de extensión pendientes se cancelarán.'],
@@ -878,7 +883,7 @@ async function perform(action,id,button){
     case 'admin-clear':adminAttention='';adminQuery='';adminCountry='';render();return;
     case 'admin-drill':adminAccountId='';adminAttention=['missing','vacant','activation','leads','managers'].includes(id)?id:'';adminQuery='';adminCountry='';await navigate(id==='recoveries'?'recoveries':'organization');return;
     case 'account-delete':await api('/api/accounts/'+id,'DELETE');break;
-    case 'group-delete':await api('/api/groups/'+id,'DELETE');break;
+    case 'group-delete':await groupRemovalModal(id);return;
     case 'activation-code':{const r=await api(`/api/people/${id}/activation`,'POST',{});credentials(r.activation_code,person(id)?.username);return;}
     case 'activate':publicModal('activate');return;
     case 'recovery-request':publicModal('request');return;
@@ -942,6 +947,7 @@ async function submitForm(f){
     case 'transfer':await api(`/api/admin/people/${id}/transfer`,'POST',data);break;
     case 'group-transfer':{const source=group(id);await api('/api/groups/'+id,'PUT',{...source,...data});break;}
     case 'reactivate':response=await api(`/api/admin/people/${id}/reactivate`,'POST',data);await refresh();credentials(response.activation_code,response.username);return;
+    case 'group-removal':data.confirm=fd.has('confirm');await api('/api/groups/'+id,'DELETE',data);break;
     case 'offboard':{data.confirm=fd.has('confirm');data.stop_timers=fd.has('stop_timers');data.transfers=Object.fromEntries([...fd].filter(([k])=>k.startsWith('transfer:')).map(([k,v])=>[k.slice(9),v]));data.documents=$$('[data-offboard-document]',f).map(section=>({id:section.dataset.offboardDocument,...Object.fromEntries($$('input,textarea',section).map(input=>[input.dataset.key,input.value]))}));await api(`/api/admin/people/${id}/offboard`,'POST',data);break;}
     case 'profile':await api('/api/profile','PUT',data);break;
     case 'password':await api('/api/password','PUT',data);state=null;render();toast('Contraseña actualizada. Vuelve a iniciar sesión.');return;

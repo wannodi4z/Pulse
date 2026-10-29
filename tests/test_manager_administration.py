@@ -114,3 +114,35 @@ class ManagerAdministrationTests(unittest.TestCase):
   self.assertEqual(self.m.get('/api/state').status_code,401)
   self.assertEqual(self.m.post('/api/session/activity').status_code,401)
   self.assertEqual(self.other.get('/api/state').status_code,200)
+
+ def test_remove_group_moves_members_preserves_records_and_history(self):
+  created=self.tech.post('/api/overtime',json={'scheduled_start':'2026-01-05T20:00:00-06:00','scheduled_end':'2026-01-05T22:00:00-06:00','reference':'CHG-RETIRED','description':'Trabajo','justification':'Cambio','impact':'Servicio','in_lieu':'Cobertura'})
+  self.assertEqual(created.status_code,200,created.text);oid=created.json()['id'];rid=self.request()
+  impact=self.m.get('/api/groups/'+self.gid+'/removal-impact').json()
+  payload={'confirm':True,'expected':impact['expected'],'reason':'Consolidación','destination_group_id':self.dest}
+  for client in (self.other,self.tech,self.admin):self.assertEqual(client.request('DELETE','/api/groups/'+self.gid,json=payload).status_code,403)
+  self.assertEqual(self.m.request('DELETE','/api/groups/'+self.gid,json={**payload,'destination_group_id':self.og}).status_code,422)
+  result=self.m.request('DELETE','/api/groups/'+self.gid,json=payload);self.assertEqual(result.status_code,200,result.text)
+  fresh=self.m.get('/api/state').json();self.assertNotIn(self.gid,[g['id'] for g in fresh['groups']])
+  self.assertEqual(next(u for u in fresh['people'] if u['id']==self.uid)['group_id'],self.dest)
+  self.assertEqual(next(o for o in fresh['overtime'] if o['id']==oid)['origin_info']['group_id'],self.gid)
+  self.assertEqual(self.tech.get('/api/state').status_code,401)
+  with self.s.connection() as c:
+   self.assertEqual(self.s.get(c,'manager_transfers',rid)['status'],'CANCELLED')
+   self.assertIsNotNone(self.s.get(c,'overtime',oid))
+   self.assertEqual(c.execute('PRAGMA foreign_key_check').fetchall(),[])
+ def test_remove_group_requires_current_review_destination_and_stopped_timers(self):
+  impact=self.m.get('/api/groups/'+self.gid+'/removal-impact').json()
+  payload={'confirm':True,'expected':impact['expected'],'reason':'Consolidación','destination_group_id':self.dest}
+  self.assertEqual(self.m.request('DELETE','/api/groups/'+self.gid,json={**payload,'confirm':False}).status_code,422)
+  self.assertEqual(self.m.request('DELETE','/api/groups/'+self.gid,json={**payload,'expected':'stale'}).status_code,409)
+  self.assertEqual(self.m.request('DELETE','/api/groups/'+self.gid,json={**payload,'destination_group_id':''}).status_code,422)
+  self.assertEqual(self.tech.post('/api/timers/start',json={}).status_code,200)
+  self.assertEqual(self.m.request('DELETE','/api/groups/'+self.gid,json=payload).status_code,422)
+  self.assertIn(self.gid,[g['id'] for g in self.m.get('/api/state').json()['groups']])
+ def test_empty_group_removal_cannot_be_reintroduced(self):
+  empty=next(g for g in self.state['groups'] if not any(u['group_id']==g['id'] for u in self.state['people']))
+  impact=self.m.get('/api/groups/'+empty['id']+'/removal-impact').json()
+  result=self.m.request('DELETE','/api/groups/'+empty['id'],json={'confirm':True,'expected':impact['expected'],'reason':'Sin uso'})
+  self.assertEqual(result.status_code,200,result.text)
+  self.assertEqual(self.m.put('/api/groups/'+empty['id'],json={**empty,'name':'Reaparece'}).status_code,409)

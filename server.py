@@ -105,6 +105,7 @@ def init_db():
         c.executescript('''
         CREATE TABLE IF NOT EXISTS accounts(id TEXT PRIMARY KEY, code TEXT UNIQUE COLLATE NOCASE NOT NULL, name TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS groups(id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id), manager_id TEXT REFERENCES users(id), code TEXT UNIQUE COLLATE NOCASE NOT NULL, name TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS retired_groups(group_id TEXT PRIMARY KEY REFERENCES groups(id), retired_at TEXT NOT NULL, reason TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, role TEXT NOT NULL CHECK(role IN ('ADMIN','MANAGER','USER')), username TEXT UNIQUE COLLATE NOCASE NOT NULL, employee_id TEXT UNIQUE COLLATE NOCASE, first TEXT NOT NULL, last TEXT NOT NULL, email TEXT NOT NULL, account_id TEXT REFERENCES accounts(id), group_id TEXT REFERENCES groups(id), is_lead INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, password_hash TEXT, activation_hash TEXT, created_at TEXT NOT NULL);
         CREATE UNIQUE INDEX IF NOT EXISTS one_lead ON users(group_id) WHERE is_lead=1;
         CREATE TABLE IF NOT EXISTS session_activity(token_hash TEXT PRIMARY KEY, last_activity TEXT NOT NULL);
@@ -201,6 +202,8 @@ def rows(c, table):
     if table=='accounts':
         for a in result:a['display_code']=account_display_code(a)
     elif table=='groups':
+        retired={r[0] for r in c.execute('SELECT group_id FROM retired_groups')}
+        result=[g for g in result if g['id'] not in retired]
         accounts={a['id']:dict(a) for a in c.execute('SELECT * FROM accounts')}
         for g in result:
             a=accounts[g['account_id']];g['country_code']=a['country_code'];g['display_code']=group_display_code(g,a)
@@ -762,6 +765,7 @@ def save_group(data: dict = Body(...), identity: str = '', actor=Depends(current
     with connection(True) as c:
         account=get(c, 'accounts', aid)
         old = get(c, 'groups', identity) if identity else None
+        if identity and c.execute('SELECT 1 FROM retired_groups WHERE group_id=?',(identity,)).fetchone():fail('El Grupo ya fue eliminado.',409)
         if actor['role']=='MANAGER':
             if aid!=actor['account_id'] or mid not in (None,actor['id']) or old and old['manager_id']!=actor['id']:fail('Sólo puedes administrar Grupos de tu propio equipo.',403)
             mid=actor['id']
@@ -807,15 +811,51 @@ def save_group(data: dict = Body(...), identity: str = '', actor=Depends(current
     return {'id': identity}
 
 
+def group_removal_impact(c,identity,actor):
+    g=get(c,'groups',identity)
+    if actor['role']!='ADMIN' and (actor['role']!='MANAGER' or g['manager_id']!=actor['id']):fail('Sólo puedes eliminar Grupos de tu equipo.',403)
+    if c.execute('SELECT 1 FROM retired_groups WHERE group_id=?',(identity,)).fetchone():fail('El Grupo ya fue eliminado.',409)
+    members=[public_user(p) for p in rows(c,'users') if p['group_id']==identity]
+    if actor['role']=='ADMIN' and members:fail('El Manager debe resolver los Técnicos de este Grupo antes de eliminarlo.',403)
+    expected=hashlib.sha256(json.dumps({'group':g,'members':sorted(p['id'] for p in members)},sort_keys=True).encode()).hexdigest()
+    destinations=[x for x in rows(c,'groups') if x['id']!=identity and x['manager_id']==g['manager_id'] and x['account_id']==g['account_id']]
+    return {'group':g,'members':members,'destinations':destinations,'expected':expected}
+
+
+@app.get('/api/groups/{identity}/removal-impact')
+def preview_group_removal(identity:str,actor=Depends(current_user)):
+    with connection() as c:return group_removal_impact(c,identity,actor)
+
+
 @app.delete('/api/groups/{identity}')
-def delete_group(identity: str, actor=Depends(admin)):
+def delete_group(identity: str, data:dict=Body(...), actor=Depends(current_user)):
+    reason=text(data,'reason')
+    if data.get('confirm') is not True:fail('Confirma que revisaste el destino de los Técnicos.')
     with connection(True) as c:
-        get(c, 'groups', identity)
-        if c.execute('SELECT 1 FROM users WHERE group_id=?', (identity,)).fetchone() or c.execute('SELECT 1 FROM windows WHERE group_id=?', (identity,)).fetchone():
-            fail('El Grupo tiene Técnicos o historial. Muévelos o conserva el Grupo para mantener su trazabilidad.')
-        c.execute('DELETE FROM groups WHERE id=?', (identity,))
-        audit(c, actor, 'DELETE_GROUP', identity)
-    return {'ok': True}
+        impact=group_removal_impact(c,identity,actor)
+        if not hmac.compare_digest(str(data.get('expected','')),impact['expected']):fail('El Grupo cambió. Revisa de nuevo los Técnicos y el destino.',409)
+        destination=None
+        if impact['members']:
+            destination=next((g for g in impact['destinations'] if g['id']==data.get('destination_group_id')),None)
+            if not destination:fail('Elige otro Grupo del mismo Manager para recibir a los Técnicos.')
+            for user in impact['members']:
+                if c.execute('SELECT 1 FROM timers WHERE user_id=? AND end_at IS NULL',(user['id'],)).fetchone():fail('Detén los Timers activos del Grupo antes de mover a sus Técnicos.')
+                if user['is_lead']:fail('El Lead debe estar asignado al Manager antes de eliminar este Grupo.')
+            for user in impact['members']:
+                for table in ('overtime','guards'):
+                    for record in c.execute('SELECT id FROM '+table+' WHERE user_id=?',(user['id'],)).fetchall():capture_origin(c,record['id'],user,inferred=True)
+                c.execute('UPDATE users SET group_id=? WHERE id=?',(destination['id'],user['id']))
+                invalidate_sessions(c,user['id'])
+                audit(c,actor,'TRANSFER_PERSON',user['id'],{'from_group':identity,'to_group':destination['id'],'reason':reason})
+            reopen_recoveries(c,actor,[p['id'] for p in impact['members']],reason)
+        stamp=now()
+        c.execute("UPDATE manager_transfers SET status='CANCELLED',decided_at=?,decision_reason=? WHERE status='SUBMITTED' AND (source_group_id=? OR destination_group_id=?)",(stamp,'Grupo eliminado: '+reason,identity,identity))
+        c.execute("UPDATE transfer_requests SET status='CANCELLED',decided_at=?,decision_reason=? WHERE status='SUBMITTED' AND (source_group_id=? OR destination_group_id=?)",(stamp,'Grupo eliminado: '+reason,identity,identity))
+        # Retain the original row for windows and transfer history, outside the active catalogue.
+        c.execute('INSERT INTO retired_groups VALUES(?,?,?)',(identity,stamp,reason))
+        c.execute('UPDATE groups SET manager_id=NULL WHERE id=?',(identity,))
+        audit(c,actor,'DELETE_GROUP',identity,{'reason':reason,'moved':len(impact['members']),'destination_group_id':destination['id'] if destination else None,'group':impact['group']})
+    return {'ok':True,'moved':len(impact['members']),'history_preserved':True}
 
 
 @app.post('/api/people')

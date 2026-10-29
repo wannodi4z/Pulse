@@ -591,3 +591,6 @@ Cada reanudación crea un tramo real separado. **La espera no suma OT ni se desc
 En **Mi equipo → Ver ficha**, el Manager puede editar, mover y dar de baja a sus Técnicos. La baja requiere revisar el impacto y un motivo; conserva la identidad y el historial, retira el acceso y cancela traslados pendientes. Si existe un Timer activo, requiere confirmar su cierre y documentar la OT pendiente.
 
 La sesión termina tras cinco minutos sin interacción. Las consultas automáticas no renuevan la actividad; el servidor también verifica el vencimiento. Cerrar sesión no detiene por sí mismo los Timers de trabajo.
+
+### Eliminar Grupos
+El Manager abre un Grupo desde su nombre en **Mi equipo** y selecciona **Eliminar Grupo**. Si hay Técnicos (incluidos accesos dados de baja), debe elegir otro Grupo de su equipo, indicar el motivo y confirmar. El traslado y la retirada del Grupo se ejecutan juntos. Los Timers activos impiden continuar; las OT, Guardias y referencias históricas se conservan. Si no existe un destino, crea primero otro Grupo.
