@@ -1,8 +1,12 @@
-# Operational Pulse · 1.0.5
+# Operational Pulse · 1.0.6
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Versión vigente · v1.0.5 · Claim semanal y Timer
+## Versión vigente · v1.0.6 · Calendario ampliado y corrección de horarios
+
+**Ampliar calendario** abre una vista previa adaptada a la pantalla, con todos los días del mes, navegación y acceso al detalle de actividades. El calendario principal conserva el clic para OT y la selección de periodos para Guardias.
+
+Las OT finalizadas permiten corregir inicio, fin y tramos trabajados con un motivo obligatorio. Se conservan los Timers originales y el historial de cambios; las pausas no suman. La corrección vuelve a aprobación. Al aprobarse, el cálculo común actualiza OT, Guardia neta, Claim, ADP y exportaciones, incluso en cruces de día o mes. Editar sólo la documentación conserva los segundos originales.
 
 **Claim reproduce la captura semanal de sábado a viernes:** dos filas separadas para **Stand By (Guardia neta)** y **OT**, siete columnas diarias y sus totales en horas decimales. 90 minutos son 1.5 horas; no se aplica un factor de conversión. La fila se puede copiar y el Excel incluye una hoja Claim semanal. ADP conserva su guía de domingo a sábado con inicio y duración HH:MM.
 

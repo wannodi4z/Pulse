@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.5'
+VERSION = '1.0.6'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -128,6 +128,7 @@ def init_db():
         CREATE UNIQUE INDEX IF NOT EXISTS one_pending_transfer ON transfer_requests(user_id) WHERE status='SUBMITTED';
         CREATE TABLE IF NOT EXISTS manager_transfers(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),source_manager_id TEXT NOT NULL REFERENCES users(id),target_manager_id TEXT NOT NULL REFERENCES users(id),source_group_id TEXT NOT NULL REFERENCES groups(id),reason TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,decided_at TEXT,decision_reason TEXT NOT NULL DEFAULT '',destination_group_id TEXT REFERENCES groups(id));
         CREATE TABLE IF NOT EXISTS ot_group_activities(source_id TEXT PRIMARY KEY REFERENCES overtime(id), window_id TEXT UNIQUE NOT NULL REFERENCES windows(id), authorized_by TEXT REFERENCES users(id), snapshot TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS ot_time_corrections(overtime_id TEXT PRIMARY KEY REFERENCES overtime(id), segments TEXT NOT NULL, reason TEXT NOT NULL, updated_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS record_origins(record_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
@@ -503,7 +504,9 @@ def state(user=Depends(current_user)):
         origins={r['record_id']:json.loads(r['snapshot']) for r in rows(c,'record_origins')}
         for record in result['overtime']+result['guards']:record['origin_info']=origins.get(record['id'])
         for o in result['overtime']:
-            o['worked_seconds']=sum(max(0,(parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds()) for t in result['timer_segments'] if t['overtime_id']==o['id'] and t['end_at'])
+            o['actual_segments']=effective_ot_segments(c,o) if o['execution']=='COMPLETED' else []
+            o['time_corrected']=bool(c.execute('SELECT 1 FROM ot_time_corrections WHERE overtime_id=?',(o['id'],)).fetchone())
+            o['worked_seconds']=sum((parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds() for t in o['actual_segments']) if o['execution']=='COMPLETED' else sum(max(0,(parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds()) for t in result['timer_segments'] if t['overtime_id']==o['id'] and t['end_at'])
         actor_ids={event['actor_id'] for event in result['audit']}
         result['audit_people']=[{key:person[key] for key in ('id','first','last','employee_id','role')} for person in people if person['id'] in actor_ids]
         for g in result['guards']:
@@ -1485,6 +1488,44 @@ def join_window(identity: str, actor=Depends(current_user)):
     return {'id': otid}
 
 
+def effective_ot_segments(c,o):
+    correction=c.execute('SELECT segments FROM ot_time_corrections WHERE overtime_id=?',(o['id'],)).fetchone()
+    if correction:return json.loads(correction['segments'])
+    timers=[{'start_at':r['start_at'],'end_at':r['end_at']} for r in c.execute('SELECT start_at,end_at FROM timers WHERE overtime_id=? AND end_at IS NOT NULL ORDER BY start_at',(o['id'],))]
+    if o['capture_type']=='PLANNED' and timers:return timers
+    return [{'start_at':o['start_at'],'end_at':o['end_at']}] if o['start_at'] and o['end_at'] else []
+
+
+def revise_actual_ot_time(c,actor,o,data):
+    if 'actual_start' not in data and 'actual_end' not in data and 'actual_segments' not in data:return
+    a,b=interval(data,'actual_start','actual_end')
+    if parse_at(b)>datetime.now(timezone.utc):fail('El tiempo trabajado debe haber terminado; no puede incluir horas futuras.')
+    previous=effective_ot_segments(c,o)
+    supplied=data.get('actual_segments')
+    if supplied is not None:
+        if not isinstance(supplied,list) or not supplied or len(supplied)>128:fail('Revisa los tramos de trabajo.')
+        corrected=[]
+        for segment in supplied:
+            if not isinstance(segment,dict):fail('Revisa los tramos de trabajo.')
+            sa,sb=interval(segment,'start_at','end_at');corrected.append({'start_at':sa,'end_at':sb})
+    elif o['capture_type']=='PLANNED' and len(previous)>1:
+        corrected=[dict(s) for s in previous];corrected[0]['start_at']=a;corrected[-1]['end_at']=b
+    else:corrected=[{'start_at':a,'end_at':b}]
+    if parse_at(corrected[0]['start_at'])!=parse_at(a) or parse_at(corrected[-1]['end_at'])!=parse_at(b):fail('El inicio y fin deben coincidir con los extremos de los tramos.')
+    end=None
+    for segment in corrected:
+        start,stop=parse_at(segment['start_at']),parse_at(segment['end_at'])
+        if stop<=start or start<parse_at(a) or stop>parse_at(b) or end and start<end:fail('Los tramos deben ser positivos, estar ordenados y no traslaparse. Revisa también los horarios intermedios.')
+        end=stop
+    normalized=lambda parts:[(parse_at(p['start_at']),parse_at(p['end_at'])) for p in parts]
+    if normalized(previous)==normalized(corrected):return
+    reason=text(data,'time_change_reason')
+    if len(reason)>2000:fail('Resume el motivo del cambio en 2000 caracteres.')
+    c.execute('INSERT OR REPLACE INTO ot_time_corrections VALUES(?,?,?,?)',(o['id'],json.dumps(corrected),reason,now()))
+    c.execute('UPDATE overtime SET start_at=?,end_at=? WHERE id=?',(a,b,o['id']))
+    audit(c,actor,'CORRECT_OT_TIME',o['id'],{'reason':reason,'previous_start':o['start_at'],'previous_end':o['end_at'],'previous_segments':previous,'new_start':a,'new_end':b,'new_segments':corrected,'original_timers_preserved':True})
+
+
 @app.put('/api/overtime/{identity}')
 def edit_ot(identity: str, data: dict = Body(...), actor=Depends(current_user)):
     with connection(True) as c:
@@ -1493,12 +1534,17 @@ def edit_ot(identity: str, data: dict = Body(...), actor=Depends(current_user)):
             fail('Sólo el Técnico propietario puede editar su OT.', 403)
         if o['execution'] in ('RUNNING','PAUSED'):
             fail('Detén o finaliza el Timer antes de documentar.')
+        if 'expected_revision' in data:
+            try:expected=int(data['expected_revision'])
+            except (ValueError,TypeError):fail('Revisión de OT inválida.')
+            if expected!=o['revision']:fail('La OT cambió desde que abriste el formulario. Revisa la versión actual antes de guardar.',409)
         if o['execution']=='SCHEDULED' and c.execute('SELECT 1 FROM ot_group_activities WHERE source_id=?',(identity,)).fetchone() and c.execute('SELECT 1 FROM overtime WHERE window_id=? AND id!=?',(o['window_id'],identity)).fetchone():fail('Hay integrantes inscritos en esta actividad. Conserva su ventana y registra una nueva OT si necesitas otra programación.',409)
         ref = valid_reference(data)
         if o['execution'] == 'SCHEDULED':
             a, b = interval(data, 'scheduled_start', 'scheduled_end')
             capture = classify_ot_period(a, b)
             c.execute('UPDATE overtime SET scheduled_start=?,scheduled_end=?,capture_type=?,execution=?,start_at=?,end_at=? WHERE id=?', (a, b, capture, 'COMPLETED' if capture=='HISTORICAL' else 'SCHEDULED', a if capture=='HISTORICAL' else None, b if capture=='HISTORICAL' else None, identity))
+        if o['execution']=='COMPLETED':revise_actual_ot_time(c,actor,o,data)
         c.execute("UPDATE overtime SET reference=?,description=?,justification=?,impact=?,in_lieu=?,status='SUBMITTED',approved_by=NULL,revision=revision+1,updated_at=? WHERE id=?", (ref, text(data, 'description'), text(data, 'justification'), text(data, 'impact'), text(data, 'in_lieu'), now(), identity))
         updated=get(c,'overtime',identity)
         if updated['capture_type']=='PLANNED':sync_group_ot(c,updated)
@@ -1717,7 +1763,9 @@ def accounting(c, visible, month=None, record_ids=None):
     for t in rows(c,'timers'):
         if t['end_at']:
             segments.setdefault(t['overtime_id'],[]).append((parse_at(t['start_at']),parse_at(t['end_at'])))
+    corrections={r['overtime_id']:json.loads(r['segments']) for r in rows(c,'ot_time_corrections')}
     def actual_parts(o):
+        if o['id'] in corrections:return [(parse_at(p['start_at']),parse_at(p['end_at'])) for p in corrections[o['id']]]
         return union_intervals(segments.get(o['id'],[(parse_at(o['start_at']),parse_at(o['end_at']))])) if o['capture_type']=='PLANNED' else [(parse_at(o['start_at']),parse_at(o['end_at']))]
     for o in all_approved:
         ots.setdefault(o['user_id'], []).extend(actual_parts(o))

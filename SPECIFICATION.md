@@ -1,4 +1,10 @@
-# Operational Pulse 1.0.5 · especificación de la implementación nueva
+# Operational Pulse 1.0.6 · especificación de la implementación nueva
+
+## Calendario y horarios · v1.0.6
+
+La vista previa ampliada ajusta las seis semanas posibles al área disponible. Los contadores abren la agenda del día y sus detalles; no modifican fechas por arrastre. El calendario principal sigue siendo interactivo.
+
+Las correcciones de tiempo real se almacenan en ot_time_corrections sin reescribir los Timers originales. Requieren propiedad del registro, OT finalizada, motivo y revisión vigente; se rechazan tiempos futuros, tramos superpuestos o incoherentes y registros activos. La OT vuelve a SUBMITTED. El motor contable usa los tramos efectivos aprobados para OT, descuento de Guardia, Claim, ADP y Excel. Los cambios descriptivos conservan precisión de segundos.
 
 ## Claim y Timer · v1.0.5
 

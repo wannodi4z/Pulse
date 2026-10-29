@@ -126,6 +126,7 @@ window.PulseLayout=(()=>{
   }
   function reveal(target){
     if(!target)return;const ruleDay=target.closest('[data-rule-day]');if(ruleDay){all('[data-rule-day]').forEach(n=>n.hidden=n!==ruleDay);all('[data-action=rule-day-open]').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.id===ruleDay.dataset.ruleDay)));}
+    for(let detail=target.closest('details');detail;detail=detail.parentElement?.closest('details'))detail.open=true;
     if(target.closest('#modal'))target.scrollIntoView({block:'nearest',inline:'nearest'});
     const stage=target.closest('.viewport-stage');stage?._show(target);
     let parent=target;
