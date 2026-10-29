@@ -199,8 +199,6 @@ def install_recovery(app, namespace):
         if detail:
             table=Table(displayName='ResultadoMensual',ref=page.dimensions);table.tableStyleInfo=TableStyleInfo(name='TableStyleMedium2',showRowStripes=True);page.add_table(table)
         if 'Resumen' in wb.sheetnames:wb['Resumen'].append(['Campos externos','Category y autorización DIL no se infieren: quedan vacíos. Semana es semana del mes con inicio sábado. Sólo horas aprobadas en Captura.'])
-    namespace['append_monthly_capture']=append_capture
-    namespace['append_native_backup']=append_native
 
     @app.get('/api/time-backup.xlsx')
     def download(month:str,actor=Depends(s.current_user)):
@@ -257,3 +255,5 @@ def install_recovery(app, namespace):
             result={'created':len(created),'documentation':documents,'submitted':len(created)-documents,'skipped':len(items)-len(created),'ids':created,'month':items[0].get('view_month') or min(x['segments'][0]['start_at'][:7] for x in items)}
             c.execute('UPDATE time_recovery_drafts SET result=? WHERE id=?',(json.dumps(result),identity));s.audit(c,actor,'RECOVER_TIME_BATCH',identity,result)
         return result
+
+    return append_capture, append_native

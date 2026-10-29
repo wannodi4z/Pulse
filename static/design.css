@@ -1,5 +1,5 @@
 /* Operational Pulse 1.1 — Enterprise light.
-   Visual source of truth. app.css retains viewport and component layout contracts. */
+   Baseline component styles. interface.css supplies shared responsive and accessibility refinements. */
 :root{--ink:#152438;--muted:#617083;--primary:#2859c5;--primary-dark:#18376b;--mint:#e9f8f5;--line:#e6ebf1;--paper:#f6f8fb;--danger:#b24548;--radius:12px;--shadow:0 3px 14px #182e4c05;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;line-height:1.5;color:var(--ink);background:var(--paper)}
 button{font-weight:550}strong{font-weight:650}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #369cbe;outline-offset:3px}

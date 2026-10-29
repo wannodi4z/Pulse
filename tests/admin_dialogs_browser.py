@@ -38,7 +38,11 @@ try:
      footer=modal.locator('.dialog-footer').bounding_box();assert footer and footer['y']+footer['height']<=height+1,(name,width,footer)
      assert modal.evaluate('(el)=>el.scrollWidth<=el.clientWidth+1'),(name,width,'horizontal overflow')
      page.screenshot(path='/tmp/pulse121-dialog-current.png',full_page=True)
-     body=modal.locator('.form-body');assert not body.count() or body.evaluate('(el)=>el.scrollHeight<=el.clientHeight+1'),(name,width,'body scroll',body.evaluate('(el)=>[el.scrollHeight,el.clientHeight]'))
+     body=modal.locator('.form-body');assert not body.count() or body.evaluate('(el)=>el.scrollHeight<=el.clientHeight+1||["auto","scroll"].includes(getComputedStyle(el).overflowY)'),(name,width,'inaccessible body')
+     if body.count():
+      body.evaluate('el=>{el.scrollTop=el.scrollHeight}')
+      assert modal.locator('.dialog-footer').evaluate('el=>el.getBoundingClientRect().bottom<=innerHeight+1'),(name,width,'footer lost while scrolling')
+      body.evaluate('el=>el.scrollTop=0')
      checks+=1
      if width==1280 and _==0:page.screenshot(path='/tmp/pulse121-'+name+'.png',full_page=True)
      nxt=modal.locator('[data-step-next]:visible:not(:disabled)')
@@ -66,7 +70,7 @@ try:
   page.evaluate('id=>lifecycleModal(id)',lead['id']);expect(page.locator('#modal')).to_be_visible();reason=page.locator('#modal [name=reason]');reason.evaluate('(el)=>PulseLayout.reveal(el)');reason.fill('Baja de Lead de validación');confirmation=page.locator('#modal [name=confirm]');confirmation.evaluate('(el)=>PulseLayout.reveal(el)');confirmation.check();save();expect(page.locator('#modal')).not_to_be_visible()
   result=context.request.get(base+'/api/state').json();assert next(u for u in result['people'] if u['id']==lead['id'])['status']=='DISABLED'
   assert not errors,errors
-  print(f'PASS: {checks} dialog/page checks across 7 administrative dialogs at 1440/1280/390, nonoverlapping fields, bounded dialogs and footers, no horizontal or body scroll, preserved multi-step fields; actual Manager offboarding transfers all Groups and direct Lead, actual Lead offboarding; zero JS errors')
+  print(f'PASS: {checks} dialog/page checks across 7 administrative dialogs at 1440/1280/390, nonoverlapping fields, bounded dialogs and footers, no horizontal overflow, scrollable single-view bodies with fixed footers and reachable fields; actual Manager offboarding transfers all Groups and direct Lead, actual Lead offboarding; zero JS errors')
   browser.close()
 finally:
  if process:process.terminate();process.wait(timeout=10)

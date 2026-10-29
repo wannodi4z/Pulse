@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.8'
+VERSION = '1.0.9'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -2175,7 +2175,7 @@ def export_excel(month: str, user_id: str | None = None, group_id: str | None = 
 
 
 from time_recovery import install_recovery
-install_recovery(app, globals())
+append_monthly_capture, append_native_backup = install_recovery(app, globals())
 
 
 app.mount('/static', StaticFiles(directory=ROOT / 'static'), name='static')

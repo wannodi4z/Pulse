@@ -1,4 +1,10 @@
-# Operational Pulse 1.0.8 · especificación de la implementación nueva
+# Operational Pulse 1.0.9 · especificación de la implementación nueva
+
+## Revisión de interfaz · v1.0.9
+
+interface.css se carga después del diseño de componentes. Normaliza controles, contraste de encabezados de tabla, estados deshabilitado/proceso y foco. En ancho <=700 px el contenido de viewport-stage permanece accesible en flujo vertical y la navegación es horizontal desplazable; el calendario no exige desplazamiento horizontal para ver los siete días. Las cantidades mensuales permanecen visibles. Las versiones de escritorio mantienen las vistas y paginación existentes.
+
+Botones de acción tienen type=button explícito, controles mensuales tienen etiquetas accesibles, se incluye salto al contenido y los errores de formulario reciben foco. No cambian cálculos ni autorización. install_recovery devuelve explícitamente las funciones de exportación y server.py las asigna en ámbito de módulo; no se inyectan sus nombres dinámicamente.
 
 ## Resultado mensual y recuperación · v1.0.8
 

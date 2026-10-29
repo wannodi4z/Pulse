@@ -1,8 +1,12 @@
-# Operational Pulse · 1.0.8
+# Operational Pulse · 1.0.9
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Versión vigente · v1.0.8 · Resultado mensual y recuperación Excel
+## Versión vigente · v1.0.9 · Revisión de interfaz
+
+Revisión transversal de Administrador, Manager, Lead y Técnico: controles alineados, tablas con encabezados persistentes, mensajes de error accesibles, navegación por teclado y acciones de riesgo diferenciadas. En móvil la navegación se desplaza en una fila y conserva visible la opción activa; el contenido se recorre completo sin ocultar secciones mediante paginación. El calendario cabe en siete columnas, conserva los indicadores y permite llegar a todos los días con desplazamiento vertical. Los modales mantienen acciones visibles y cuerpo desplazable.
+
+Las funciones de Captura y respaldo se asignan explícitamente desde el módulo de recuperación: el editor de Python puede reconocerlas y no muestra referencias indefinidas. La generación de Excel y los cálculos se conservan. interface.css centraliza los ajustes comunes sin modificar permisos ni el motor de horas.
 
 **Excel mensual:** Captura es la primera pestaña del Excel de horas aprobadas, con las 29 columnas del formato de referencia: ADP HH:MM, decimales SAP, fechas, tickets, empleado, correo del Manager y documentación existente. Category y aprobación DIL quedan vacías; no se confunden con la aprobación de Pulse. La semana se cuenta dentro del mes empezando en sábado; fin a medianoche usa la fecha real siguiente. Claim mantiene su matriz semanal como primera pestaña.
 
