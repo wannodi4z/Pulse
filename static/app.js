@@ -248,7 +248,7 @@ async function runAnalyticsSearch(){
 }
 function comparisonModal(){
   comparisonDraft=selectedAnalyticsMonths();
-  showModal('Comparar meses',form('analytics-months',`<p class="callout">Los mismos filtros y la misma búsqueda se aplicarán a todos los meses. El mes principal siempre se incluye.</p><div class="comparison-add">${field('compare_month','Agregar mes','','month')}${btn('Agregar','comparison-add','','secondary')}</div><div id="comparison-draft" class="comparison-draft"></div>`,'','Aplicar comparación'));
+  showModal('Comparar meses',form('analytics-months',`<div class="comparison-instructions"><strong>Cómo comparar tus meses</strong><ol><li>Selecciona <b>mes y año</b> en Agregar mes; por ejemplo, septiembre de 2026. No basta con escribir sólo el año.</li><li>Presiona <b>Agregar</b> y repite para cada periodo que quieras incluir.</li><li>Revisa los meses de la lista y presiona <b>Aplicar comparación</b>. Puedes quitar un mes con ×.</li></ol><p>El mes marcado como <b>Principal</b> siempre se incluye. Puedes comparar hasta 24 meses, de cualquier año, con los mismos filtros y búsqueda.</p></div><div class="comparison-add">${field('compare_month','Agregar mes','','month')}${btn('Agregar','comparison-add','','secondary')}</div><div id="comparison-draft" class="comparison-draft"></div>`,'','Aplicar comparación'));
   $('#modal').classList.add('compact-dialog');paintComparisonDraft();
 }
 function paintComparisonDraft(){const root=$('#comparison-draft');if(root)root.innerHTML=comparisonDraft.map(key=>`<span>${esc(monthLabel(key))}${key===month?'<small>Principal</small>':btn('×','comparison-remove',key,'icon-btn')}</span>`).join('');PulseLayout.dialog();}
