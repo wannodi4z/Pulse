@@ -151,7 +151,8 @@ window.PulseLayout=(()=>{
     if(!body)return;
     if(body.scrollHeight>body.clientHeight+1)fitCollection(body,Math.max(140,body.clientHeight-58),'dialog-lists');
     if(body.scrollHeight<=body.clientHeight+1)return;
-    const cap=Math.max(140,body.clientHeight-58),nodes=[...body.children],pages=[];
+    const spacing=modal.classList.contains('admin-dialog')?parseFloat(getComputedStyle(body).paddingTop)+parseFloat(getComputedStyle(body).paddingBottom)+76:58;
+    const cap=Math.max(140,body.clientHeight-spacing),nodes=[...body.children],pages=[];
     const fragments=[];
     function flatten(node){
       if(node.getBoundingClientRect().height>cap&&node.children.length>1&&node.matches('.form-grid,.access-section,.access-fields-grid')){

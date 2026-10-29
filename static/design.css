@@ -405,3 +405,58 @@ dialog.organizer-dialog:not([open]){display:none!important}
 @media(max-height:800px) and (min-width:801px){.admin-dashboard .kpi{padding:12px 16px}.admin-dashboard .kpi strong{font-size:29px;margin:3px 0}.admin-dashboard .kpi i{width:26px;height:26px}.admin-dashboard .kpi small{font-size:11px}.admin-dashboard>.kpis{margin-bottom:14px}.admin-attention-item{min-height:61px;padding:11px 0}.admin-attention-item small{display:none}.admin-attention-item strong{font-size:12px}.admin-workspace .admin-attention{padding:16px}.admin-dashboard-body{gap:14px}.admin-searchbar{margin-bottom:12px}.admin-workspace>.page-heading{margin-bottom:14px}}
 .admin-workspace .panel{margin:0}.admin-table-account{font-weight:600;color:#285787;text-align:left;padding:0;line-height:1.5}.admin-table-account:hover{color:#1759c1;text-decoration:underline}.admin-archived{margin-top:16px;border-top:1px solid #e5ecf3;padding-top:12px;font-size:12px;color:#5d738a}.admin-archived>div{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px}.admin-archived small{display:block;margin-top:4px}.admin-searchbar>label:first-child:focus-within{outline:2px solid #2b91b3;outline-offset:2px}.admin-searchbar input:focus-visible{outline:0}
 @media(max-height:720px) and (min-width:801px){.admin-distribution td{padding-top:8px;padding-bottom:8px}.admin-distribution td small{white-space:nowrap}.admin-attention-item{min-height:55px}.admin-dashboard{padding-bottom:5px}.admin-dashboard .admin-distribution .panel{padding-bottom:12px}}
+
+/* Administrative task dialogs: content-sized, legible, with a permanent action row. */
+dialog.admin-dialog{width:calc(100vw - 40px);max-width:680px;max-height:calc(100dvh - 32px);border:1px solid #dce6ef;border-radius:18px;color:#28425e;box-shadow:0 28px 100px #102d4a38}
+dialog.admin-dialog::backdrop{background:#10283e66;backdrop-filter:blur(4px)}
+dialog.admin-dialog .dialog-header{padding:22px 26px 19px;gap:14px;background:linear-gradient(120deg,#f5fbfc,#fff 70%);border-bottom:1px solid #e4edf1}
+dialog.admin-dialog .dialog-header .eyebrow{font-size:9px;color:#49798c;letter-spacing:1.6px}
+dialog.admin-dialog .dialog-header h2{font-size:23px;color:#173653;letter-spacing:-.65px;line-height:1.25}
+dialog.admin-dialog .dialog-emblem{width:44px;height:44px;border-radius:13px;color:#168a92;border-color:#cce9e9;background:#eaf8f7}
+dialog.admin-dialog .dialog-header>.icon-btn{height:32px;width:32px;min-width:32px;color:#547185;background:#fff;border-color:#dbe6ed}
+dialog.admin-dialog form>.form-body,dialog.admin-dialog>.form-body{padding:20px 26px;display:flex;flex-direction:column;gap:17px;grid-template-areas:none!important;align-items:stretch}
+dialog.admin-dialog .form-body>*{grid-area:auto!important;min-width:0;grid-column:auto}
+dialog.admin-dialog .admin-dialog-intro{color:#526d84;font-size:13px;line-height:1.5;margin:0}
+dialog.admin-dialog .form-instructions{margin:0;background:#eef7fa;border:1px solid #dbecef;border-radius:10px;padding:11px 13px;font-size:13px;color:#426b7d;line-height:1.5}
+dialog.admin-dialog .form-instructions strong{display:block;color:#245c71;margin-bottom:3px;font-size:12px}
+dialog.admin-dialog .admin-form-section{margin:0;padding:0;border:0;display:block}
+dialog.admin-dialog .admin-form-section h3{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:#356e82;font-weight:650;margin:0 0 9px}
+dialog.admin-dialog .admin-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+dialog.admin-dialog .field{display:flex;flex-direction:column;gap:7px;margin:0;min-width:0}
+dialog.admin-dialog .field>span{font-size:13px;color:#314f68;font-weight:600;line-height:1.4}
+dialog.admin-dialog input,dialog.admin-dialog select,dialog.admin-dialog textarea{width:100%;min-height:44px;height:44px;box-sizing:border-box;font-size:14px;border-radius:8px;border:1px solid #d4e0e9;color:#234966;padding:10px 12px;background:#fff;box-shadow:0 1px 3px #14385704}
+dialog.admin-dialog input[readonly]{color:#547087;background:#f2f6f9;border-color:#e1e9f0}
+dialog.admin-dialog input:focus,dialog.admin-dialog select:focus,dialog.admin-dialog textarea:focus{outline:3px solid #23a8b21a;border-color:#2d9eac}
+dialog.admin-dialog .admin-assignment{border-top:1px solid #e7eef3;padding-top:14px}
+dialog.admin-dialog .admin-role-note{font-size:12px;line-height:1.55;color:#4f7383;margin:8px 0 0}
+dialog.admin-dialog .admin-form-note{display:flex;gap:8px;font-size:12px;line-height:1.5;color:#5c7286;margin:0}
+dialog.admin-dialog .admin-form-note svg{width:15px;height:15px;flex:none;margin-top:1px}
+dialog.admin-dialog .dialog-footer{padding:16px 26px;min-height:72px;gap:10px;background:#f8fafc;border-top:1px solid #e2ebf1;flex:none}
+dialog.admin-dialog .dialog-footer button{min-height:40px;height:40px;padding:9px 17px;font-size:13px;border-radius:8px}
+dialog.admin-dialog .dialog-footer .primary{background:#185ed0;box-shadow:0 3px 8px #185ed01a}
+dialog.admin-dialog .dialog-footer .primary:hover{background:#174fb1}
+dialog.admin-dialog .form-error:empty{display:none}
+dialog.admin-offboard-dialog{max-width:760px}
+dialog.admin-offboard-dialog [data-form=offboard]>.form-body{display:flex;grid-template-areas:none!important}
+dialog.admin-offboard-dialog [data-form=offboard] .form-body>*{grid-area:auto!important}
+dialog.admin-offboard-dialog .offboard-transfers{display:block;grid-area:auto!important}
+dialog.admin-offboard-dialog .offboard-transfers fieldset{margin:0;padding:12px 14px;border:1px solid #dce7ef;background:#f9fbfd;border-radius:10px}
+dialog.admin-offboard-dialog legend{font-size:12px;color:#45697f;line-height:1.5;white-space:normal;overflow-wrap:anywhere;max-width:100%}
+dialog.admin-offboard-dialog .offboard-replacement{display:flex;gap:14px;align-items:center;padding:12px 14px;grid-area:auto!important;background:#f3f8fb;border:1px solid #e0eaf1;border-radius:10px}
+dialog.admin-offboard-dialog .offboard-replacement p{font-size:12px;color:#547086}.admin-offboard-dialog .offboard-replacement strong{font-size:13px}
+dialog.admin-dialog .checkbox{font-size:12px;color:#37596e;line-height:1.6;align-items:flex-start;display:flex;gap:10px}
+dialog.admin-dialog .checkbox input{width:17px;height:17px;min-height:17px;flex:none;margin-top:2px;padding:0}
+dialog.admin-dialog .callout{margin:0;background:#f2f8fb;border:1px solid #dfebf1;color:#45687c;font-size:12px;line-height:1.6;padding:12px 14px}
+dialog.admin-dialog .offboard-review-note{font-size:11px;color:#5f778c;margin:0}
+dialog.admin-code-dialog{max-width:500px}
+dialog.admin-dialog .secret-code{font-size:23px;letter-spacing:1.3px;border:1px dashed #8abfc7;background:#f1fbfa;color:#146c77;border-radius:10px;padding:18px;text-align:center;overflow-wrap:anywhere}
+dialog.admin-dialog .wizard-step{display:flex;flex-direction:column;gap:14px}
+dialog.admin-dialog .wizard-step>*{grid-area:auto!important;min-width:0}
+dialog.admin-dialog .wizard-step[hidden]{display:none!important}
+dialog.admin-dialog .wizard-navigation{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;padding-top:12px}
+@media(max-height:720px){dialog.admin-dialog .dialog-header{padding:16px 22px}dialog.admin-dialog form>.form-body,dialog.admin-dialog>.form-body{padding:15px 22px;gap:13px}dialog.admin-dialog .dialog-footer{padding:13px 22px;min-height:66px}dialog.admin-dialog .admin-assignment{padding-top:11px}dialog.admin-dialog .admin-role-note{font-size:12px;line-height:1.4}dialog.admin-dialog .admin-form-section h3{margin-bottom:7px}}
+@media(max-width:600px){dialog.admin-dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 24px);border-radius:14px}dialog.admin-dialog .dialog-header{padding:16px;gap:11px}dialog.admin-dialog .dialog-header h2{font-size:20px}dialog.admin-dialog form>.form-body,dialog.admin-dialog>.form-body{padding:16px;gap:14px}dialog.admin-dialog .admin-fields{grid-template-columns:1fr;gap:12px}dialog.admin-dialog .dialog-footer{padding:13px 16px}dialog.admin-dialog .offboard-replacement{flex-wrap:wrap}dialog.admin-dialog .secret-code{font-size:18px;letter-spacing:.6px}}
+dialog.admin-dialog [data-form]:not(.access-form)>.form-body{display:flex;flex-direction:column;grid-template-columns:none;grid-template-areas:none!important}
+dialog.admin-dialog [data-form]:not(.access-form)>.form-body{align-items:stretch}
+dialog.admin-dialog .wizard-step{align-items:stretch;width:100%}
+dialog.admin-dialog.compact-dialog{max-width:500px}

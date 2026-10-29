@@ -1,4 +1,4 @@
-# Operational Pulse 1.2.0 · especificación de la implementación nueva
+# Operational Pulse 1.2.1 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -209,3 +209,7 @@ Admin crea, edita y elimina Cuentas vacías; crea, edita y da de baja Administra
 Cuatro accesos visibles en el sidebar: Panel, Cuentas, Administradores y Recuperación de acceso. Panel: totales generales de Cuentas registradas, Managers activos, Leads activos y recuperaciones pendientes/vencidas. Distribución por Cuenta con gráfica de barras y tabla (Managers activos, Leads activos y Managers activos sin Lead); la búsqueda y el país filtran ambas vistas. Pendientes accionables: Managers vigentes sin Lead, Cuentas sin Manager vigente, accesos administrativos por activar y recuperaciones. Cada Cuenta puede abrirse desde tabla, gráfica o tarjetas. Los formularios administrativos no cambian Grupos al guardar sólo la identidad de un Manager: omitir group_ids conserva la asignación existente.
 
 La recuperación de Admin, Manager y Lead se asigna exclusivamente a Admin, sin autoemisión ni autoconsulta de códigos. Los Técnicos mantienen su flujo anterior. El cambio del perfil Manager y el kanban de Técnicos no forman parte de esta entrega del perfil Admin. Las herramientas previas de mantenimiento y los registros operativos se conservan.
+
+## Modales administrativos · v1.2.1
+
+La presentación administrativa se aplica a formularios de identidad, Cuenta, baja, reactivación, confirmación y códigos. Los formularios de Manager/Lead/Admin separan datos personales, acceso y asignación; títulos y acciones indican el rol y creación/edición. Cambiar el Manager de un Lead exige motivo; editar sólo la identidad no lo exige. Los diálogos largos conservan campos en pasos y validan todos antes del envío. El presupuesto de cada paso administrativo descuenta padding y navegación para evitar recortes. Se eliminan las áreas heredadas que colocaban dos campos de baja en la misma celda. El destino común de Grupos es un atajo visual: el envío conserva las mismas asignaciones individuales y validaciones de backend. OT, Guardias y cálculos operativos no cambian.

@@ -1,6 +1,14 @@
-# Operational Pulse · 1.2.0
+# Operational Pulse · 1.2.1
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Modales administrativos · v1.2.1
+
+Formularios de Manager, Lead y Administrador con títulos específicos, secciones de datos personales, identidad y asignación, ancho de 680 px como máximo y acciones permanentes. Texto más oscuro, campos alineados y estados de foco visibles. El motivo del cambio de responsable del Lead sólo se muestra y se requiere si cambia el Manager.
+
+Las bajas usan una columna sin las antiguas áreas de grid que encimaban destino del Lead y motivo. Los formularios largos se distribuyen en pasos; se conserva la validación de todos los campos y la confirmación final. La baja de Manager permite preseleccionar un destino común para todos sus Grupos y ajustar los destinos individuales. Los códigos y confirmaciones simples usan un ancho máximo de 500 px. Se conserva el flujo del Panel, las Cuentas y los roles de v1.2.0.
+
+Validado en Chromium: 23 comprobaciones de páginas de siete modales administrativos a 1440×780, 1280×650 y 390×844, sin campos encimados ni desbordamiento del cuerpo o del diálogo. Se ejecutaron bajas reales sobre una base temporal: Manager con transferencia de todos sus Grupos y su Lead, y Lead. Se repitió el recorrido completo del espacio Admin de v1.2.0. Sintaxis de app.js/layout.js y compilación de server.py verificadas. No se ejecutó en un Mac físico ni en Safari; las 59 pruebas de API citadas debajo corresponden a v1.2.0.
 
 ## Perfil Administrador · v1.2.0
 
