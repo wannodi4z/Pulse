@@ -1,6 +1,41 @@
-# Operational Pulse · 1.3.0
+# Operational Pulse · 1.0.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Versión vigente · v1.0.0 · administración por rol
+
+La numeración vuelve a **v1.0.0** por indicación del autor; se conservan todas las mejoras implementadas. Esta sección prevalece sobre las notas históricas de versiones anteriores que siguen debajo.
+
+| Rol | Administración |
+| --- | --- |
+| Admin | Cuentas, Administradores, Managers y Leads; recuperaciones de esos perfiles. No aprueba ni ejecuta movimientos individuales de Técnicos. |
+| Manager | Crea y edita sus Grupos; agrega y edita sus Técnicos; genera o regenera sus códigos de activación; administra las recuperaciones de sus Técnicos y mueve personas dentro de su propio equipo. |
+| Lead | Conserva OT propia y aprobación de tiempo sólo bajo delegación. No administra personas por tener delegación. |
+| Técnico | Conserva su acceso, OT, Guardias, Timer, historial, Claim y ADP. |
+
+### Alta, edición y activación
+
+En **Mi equipo → Agregar Técnico**, el Manager captura nombre, apellidos, Employee ID, correo y uno de sus Grupos. El acceso queda pendiente; se muestra un código que debe compartir por un canal corporativo. El Técnico define su contraseña desde Activar cuenta. Mientras siga pendiente, el Manager puede regenerar su código desde la tarjeta; el anterior deja de funcionar. Una cuenta activa utiliza recuperación de acceso, no activación nueva.
+
+Cada tarjeta tiene **Editar**, **Mover** y **Otro Manager**. Un Manager nuevo puede crear su primer Grupo desde **+ Grupo**; la Cuenta y la propiedad del Grupo quedan fijadas a su equipo. Los cambios de Grupo conservan la identidad y los registros; cambiar sólo datos personales no requiere motivo de traslado.
+
+### Movimientos
+
+- **Dentro del equipo:** arrastra la tarjeta o pulsa Mover, elige otro Grupo propio, indica el motivo y confirma. El Manager aplica el movimiento directamente. Cancelar no cambia datos.
+- **A otro Manager:** pulsa Otro Manager, selecciona un responsable activo e indica el motivo. El Técnico permanece en origen hasta que el destinatario acepte y elija uno de sus Grupos. El destino también puede rechazar; el origen puede cancelar mientras esté pendiente.
+- **Traslados entre Managers:** la bandeja muestra enviados y recibidos, estado y motivo de resolución. Admin no interviene ni recibe acciones para autorizar estos traslados. Las antiguas solicitudes dirigidas a Admin se conservan como datos históricos, y sus rutas de ejecución están retiradas.
+- No se traslada un Técnico con Timer activo; primero debe detenerlo. Un traslado aceptado conserva OT y Guardias, incluidos los datos de origen y las reglas de cobertura capturadas. Se cierran las sesiones del Técnico para que el siguiente acceso tome su asignación nueva.
+- Los permisos se validan en backend: un Manager no edita personas de otro equipo ni crea Managers, Administradores o Leads. Un Manager receptor no puede aceptar hacia un Grupo ajeno ni resolver dos veces una misma solicitud.
+
+### Datos de prueba e inicio local
+
+El proyecto completo conserva **dos Cuentas, dos Managers por Cuenta, cuatro Leads y doce Técnicos**, todos con los accesos de ejemplo indicados más abajo. Descomprime en carpeta nueva para cargar esa base. Una instalación existente conserva su base: respáldala junto con su archivo de clave antes de actualizar; el arranque agrega la tabla de traslados sin borrar datos.
+
+### Validación de esta entrega
+
+Pasaron **69 pruebas de API** y los recorridos Chromium del perfil Manager y del espacio Admin. Incluyen alta, regeneración de código, activación, edición, creación de Grupo, arrastre y cancelación, movimiento directo, traslado pendiente y aceptación del receptor; controles de acceso, rechazo/cancelación, Timer activo y conservación de OT/Guardias entre Cuentas con recálculo de analítica. Se comprobaron límites a 1440×780, 1280×650 y 390×844, sintaxis JavaScript y compilación Python. Los resultados y comandos específicos se describen en la especificación. No se probó en un Mac físico ni Safari.
+
+## Historial de iteraciones anteriores
 
 ## Mi equipo con kanban · v1.3.0
 

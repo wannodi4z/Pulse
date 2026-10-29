@@ -1,4 +1,18 @@
-# Operational Pulse 1.3.0 · especificación de la implementación nueva
+# Operational Pulse 1.0.0 · especificación de la implementación nueva
+
+## Estado vigente · v1.0.0
+
+La versión se restablece a 1.0.0 sin revertir funciones ni datos. Esta definición de roles y movimientos sustituye las secciones históricas con aprobación por Admin.
+
+El Manager agrega y edita Técnicos ordinarios sólo en sus Grupos, con acceso inicial pendiente y código de activación PBKDF2 mostrado al generar/regenerar. El destino de un movimiento interno debe seguir bajo el mismo Manager y la misma Cuenta. Se usa la transacción de edición/traslado existente, con motivo y comprobación de origen para movimientos dedicados; conserva registros y origen, invalida sesiones y cancela solicitudes de traspaso que quedaron obsoletas. Un Timer abierto impide el cambio.
+
+Para traslados entre Managers se agrega manager_transfers sin modificar ni eliminar la tabla histórica transfer_requests. La solicitud conserva user_id, source_manager_id, target_manager_id, source_group_id, motivo y fechas. El origen sólo puede solicitar para un Técnico vigente propio, no para un Lead, y sólo puede mantener una solicitud pendiente por persona. El destino debe ser otro Manager activo. /api/state ofrece a Managers un directorio mínimo de responsables activos; no expone los Técnicos ni Grupos ajenos. Sólo origen/destino ven sus solicitudes y los datos mínimos de la persona solicitada.
+
+El receptor acepta eligiendo un Grupo propio o rechaza con motivo; el origen cancela mientras esté pendiente. La decisión toma una transacción de escritura y comprueba estado pendiente, responsable, origen vigente, Grupo receptor y ausencia de Timer abierto. Al aceptar se preservan OT, Guardias y snapshots, se reubica la persona, se revocan autorizaciones incompatibles, se reabren recuperaciones al nuevo responsable y se invalidan sesiones. Las decisiones repetidas o con origen obsoleto se rechazan. Se permite traslado entre Cuentas mediante aceptación del responsable de destino.
+
+Las rutas antiguas de lote/traslado individual y decisión de solicitudes por Admin rechazan ejecución (403); la creación de solicitudes libres dirigidas a Admin está retirada (410). No se borran solicitudes históricas. Las herramientas de gestión de Lead siguen bajo Admin y la baja de Manager conserva la reasignación de sus dependencias. No se cambia la lógica de OT, Guardias, timers, Excel, Claim ni ADP.
+
+Comandos de validación actuales: `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`, `.venv/bin/python tests/manager_administration_browser.py`, `.venv/bin/python tests/admin_workspace_browser.py`, `node --check static/app.js`, `node --check static/layout.js`, compilación Python. Los scripts de navegador de iteraciones antiguas describen sus interfaces históricas; los recorridos vigentes para este cambio son los dos mencionados.
 
 ## Alcance actual
 
@@ -26,8 +40,8 @@ La lectura común se hace mediante `GET /api/state`. Las escrituras son transacc
 
 - Roles: ADMIN, MANAGER y USER. `is_lead` no es un rol adicional.
 - Nuevas personas: pendientes de activación con código mostrado una sola vez. Activación define contraseña de al menos diez caracteres.
-- ADMIN es el único que crea y edita estructura y personas; gestiona recuperaciones de Managers, Leads, otros administradores y Técnicos sin Manager activo. Las aprobaciones operativas las realizan Manager y Lead delegado.
-- MANAGER consulta a su equipo y gestiona tiempo, backup y recuperaciones de sus Técnicos; no modifica personas. Lead delegado cubre todos los Grupos actuales del Manager hasta revocación manual; permanece Técnico para Mi tiempo, Claim y ADP.
+- ADMIN crea y edita Cuentas, Administradores, Managers y Leads; gestiona sus recuperaciones y las de Técnicos sin Manager activo. No crea/edita Técnicos ordinarios ni decide movimientos individuales. Conserva las reasignaciones de dependencias necesarias para la baja de un Manager. Las aprobaciones de tiempo corresponden a Manager y Lead delegado.
+- MANAGER crea/edita sus propios Grupos y Técnicos, emite códigos de activación para Técnicos pendientes, gestiona tiempo, backup y recuperación de sus Técnicos. No crea ni modifica Administradores, Managers o Leads. Lead delegado cubre todos los Grupos actuales del Manager hasta revocación manual y conserva Mi tiempo, Claim y ADP; la delegación no concede administración de personas.
 - Sesiones de ocho horas, almacenadas en SQLite, con cookie HttpOnly y SameSite estricto; Secure cuando se sirve por HTTPS. Cambio de contraseña o deshabilitación invalida sesiones. Limitación de intentos de login por identidad.
 - Contraseñas y códigos nunca se devuelven en `/api/state`. Almacenamiento PBKDF2-HMAC-SHA256, salt aleatorio, 260 000 iteraciones.
 - Recuperación: solicitud, validación por responsable distinto del solicitante, código emitido de quince minutos, uso único y anulación de sesiones.
@@ -217,3 +231,7 @@ La presentación administrativa se aplica a formularios de identidad, Cuenta, ba
 ## Kanban del Manager · v1.3.0
 
 Mi equipo presenta exclusivamente Grupos propios y Técnicos vigentes en columnas con tarjetas arrastrables; el Lead tiene su propia tarjeta fuera del tablero. El arrastre sólo prepara una solicitud, con un motivo obligatorio y sin cambiar grupo_id. Existe alternativa con botón/teclado y destino externo descriptivo. Se conserva POST /api/transfer-requests, autorizado únicamente para el Manager propietario. El seguimiento se llama Cambios solicitados y muestra solicitudes propias; las recibe y decide Admin, no otro Manager. Admin accede a la bandeja desde Cuentas; aplica el traslado con las validaciones vigentes de origen, Timer, destino e historial. La delegación y revocación se mantienen independientes del arrastre. La búsqueda no cambia datos; cancelar el modal tampoco. No se modifica el alcance de información ni la autorización de los demás roles.
+
+## Validación de la entrega reiniciada en v1.0.0
+
+69 pruebas API pasaron en 56.363 s en Linux/Python 3.12. Incluyen las reglas operativas existentes, límites de rol actualizados, alta y activación por Manager, movimientos internos, recepción/rechazo/cancelación de traslados, concurrencia de decisiones, origen obsoleto, Timer activo y conservación de OT/Guardias entre Cuentas. El recorrido manager_administration_browser.py pasó con creación de Grupo y Técnico, regeneración y activación, edición, arrastre real con cancelación sin escrituras, movimiento directo y aceptación por receptor; límites de pantalla a 1440×780, 1280×650 y 390×844; cero errores JavaScript. Se repitió el recorrido admin_workspace_browser.py. Se validaron sintaxis JavaScript, compilación Python y scripts de inicio. No se ejecutó en Mac físico ni Safari.

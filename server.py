@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.3.0'
+VERSION = '1.0.0'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -124,6 +124,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY, actor_id TEXT REFERENCES users(id), action TEXT NOT NULL, entity_id TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS transfer_requests(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), requested_by TEXT NOT NULL REFERENCES users(id), source_group_id TEXT NOT NULL REFERENCES groups(id), destination TEXT NOT NULL, reason TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT REFERENCES users(id), decision_reason TEXT NOT NULL DEFAULT '', destination_group_id TEXT REFERENCES groups(id));
         CREATE UNIQUE INDEX IF NOT EXISTS one_pending_transfer ON transfer_requests(user_id) WHERE status='SUBMITTED';
+        CREATE TABLE IF NOT EXISTS manager_transfers(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),source_manager_id TEXT NOT NULL REFERENCES users(id),target_manager_id TEXT NOT NULL REFERENCES users(id),source_group_id TEXT NOT NULL REFERENCES groups(id),reason TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,decided_at TEXT,decision_reason TEXT NOT NULL DEFAULT '',destination_group_id TEXT REFERENCES groups(id));
         CREATE TABLE IF NOT EXISTS record_origins(record_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
@@ -454,7 +455,7 @@ def state(user=Depends(current_user)):
         visible_entities = visible | {r['id'] for table in ('overtime', 'guards', 'timers') for r in rows(c, table) if r['user_id'] in visible}
         result = {'user': public_user(user), 'can_approve': user['role'] == 'MANAGER' or bool(group_ids) and user['role'] == 'USER', 'scope': list(group_ids), 'version': VERSION, 'timezone': str(TZ), 'server_time': now(),
                   'specialties':[r for r in rows(c,'specialties') if user['role']=='ADMIN' or any(g['account_id']==r['account_id'] for g in shown_groups)],'country_codes':sorted(COUNTRY_CODES),'platforms':PLATFORMS,'service_catalog':SERVICE_CATALOG,
-                  'accounts': accounts if user['role'] == 'ADMIN' else [a for a in accounts if any(g['account_id'] == a['id'] for g in shown_groups) or user['is_lead'] and get(c,'users',user['manager_id'])['account_id']==a['id']],
+                  'accounts': accounts if user['role'] == 'ADMIN' else [a for a in accounts if user['role']=='MANAGER' and user['account_id']==a['id'] or any(g['account_id'] == a['id'] for g in shown_groups) or user['is_lead'] and get(c,'users',user['manager_id'])['account_id']==a['id']],
                   'groups': shown_groups, 'people': [public_user(p) for p in people if p['id'] in visible or p['role'] == 'MANAGER' and (any(g['manager_id'] == p['id'] for g in shown_groups) or user['manager_id']==p['id'])],
                   'overtime': [r for r in rows(c, 'overtime') if r['user_id'] in visible],
                   'guards': [r for r in rows(c, 'guards') if r['user_id'] in visible],
@@ -465,6 +466,8 @@ def state(user=Depends(current_user)):
                   'rules': [dict(r, segments=json.loads(r['segments'])) for r in rows(c, 'rules') if user['role'] == 'ADMIN' or r['manager_id'] == user['id'] or user['is_lead'] and r['manager_id']==user['manager_id'] or any(g['manager_id'] == r['manager_id'] for g in shown_groups)],
                   'delegations': [dict(d, group_ids=[g['id'] for g in rows(c, 'groups') if g['manager_id']==d['manager_id']] if not d['revoked_at'] else json.loads(d['group_ids'])) for d in rows(c, 'delegations') if user['role'] == 'ADMIN' or d['manager_id'] == user['id'] or d['lead_id'] == user['id']],
                   'transfer_requests':[r for r in rows(c,'transfer_requests') if user['role']=='ADMIN' or r['requested_by']==user['id']],
+                  'manager_directory':[{'id':p['id'],'first':p['first'],'last':p['last'],'employee_id':p['employee_id'],'account_name':get(c,'accounts',p['account_id'])['name']} for p in people if user['role']=='MANAGER' and p['role']=='MANAGER' and p['status']=='ACTIVE' and p['id']!=user['id']],
+                  'manager_transfers':[dict(r,user_name=(get(c,'users',r['user_id'])['first']+' '+get(c,'users',r['user_id'])['last']),employee_id=get(c,'users',r['user_id'])['employee_id'],source_name=get(c,'users',r['source_manager_id'])['first']+' '+get(c,'users',r['source_manager_id'])['last'],target_name=get(c,'users',r['target_manager_id'])['first']+' '+get(c,'users',r['target_manager_id'])['last']) for r in rows(c,'manager_transfers') if user['role']=='MANAGER' and user['id'] in (r['source_manager_id'],r['target_manager_id'])],
                   'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
                   'audit': [a for a in rows(c, 'audit') if user['role'] == 'ADMIN' or a['actor_id'] in visible or a['entity_id'] in visible_entities][-300:]}
         people_by_id={p['id']:p for p in people}
@@ -730,11 +733,15 @@ def validate_manager_leads(c, manager_ids):
 
 @app.post('/api/groups')
 @app.put('/api/groups/{identity}')
-def save_group(data: dict = Body(...), identity: str = '', actor=Depends(admin)):
+def save_group(data: dict = Body(...), identity: str = '', actor=Depends(current_user)):
     aid, mid = text(data, 'account_id'), data.get('manager_id') or None
     with connection(True) as c:
         account=get(c, 'accounts', aid)
         old = get(c, 'groups', identity) if identity else None
+        if actor['role']=='MANAGER':
+            if aid!=actor['account_id'] or mid not in (None,actor['id']) or old and old['manager_id']!=actor['id']:fail('Sólo puedes administrar Grupos de tu propio equipo.',403)
+            mid=actor['id']
+        elif actor['role']!='ADMIN':fail('No tienes permiso para administrar Grupos.',403)
         platform=str(data.get('platform_code',old['platform_code'] if old else '')).upper()
         service=normalized_key(data.get('service_key') or old['service_key']) if data.get('service_key') or old and old['service_key'] else ''
         standard=old['standard_code'] if old else ''
@@ -789,9 +796,23 @@ def delete_group(identity: str, actor=Depends(admin)):
 
 @app.post('/api/people')
 @app.put('/api/people/{identity}')
-def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)):
+def save_person(data: dict = Body(...), identity: str = '', actor=Depends(current_user)):
     with connection(True) as c:
         old = get(c, 'users', identity) if identity else None
+        if actor['role']=='MANAGER':
+            if old and (old['role']!='USER' or old['is_lead'] or old['status']=='DISABLED' or not old['group_id'] or get(c,'groups',old['group_id'])['manager_id']!=actor['id']):
+                fail('Sólo puedes administrar Técnicos vigentes de tus propios Grupos.',403)
+            if data.get('role','USER')!='USER' or data.get('is_lead') or data.get('manager_id'):
+                fail('El Manager no puede crear Administradores, Managers ni Leads.',403)
+            destination=get(c,'groups',data.get('group_id') or (old['group_id'] if old else None))
+            if destination['manager_id']!=actor['id'] or destination['account_id']!=actor['account_id']:
+                fail('El Grupo debe pertenecer a tu equipo. No se permite cambiar de Manager por esta vía.',403)
+        elif actor['role']=='ADMIN':
+            if data.get('_transfer_only'):fail('Admin no autoriza movimientos de Técnicos.',403)
+            if (old and old['role']=='USER' and not old['is_lead'] and not data.get('is_lead')) or (not old and data.get('role')=='USER' and not data.get('is_lead')):
+                fail('Los Técnicos los administra su Manager; Admin gestiona Administradores, Managers y Leads.',403)
+        else:
+            fail('No tienes permiso para administrar personas.',403)
         if data.get('_transfer_only'):
             if not old or old['role']!='USER' or old['status']=='DISABLED' or old['is_lead']:
                 fail('Sólo se transfieren Técnicos activos o pendientes de activación.')
@@ -857,6 +878,7 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(admin)
             if old_owner!=new_owner:
                 reopen_recoveries(c,actor,[identity],transfer_reason)
             invalidate_sessions(c,identity)
+            c.execute("UPDATE manager_transfers SET status='CANCELLED',decided_at=?,decision_reason=? WHERE user_id=? AND status='SUBMITTED'",(now(),'El Técnico cambió de Grupo antes de resolver el traslado.',identity))
             audit(c,actor,'TRANSFER_PERSON',identity,{'from_group':old['group_id'],'to_group':gid,'from_manager':old_owner,'to_manager':new_owner,'reason':transfer_reason})
         if old and role=='MANAGER':
             for owned in c.execute('SELECT id FROM groups WHERE manager_id=?',(identity,)).fetchall():
@@ -910,71 +932,79 @@ def capture_origin(c, record_id, user, inferred=False):
 
 @app.post('/api/admin/organization/transfers')
 def organize_technicians(data:dict=Body(...),actor=Depends(admin)):
-    reason=text(data,'reason');moves=data.get('moves')
-    if not isinstance(moves,list) or not 1<=len(moves)<=100:fail('Revisa entre 1 y 100 movimientos por operación.')
-    with connection(True) as c:
-        prepared=[];seen=set()
-        for move in moves:
-            if not isinstance(move,dict):fail('Movimiento no válido.')
-            identity=text(move,'user_id')
-            if identity in seen:fail('Un Técnico sólo puede tener un destino en esta operación.')
-            seen.add(identity);user=get(c,'users',identity)
-            if user['role']!='USER' or user['is_lead'] or user['status']=='DISABLED':fail('Sólo se organizan Técnicos vigentes. El Lead se asigna directamente al Manager.')
-            if text(move,'from_group_id')!=user['group_id']:fail('Un Técnico cambió de Grupo. Cierra el organizador y actualiza antes de intentarlo otra vez.',409)
-            destination=get(c,'groups',text(move,'to_group_id'))
-            if destination['id']==user['group_id']:fail('El origen y destino deben ser distintos.')
-            if not destination['manager_id'] or get(c,'users',destination['manager_id'])['status']!='ACTIVE':fail('El Grupo de destino necesita un Manager activo.')
-            if c.execute('SELECT 1 FROM timers WHERE user_id=? AND end_at IS NULL',(identity,)).fetchone():fail('Detén el Timer de '+user['employee_id']+' antes de moverlo.')
-            prepared.append((user,destination))
-        batch_id=uid()
-        for user,destination in prepared:
-            old_owner=owner_manager(c,user)
-            for table in ('overtime','guards'):
-                for record in c.execute('SELECT id FROM '+table+' WHERE user_id=?',(user['id'],)).fetchall():capture_origin(c,record['id'],user,inferred=True)
-            revoke_authority(c,actor,reason,lead_ids=[user['id']])
-            if old_owner!=destination['manager_id']:reopen_recoveries(c,actor,[user['id']],reason)
-            invalidate_sessions(c,user['id'])
-            c.execute('UPDATE users SET group_id=? WHERE id=?',(destination['id'],user['id']))
-            audit(c,actor,'TRANSFER_PERSON',user['id'],{'from_group':user['group_id'],'to_group':destination['id'],'from_manager':old_owner,'to_manager':destination['manager_id'],'reason':reason,'batch_id':batch_id})
-        audit(c,actor,'ORGANIZE_TECHNICIANS',batch_id,{'count':len(prepared),'reason':reason})
-    return {'ok':True,'moved':len(prepared),'batch_id':batch_id}
+    fail('Admin no autoriza movimientos de Técnicos. Corresponden a sus Managers.',403)
 
 
 @app.post('/api/transfer-requests')
 def request_transfer(data:dict=Body(...),actor=Depends(current_user)):
-    if actor['role']!='MANAGER':fail('Sólo el Manager solicita cambios a Admin.',403)
-    with connection(True) as c:
-        target=get(c,'users',text(data,'user_id'))
-        if target['role']!='USER' or target['status']=='DISABLED' or get(c,'groups',target['group_id'])['manager_id']!=actor['id']:
-            fail('El Técnico debe pertenecer a tu equipo activo.',403)
-        destination,reason=text(data,'destination'),text(data,'reason')
-        if len(destination)>160 or len(reason)>2000:fail('Resume el destino en 160 caracteres y el motivo en 2000.')
-        identity=uid()
-        c.execute('INSERT INTO transfer_requests(id,user_id,requested_by,source_group_id,destination,reason,status,created_at) VALUES(?,?,?,?,?,?,?,?)',(identity,target['id'],actor['id'],target['group_id'],destination,reason,'SUBMITTED',now()))
-        audit(c,actor,'REQUEST_TRANSFER',identity,{'user_id':target['id'],'destination':destination})
-    return {'id':identity}
+    fail('Usa los movimientos de tu equipo o solicita traslado al Manager de destino.',410)
 
 
 @app.post('/api/admin/transfer-requests/{identity}/reject')
 def reject_transfer(identity:str,data:dict=Body(...),actor=Depends(admin)):
-    with connection(True) as c:
-        request=get(c,'transfer_requests',identity)
-        if request['status']!='SUBMITTED':fail('La solicitud ya fue resuelta.',409)
-        reason=text(data,'reason')
-        c.execute("UPDATE transfer_requests SET status='REJECTED',decided_at=?,decided_by=?,decision_reason=? WHERE id=?",(now(),actor['id'],reason,identity))
-        audit(c,actor,'REJECT_TRANSFER',identity,{'reason':reason})
-    return {'ok':True}
+    fail('Admin no decide movimientos de Técnicos.',403)
 
 
 @app.post('/api/admin/people/{identity}/transfer')
 def transfer_technician(identity: str, data: dict=Body(...), actor=Depends(admin)):
-    return save_person({**data,'_transfer_only':True},identity,actor)
+    fail('Admin no autoriza movimientos de Técnicos.',403)
+
+
+@app.post('/api/team/transfers')
+def create_manager_transfer(data:dict=Body(...),actor=Depends(current_user)):
+    if actor['role']!='MANAGER':fail('Sólo el Manager puede solicitar un traslado.',403)
+    with connection(True) as c:
+        user=get(c,'users',text(data,'user_id'));target=get(c,'users',text(data,'target_manager_id'));reason=text(data,'reason')
+        if user['role']!='USER' or user['is_lead'] or user['status']=='DISABLED' or not user['group_id'] or get(c,'groups',user['group_id'])['manager_id']!=actor['id']:fail('El Técnico debe pertenecer a tu equipo.',403)
+        if target['role']!='MANAGER' or target['status']!='ACTIVE' or target['id']==actor['id']:fail('Selecciona otro Manager activo.')
+        if len(reason)>2000:fail('Resume el motivo en 2000 caracteres.')
+        if c.execute("SELECT 1 FROM manager_transfers WHERE user_id=? AND status='SUBMITTED'",(user['id'],)).fetchone():fail('Este Técnico ya tiene un traslado pendiente.',409)
+        identity=uid();c.execute('INSERT INTO manager_transfers(id,user_id,source_manager_id,target_manager_id,source_group_id,reason,status,created_at) VALUES(?,?,?,?,?,?,?,?)',(identity,user['id'],actor['id'],target['id'],user['group_id'],reason,'SUBMITTED',now()))
+        audit(c,actor,'REQUEST_MANAGER_TRANSFER',identity,{'user_id':user['id'],'target_manager_id':target['id']})
+    return {'id':identity}
+
+
+@app.post('/api/team/transfers/{identity}/decision')
+def decide_manager_transfer(identity:str,data:dict=Body(...),actor=Depends(current_user)):
+    if actor['role']!='MANAGER':fail('Sólo un Manager puede resolver este traslado.',403)
+    decision=text(data,'decision');reason=text(data,'reason')
+    if decision not in ('APPROVED','REJECTED','CANCELLED'):fail('Decisión no válida.')
+    with connection(True) as c:
+        request=get(c,'manager_transfers',identity)
+        expected=request['source_manager_id'] if decision=='CANCELLED' else request['target_manager_id']
+        if actor['id']!=expected:fail('Sólo el responsable correspondiente puede resolver el traslado.',403)
+        if request['status']!='SUBMITTED':fail('El traslado ya fue resuelto.',409)
+        if decision=='APPROVED':
+            user=get(c,'users',request['user_id']);destination=get(c,'groups',text(data,'group_id'))
+            if destination['manager_id']!=actor['id'] or destination['account_id']!=actor['account_id']:fail('Elige uno de tus Grupos.',403)
+            if user['role']!='USER' or user['is_lead'] or user['status']=='DISABLED' or user['group_id']!=request['source_group_id'] or get(c,'groups',user['group_id'])['manager_id']!=request['source_manager_id']:fail('La asignación del Técnico cambió. Solicita un traslado nuevo.',409)
+            if get(c,'users',request['source_manager_id'])['status']!='ACTIVE':fail('El Manager de origen ya no está activo.',409)
+            if c.execute('SELECT 1 FROM timers WHERE user_id=? AND end_at IS NULL',(user['id'],)).fetchone():fail('El Técnico debe detener su Timer antes de aceptar el traslado.')
+            for table in ('overtime','guards'):
+                for record in c.execute('SELECT id FROM '+table+' WHERE user_id=?',(user['id'],)).fetchall():capture_origin(c,record['id'],user,inferred=True)
+            revoke_authority(c,actor,reason,lead_ids=[user['id']]);reopen_recoveries(c,actor,[user['id']],reason);invalidate_sessions(c,user['id'])
+            c.execute('UPDATE users SET group_id=? WHERE id=?',(destination['id'],user['id']))
+            c.execute('UPDATE manager_transfers SET destination_group_id=? WHERE id=?',(destination['id'],identity))
+            audit(c,actor,'TRANSFER_PERSON',user['id'],{'from_group':user['group_id'],'to_group':destination['id'],'from_manager':request['source_manager_id'],'to_manager':actor['id'],'reason':reason,'request_id':identity})
+        c.execute('UPDATE manager_transfers SET status=?,decided_at=?,decision_reason=? WHERE id=?',(decision,now(),reason,identity))
+        audit(c,actor,'DECIDE_MANAGER_TRANSFER',identity,{'decision':decision,'reason':reason})
+    return {'ok':True,'status':decision}
+
+
+@app.post('/api/team/people/{identity}/move')
+def move_team_technician(identity:str,data:dict=Body(...),actor=Depends(current_user)):
+    if actor['role']!='MANAGER':fail('Sólo el Manager administra los movimientos de su equipo.',403)
+    return save_person({**{key:data.get(key) for key in ('group_id','expected_group_id','transfer_reason')},'_transfer_only':True},identity,actor)
 
 
 @app.post('/api/people/{identity}/activation')
-def new_activation(identity: str, actor=Depends(admin)):
+def new_activation(identity: str, actor=Depends(current_user)):
     with connection(True) as c:
         u = get(c, 'users', identity)
+        if actor['role']=='MANAGER':
+            if u['role']!='USER' or u['is_lead'] or not u['group_id'] or get(c,'groups',u['group_id'])['manager_id']!=actor['id']:fail('Sólo puedes generar códigos de tus Técnicos.',403)
+        elif actor['role']!='ADMIN' or u['role']=='USER' and not u['is_lead']:
+            fail('Este acceso corresponde a otro responsable.',403)
         if u['status'] != 'PENDING_ACTIVATION':
             fail('La cuenta ya está activa. Usa recuperación de acceso.')
         code = 'ACT-' + secrets.token_hex(5).upper()

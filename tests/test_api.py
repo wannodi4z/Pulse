@@ -45,7 +45,19 @@ class PulseTests(unittest.TestCase):
 
     def person(self, role, emp, account=None, group=None, groups=None, lead=False):
         data = {'role': role, 'employee_id': emp, 'username': emp, 'first': 'Persona', 'last': emp, 'email': emp+'@example.test', 'account_id': account, 'group_id': group, 'group_ids': groups or [], 'is_lead': lead}
-        r = self.post('/api/people', data)
+        creator=None
+        if role=='USER' and not lead and group:
+            with self.server.connection() as db:
+                owner=db.execute('SELECT u.username FROM groups g JOIN users u ON u.id=g.manager_id WHERE g.id=?',(group,)).fetchone()
+            if owner:
+                creator=TestClient(self.server.app);self.login(creator,owner['username'])
+        if role=='USER' and not lead and group and not creator:
+            identity=self.server.uid()
+            with self.server.connection(True) as db:
+                db.execute('INSERT INTO users(id,role,username,employee_id,first,last,email,group_id,status,password_hash,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(identity,'USER',emp,emp,'Persona',emp,emp+'@example.test',group,'ACTIVE',self.server.password_hash('Password2026!'),self.server.now()))
+            legacy=TestClient(self.server.app);return self.login(legacy,emp),legacy,data
+        r = self.post('/api/people', data, creator)
+        if creator:creator.post('/api/logout');creator.close()
         c = TestClient(self.server.app)
         self.post('/api/activate', {'identity': emp, 'code': r['activation_code'], 'password': 'Password2026!'}, c)
         user = self.login(c, emp)
@@ -426,13 +438,13 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(february['summary']['EMERGENCY'],60);self.assertEqual(february['summary']['GUARD'],300)
         self.assertEqual({r['date'] for r in january['rows']},{'2026-01-31'});self.assertEqual({r['date'] for r in february['rows']},{'2026-02-01'})
 
-    def test_only_admin_manages_people_and_team_roles_stay_operational(self):
+    def test_manager_manages_technicians_admin_manages_higher_roles(self):
         a,g,m,mc,u,uc=self.organization()
         data={'role':'USER','employee_id':'T009','first':'Persona','last':'Nueva','email':'new@example.test','group_id':g}
-        self.assertEqual(mc.post('/api/people',json=data).status_code,403)
-        self.assertEqual(mc.put('/api/people/'+u['id'],json={**data,'employee_id':'T001'}).status_code,403)
+        self.assertEqual(mc.post('/api/people',json=data).status_code,200)
+        self.assertEqual(mc.put('/api/people/'+u['id'],json={**data,'employee_id':'T001'}).status_code,200)
         self.assertEqual(uc.put('/api/people/'+u['id'],json={**data,'employee_id':'T001'}).status_code,403)
-        self.assertEqual(self.client.put('/api/people/'+u['id'],json={**data,'employee_id':'T001'}).status_code,200)
+        self.assertEqual(self.client.put('/api/people/'+u['id'],json={**data,'employee_id':'T001'}).status_code,403)
         # Personal contact details remain self-service; hierarchy and Employee ID are not profile fields.
         self.assertEqual(uc.put('/api/profile',json={'first':'Mi','last':'Perfil','email':'own@example.test'}).status_code,200)
         self.assertEqual(uc.get('/api/state').json()['user']['group_id'],g)
@@ -531,7 +543,9 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(blocked.status_code,422)
         request={**original,'group_id':g2,'transfer_reason':'Reorganización activa'}
         self.assertEqual(mc.put('/api/people/'+u['id'],json=request).status_code,403)
-        self.assertEqual(self.client.put('/api/people/'+u['id'],json=request).status_code,200)
+        self.assertEqual(self.client.put('/api/people/'+u['id'],json=request).status_code,403)
+        transfer=self.post('/api/team/transfers',{'user_id':u['id'],'target_manager_id':m2['id'],'reason':'Reorganización activa'},mc)['id']
+        self.post('/api/team/transfers/'+transfer+'/decision',{'decision':'APPROVED','group_id':g2,'reason':'Aceptado por destino'},c2)
         self.assertEqual(uc.get('/api/state').status_code,401)
         self.login(uc,'T001');moved=uc.get('/api/state').json()['user']
         self.assertEqual((moved['id'],moved['status'],moved['group_id']),(u['id'],'ACTIVE',g2))
@@ -605,7 +619,7 @@ class PulseTests(unittest.TestCase):
         # Existing data survives, and Admin can reduce even three legacy designations to one.
         self.assertEqual(self.client.put('/api/people/'+second['id'],json={**sd,'is_lead':False,'transfer_reason':'Asignar como Técnico'}).status_code,200)
         self.assertEqual(self.client.put('/api/people/'+third['id'],json={**td,'is_lead':False,'transfer_reason':'Asignar como Técnico'}).status_code,200)
-        pending=self.post('/api/people',{'role':'USER','employee_id':'NEW','first':'Nueva','last':'Persona','email':'new@test','group_id':g})
+        pending=self.post('/api/people',{'role':'USER','employee_id':'NEW','first':'Nueva','last':'Persona','email':'new@test','group_id':g},mc)
         impact=self.preview(pending['id'])
         self.post('/api/admin/people/'+pending['id']+'/offboard',{'reason':'Alta cancelada','confirm':True,'expected':impact['expected'],'transfers':{}})
         self.assertEqual(self.client.post('/api/activate',json={'identity':'NEW','code':pending['activation_code'],'password':'Password2026!'}).status_code,422)
@@ -679,28 +693,26 @@ class PulseTests(unittest.TestCase):
         g2=self.group(a,'G2',m['id'])
         self.assertEqual(uc.put('/api/profile',json={'first':'Nombre actualizado','last':'Apellido vigente','email':'fresh@example.test'}).status_code,200)
         payload={'expected_group_id':g,'group_id':g2,'transfer_reason':'Reorganización','first':'Dato obsoleto','last':'Viejo','email':'old@test','status':'DISABLED','is_lead':True}
-        path='/api/admin/people/'+u['id']+'/transfer'
-        self.assertEqual(mc.post(path,json=payload).status_code,403)
+        path='/api/team/people/'+u['id']+'/move'
+        self.assertEqual(self.client.post(path,json=payload).status_code,403)
         self.assertEqual(uc.post(path,json=payload).status_code,403)
-        self.post(path,payload)
+        self.post(path,payload,mc)
         moved=next(p for p in self.client.get('/api/state').json()['people'] if p['id']==u['id'])
         self.assertEqual((moved['first'],moved['last'],moved['email']),('Nombre actualizado','Apellido vigente','fresh@example.test'))
         self.assertEqual((moved['group_id'],moved['status'],moved['is_lead']),(g2,'ACTIVE',False))
         self.assertEqual(uc.get('/api/state').status_code,401)
-        self.assertEqual(self.client.post(path,json={**payload,'group_id':g}).status_code,409)
+        self.assertEqual(mc.post(path,json={**payload,'group_id':g}).status_code,409)
         self.assertEqual(next(p for p in self.client.get('/api/state').json()['people'] if p['id']==u['id'])['group_id'],g2)
-        self.assertEqual(self.client.post(path,json={'expected_group_id':g2,'group_id':g,'transfer_reason':''}).status_code,422)
+        self.assertEqual(mc.post(path,json={'expected_group_id':g2,'group_id':g,'transfer_reason':''}).status_code,422)
 
     def test_dedicated_transfer_timer_and_lead_constraints_are_atomic(self):
-        a,g,m,mc,u,uc=self.organization();g2=self.group(a,'G2')
-        m2,c2,_=self.person('MANAGER','M002',account=a,groups=[g2])
-        path='/api/admin/people/'+u['id']+'/transfer';payload={'expected_group_id':g,'group_id':g2,'transfer_reason':'Movimiento solicitado'}
+        a,g,m,mc,u,uc=self.organization();g2=self.group(a,'G2',m['id'])
+        path='/api/team/people/'+u['id']+'/move';payload={'expected_group_id':g,'group_id':g2,'transfer_reason':'Movimiento solicitado'}
         self.post('/api/timers/start',{},uc)
-        self.assertEqual(self.client.post(path,json=payload).status_code,422)
+        self.assertEqual(mc.post(path,json=payload).status_code,422)
         self.assertEqual(next(p for p in self.client.get('/api/state').json()['people'] if p['id']==u['id'])['group_id'],g)
         lead,lc,_=self.person('USER','L001',group=g,lead=True)
-        lead2,l2c,_=self.person('USER','L002',group=g2,lead=True)
-        self.assertEqual(self.client.post('/api/admin/people/'+lead['id']+'/transfer',json={**payload,'is_lead':False}).status_code,422)
+        self.assertEqual(mc.post('/api/team/people/'+lead['id']+'/move',json=payload).status_code,403)
         after=next(p for p in self.client.get('/api/state').json()['people'] if p['id']==lead['id'])
         self.assertIsNone(after['group_id']);self.assertEqual(after['manager_id'],m['id']);self.assertTrue(after['is_lead'])
 
