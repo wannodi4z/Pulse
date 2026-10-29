@@ -23,9 +23,16 @@ try:
   expect(week.locator('[data-claim-kind=OT] [data-claim-date="2026-01-03"]')).to_have_text('1.5')
   expect(week.locator('[data-claim-kind=GUARD] [data-claim-date="2026-01-03"]')).to_have_text('6.5')
   expect(week.locator('[data-claim-kind=GUARD] .claim-row-total')).to_have_text('54.5')
-  week.locator('[data-claim-kind=GUARD] [data-action=claim-copy]').click()
-  assert page.evaluate('navigator.clipboard.readText()')=='6.5\t8\t8\t8\t8\t8\t8'
-  week.locator('[data-action=claim-detail]').click();expect(page.locator('#modal')).to_contain_text('CHG-90MIN');page.locator('#modal [data-action=close]').first.click()
+  expect(page.locator('[data-action=claim-copy]')).to_have_count(0)
+  expect(week.locator('thead th')).to_have_count(9)
+  week.locator('[data-action=claim-detail]').click();expect(page.locator('#modal')).to_contain_text('CHG-90MIN')
+  expect(page.locator('#modal .claim-detail-table thead th')).to_have_count(5)
+  expect(page.locator('#modal .claim-detail-summary')).to_contain_text('Stand By')
+  for width,height in [(1440,780),(390,844)]:
+   page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(150)
+   assert page.locator('#modal .dialog-footer').evaluate('el=>el.getBoundingClientRect().bottom<=innerHeight+1')
+   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+  page.set_viewport_size({'width':1440,'height':780});page.locator('#modal [data-action=close]').first.click()
   page.locator('#toast').evaluate("el=>el.classList.remove('visible')");page.screenshot(path='/tmp/pulse-claim-matrix.png')
   for width,height in [(1280,650),(390,844)]:
    page.set_viewport_size({'width':width,'height':height});week.evaluate('(el)=>PulseLayout.reveal(el)')
@@ -36,7 +43,7 @@ try:
   expect(page.locator('thead th').last).to_have_text('Duración HH:MM')
   expect(page.locator('tbody').first).to_contain_text('01:30')
   assert not errors,errors
-  browser.close();print('PASS: Claim Saturday-Friday matrix, decimal OT/Stand By, net subtraction, weekly totals, clipboard row, detail, responsive containment and unchanged ADP HH:MM; no JS errors')
+  browser.close();print('PASS: Claim Saturday-Friday matrix, decimal OT/Stand By, net subtraction, weekly totals, nine aligned columns without copy action, detailed table, responsive containment and unchanged ADP HH:MM; no JS errors')
 finally:
  if process:process.terminate();process.wait(timeout=10)
  fixture.tearDown()
