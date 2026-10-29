@@ -1,4 +1,4 @@
-# Operational Pulse 1.2.1 · especificación de la implementación nueva
+# Operational Pulse 1.3.0 · especificación de la implementación nueva
 
 ## Alcance actual
 
@@ -213,3 +213,7 @@ La recuperación de Admin, Manager y Lead se asigna exclusivamente a Admin, sin 
 ## Modales administrativos · v1.2.1
 
 La presentación administrativa se aplica a formularios de identidad, Cuenta, baja, reactivación, confirmación y códigos. Los formularios de Manager/Lead/Admin separan datos personales, acceso y asignación; títulos y acciones indican el rol y creación/edición. Cambiar el Manager de un Lead exige motivo; editar sólo la identidad no lo exige. Los diálogos largos conservan campos en pasos y validan todos antes del envío. El presupuesto de cada paso administrativo descuenta padding y navegación para evitar recortes. Se eliminan las áreas heredadas que colocaban dos campos de baja en la misma celda. El destino común de Grupos es un atajo visual: el envío conserva las mismas asignaciones individuales y validaciones de backend. OT, Guardias y cálculos operativos no cambian.
+
+## Kanban del Manager · v1.3.0
+
+Mi equipo presenta exclusivamente Grupos propios y Técnicos vigentes en columnas con tarjetas arrastrables; el Lead tiene su propia tarjeta fuera del tablero. El arrastre sólo prepara una solicitud, con un motivo obligatorio y sin cambiar grupo_id. Existe alternativa con botón/teclado y destino externo descriptivo. Se conserva POST /api/transfer-requests, autorizado únicamente para el Manager propietario. El seguimiento se llama Cambios solicitados y muestra solicitudes propias; las recibe y decide Admin, no otro Manager. Admin accede a la bandeja desde Cuentas; aplica el traslado con las validaciones vigentes de origen, Timer, destino e historial. La delegación y revocación se mantienen independientes del arrastre. La búsqueda no cambia datos; cancelar el modal tampoco. No se modifica el alcance de información ni la autorización de los demás roles.

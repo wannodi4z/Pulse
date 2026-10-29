@@ -1,6 +1,16 @@
-# Operational Pulse · 1.2.1
+# Operational Pulse · 1.3.0
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Mi equipo con kanban · v1.3.0
+
+El Manager ve sus Grupos como columnas y sus Técnicos como tarjetas arrastrables. El Lead permanece en una tarjeta propia fuera de los Grupos, con delegación y revocación manual. El tablero permite buscar por nombre, Employee ID o Grupo; se adapta a tres, dos o una columna según el ancho disponible.
+
+Arrastrar a otro Grupo prepara una solicitud con origen y destino preseleccionados. **No ejecuta el traslado.** Se indica un motivo y se envía a Admin; cancelar no escribe datos. El botón Solicitar cambio ofrece el mismo flujo con teclado y permite indicar otro Grupo, especialidad o Manager fuera del alcance visible. El Manager no consulta la lista de personas de otros Managers.
+
+**Cambios solicitados** reemplaza el nombre Mis solicitudes de cambio: muestra las solicitudes enviadas a Admin y sus estados pendiente/aprobada/rechazada. No es una bandeja entre Managers. Admin encuentra Solicitudes de cambio en Cuentas y conserva la revisión, elección del Grupo definitivo y aplicación del traslado. Las horas e identidad del Técnico se preservan con las reglas de traslado existentes.
+
+Validación: tres pruebas de API del flujo de solicitudes; recorrido Chromium con arrastre HTML5 real, cancelación sin escrituras, alternativa de teclado, filtros, destino preseleccionado, envío sin mover al Técnico, indicador de solicitud pendiente, seguimiento y traslado confirmado por Admin. También se probó delegar/revocar desde el tablero y se repitió el recorrido Admin. Límites de pantalla verificados a 1440×780, 1280×650 y 390×844. No se ejecutó en Mac físico ni Safari. Los Grupos y tarjetas pueden recorrerse dentro del contenido cuando superan el espacio disponible.
 
 ## Modales administrativos · v1.2.1
 
