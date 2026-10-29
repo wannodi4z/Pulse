@@ -627,4 +627,4 @@ Al registrar una OT programada normal, Pulse identifica automáticamente el Grup
 La autorización de la programación se conserva por separado de la revisión de horas del autor. Si el autor termina antes, los demás pueden seguir participando dentro de la ventana autorizada. Una programación con integrantes inscritos conserva su ventana; para otra programación se registra una nueva OT. Las extensiones se solicitan y autorizan por participante.
 
 ### Presentación del proyecto
-[PowerPoint de 5 diapositivas](docs/Operational_Pulse_v1.0.5_Presentacion.pptx): propósito, roles, funciones rápidas, Claim/ADP y beneficios. Incluye imágenes del entorno de pruebas, ejemplos de conversión y texto editable.
+[PowerPoint de 6 diapositivas](docs/Operational_Pulse_v1.0.5_Presentacion.pptx): propósito, roles, funciones rápidas, Claim/ADP, analítica para Managers y beneficios. Incluye imágenes del entorno de pruebas, ejemplos de conversión y texto editable.
