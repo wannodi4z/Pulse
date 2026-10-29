@@ -4,6 +4,8 @@ Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como ba
 
 ## Versión vigente · v1.0.9 · Revisión de interfaz
 
+El login incorpora un panel azul profundo, acentos naranjas, una tarjeta blanca con transparencia suave y una identidad compacta en móvil. La cabecera usa un efecto translúcido discreto con fondo opaco de respaldo; los colores de aprobación, pendiente y rechazo conservan su significado. La autenticación, activación y recuperación no cambian.
+
 Revisión transversal de Administrador, Manager, Lead y Técnico: controles alineados, tablas con encabezados persistentes, mensajes de error accesibles, navegación por teclado y acciones de riesgo diferenciadas. En móvil la navegación se desplaza en una fila y conserva visible la opción activa; el contenido se recorre completo sin ocultar secciones mediante paginación. El calendario cabe en siete columnas, conserva los indicadores y permite llegar a todos los días con desplazamiento vertical. Los modales mantienen acciones visibles y cuerpo desplazable.
 
 Las funciones de Captura y respaldo se asignan explícitamente desde el módulo de recuperación: el editor de Python puede reconocerlas y no muestra referencias indefinidas. La generación de Excel y los cálculos se conservan. interface.css centraliza los ajustes comunes sin modificar permisos ni el motor de horas.
