@@ -586,3 +586,8 @@ Una OT programada indica la fecha y hora en que estará disponible su Timer; nec
 5. Si no necesita continuar, puede **Finalizar tiempo trabajado**. Si rechazan la extensión, puede finalizar o solicitar otra. Detener/finalizar cancela las extensiones aún pendientes.
 
 Cada reanudación crea un tramo real separado. **La espera no suma OT ni se descuenta de Guardia**. Analítica, Excel, Claim y ADP usan esos mismos tramos. La programación y la extensión no aprueban automáticamente el tiempo real: éste vuelve a revisión al finalizar. En Detalle/Ver tramos queda la trazabilidad.
+
+### Gestión de Técnicos y cierre por inactividad
+En **Mi equipo → Ver ficha**, el Manager puede editar, mover y dar de baja a sus Técnicos. La baja requiere revisar el impacto y un motivo; conserva la identidad y el historial, retira el acceso y cancela traslados pendientes. Si existe un Timer activo, requiere confirmar su cierre y documentar la OT pendiente.
+
+La sesión termina tras cinco minutos sin interacción. Las consultas automáticas no renuevan la actividad; el servidor también verifica el vencimiento. Cerrar sesión no detiene por sí mismo los Timers de trabajo.

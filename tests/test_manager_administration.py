@@ -91,3 +91,26 @@ class ManagerAdministrationTests(unittest.TestCase):
  def test_cross_manager_request_rejects_stale_displayed_origin(self):
   r=self.m.post('/api/team/transfers',json={'user_id':self.uid,'target_manager_id':self.os['user']['id'],'reason':'Solicitud desde ficha obsoleta','expected_group_id':self.dest})
   self.assertEqual(r.status_code,409,r.text);self.assertEqual(self.m.get('/api/state').json()['manager_transfers'],[])
+
+ def test_manager_offboard_preserves_identity_cancels_transfer_and_revokes_access(self):
+  rid=self.request()
+  for client in (self.other,self.tech):
+   self.assertEqual(client.get('/api/admin/people/'+self.uid+'/impact').status_code,403)
+   self.assertEqual(client.post('/api/admin/people/'+self.uid+'/offboard',json={'reason':'Intento','confirm':True}).status_code,403)
+  impact=self.m.get('/api/admin/people/'+self.uid+'/impact').json()
+  result=self.m.post('/api/admin/people/'+self.uid+'/offboard',json={'reason':'Fin de asignación','confirm':True,'expected':impact['expected'],'transfers':{},'documents':[]})
+  self.assertEqual(result.status_code,200,result.text)
+  self.assertEqual(self.tech.get('/api/state').status_code,401)
+  with self.s.connection() as c:
+   self.assertEqual(self.s.get(c,'users',self.uid)['status'],'DISABLED')
+   self.assertEqual(self.s.get(c,'manager_transfers',rid)['status'],'CANCELLED')
+ def test_idle_session_polling_does_not_renew_and_activity_cannot_revive_expired_session(self):
+  import hashlib
+  from datetime import datetime,timedelta,timezone
+  token=hashlib.sha256(self.m.cookies.get('pulse_session').encode()).hexdigest()
+  stale=(datetime.now(timezone.utc)-timedelta(seconds=301)).isoformat()
+  self.assertEqual(self.m.post('/api/session/activity').status_code,200)
+  with self.s.connection(True) as c:c.execute('UPDATE session_activity SET last_activity=? WHERE token_hash=?',(stale,token))
+  self.assertEqual(self.m.get('/api/state').status_code,401)
+  self.assertEqual(self.m.post('/api/session/activity').status_code,401)
+  self.assertEqual(self.other.get('/api/state').status_code,200)

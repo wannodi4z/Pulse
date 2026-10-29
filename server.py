@@ -107,6 +107,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS groups(id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id), manager_id TEXT REFERENCES users(id), code TEXT UNIQUE COLLATE NOCASE NOT NULL, name TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, role TEXT NOT NULL CHECK(role IN ('ADMIN','MANAGER','USER')), username TEXT UNIQUE COLLATE NOCASE NOT NULL, employee_id TEXT UNIQUE COLLATE NOCASE, first TEXT NOT NULL, last TEXT NOT NULL, email TEXT NOT NULL, account_id TEXT REFERENCES accounts(id), group_id TEXT REFERENCES groups(id), is_lead INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, password_hash TEXT, activation_hash TEXT, created_at TEXT NOT NULL);
         CREATE UNIQUE INDEX IF NOT EXISTS one_lead ON users(group_id) WHERE is_lead=1;
+        CREATE TABLE IF NOT EXISTS session_activity(token_hash TEXT PRIMARY KEY, last_activity TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), expires_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS delegations(id TEXT PRIMARY KEY, manager_id TEXT NOT NULL REFERENCES users(id), lead_id TEXT NOT NULL REFERENCES users(id), group_ids TEXT NOT NULL, start_at TEXT NOT NULL, end_at TEXT NOT NULL, revoked_at TEXT);
         CREATE TABLE IF NOT EXISTS rules(id TEXT PRIMARY KEY, manager_id TEXT NOT NULL REFERENCES users(id), name TEXT NOT NULL, effective_from TEXT NOT NULL, segments TEXT NOT NULL);
@@ -225,10 +226,21 @@ def current_user(request: Request):
     token = request.cookies.get('pulse_session', '')
     hashed = hashlib.sha256(token.encode()).hexdigest()
     with connection() as c:
+        activity=c.execute('SELECT last_activity FROM session_activity WHERE token_hash=?',(hashed,)).fetchone()
+        if not activity or (datetime.now(timezone.utc)-parse_at(activity['last_activity'])).total_seconds()>=300:
+            fail('Tu sesión terminó por 5 minutos de inactividad. Inicia sesión nuevamente.',401)
         row = c.execute('SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=? AND s.expires_at>? AND u.status=?', (hashed, now(), 'ACTIVE')).fetchone()
         if row is None:
             fail('Inicia sesión para continuar.', 401)
         return dict(row)
+
+
+@app.post('/api/session/activity')
+def session_activity(request: Request, actor=Depends(current_user)):
+    hashed=hashlib.sha256(request.cookies.get('pulse_session','').encode()).hexdigest()
+    with connection(True) as c:
+        c.execute('INSERT OR REPLACE INTO session_activity VALUES(?,?)',(hashed,datetime.now(timezone.utc).isoformat()))
+    return {'ok':True}
 
 
 def admin(user=Depends(current_user)):
@@ -380,6 +392,7 @@ def login(response: Response, request: Request, data: dict = Body(...)):
             token = secrets.token_urlsafe(40)
             c.execute('DELETE FROM sessions WHERE expires_at<=?', (now(),))
             c.execute('INSERT INTO sessions VALUES(?,?,?)', (hashlib.sha256(token.encode()).hexdigest(), u['id'], (datetime.now(timezone.utc) + timedelta(seconds=SESSION_SECONDS)).isoformat()))
+            c.execute('INSERT OR REPLACE INTO session_activity VALUES(?,?)',(hashlib.sha256(token.encode()).hexdigest(),datetime.now(timezone.utc).isoformat()))
             audit(c, dict(u), 'LOGIN', u['id'])
     if not good:
         fail('Usuario o contraseña incorrectos, o cuenta pendiente de activación.', 401)
@@ -548,19 +561,28 @@ def admin_person_impact(c, identity):
     return {**payload, 'expected': fingerprint, 'candidates': candidates, 'history_preserved': True}
 
 
+def authorize_offboard(c,actor,identity):
+    user=get(c,'users',identity)
+    if actor['role']=='ADMIN':return
+    if actor['role']=='MANAGER' and user['role']=='USER' and not user['is_lead'] and user['group_id'] and get(c,'groups',user['group_id'])['manager_id']==actor['id']:return
+    fail('Sólo puedes dar de baja Técnicos de tu equipo.',403)
+
+
 @app.get('/api/admin/people/{identity}/impact')
-def lifecycle_preview(identity: str, actor=Depends(admin)):
+def lifecycle_preview(identity: str, actor=Depends(current_user)):
     with connection() as c:
         c.execute('BEGIN')
+        authorize_offboard(c,actor,identity)
         return admin_person_impact(c, identity)
 
 
 @app.post('/api/admin/people/{identity}/offboard')
-def offboard_person(identity: str, data: dict=Body(...), actor=Depends(admin)):
+def offboard_person(identity: str, data: dict=Body(...), actor=Depends(current_user)):
     reason = text(data, 'reason')
     if data.get('confirm') is not True:
         fail('Confirma que revisaste el impacto de la baja.')
     with connection(True) as c:
+        authorize_offboard(c,actor,identity)
         impact = admin_person_impact(c, identity)
         if not hmac.compare_digest(str(data.get('expected','')), impact['expected']):
             fail('La situación cambió desde la revisión. Actualiza el impacto antes de confirmar.', 409)
@@ -642,6 +664,7 @@ def offboard_person(identity: str, data: dict=Body(...), actor=Depends(admin)):
         c.execute("UPDATE recoveries SET status='CANCELLED',code_hash=NULL WHERE user_id=? AND status IN ('PENDING','ISSUED')",(identity,))
         c.execute('DELETE FROM recovery_code_vault WHERE recovery_id IN (SELECT id FROM recoveries WHERE user_id=?)',(identity,))
         c.execute("UPDATE users SET status='DISABLED',is_lead=0,activation_hash=NULL WHERE id=?",(identity,))
+        c.execute("UPDATE manager_transfers SET status='CANCELLED',decided_at=?,decision_reason=? WHERE user_id=? AND status='SUBMITTED'",(stamp,'Baja del Técnico: '+reason,identity))
         invalidate_sessions(c,identity)
         audit(c,actor,'OFFBOARD_PERSON',identity,{'reason':reason,'groups_transferred':len(impact['groups']),'timers_closed':len(impact['timers']),'documents_submitted':len(prepared),'guards_closed':len(impact['guards'])})
     return {'ok':True,'groups_transferred':len(impact['groups']),'history_preserved':True}
