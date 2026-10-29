@@ -293,7 +293,7 @@ class PulseTests(unittest.TestCase):
         ot2=self.ot(uc,'2026-01-06T00:30:00-06:00','2026-01-06T02:00:00-06:00');self.approve(mc,'ot',ot2)
         r=uc.get('/api/accounting?month=2026-01').json();self.assertEqual(r['ot_minutes'],180);self.assertEqual(r['guard_minutes'],300)
         response=uc.get('/api/export.xlsx?month=2026-01');self.assertEqual(response.status_code,200)
-        wb=load_workbook(io.BytesIO(response.content));self.assertEqual(wb.sheetnames,['Captura','Tiempo aprobado','Resumen','Respaldo Pulse'])
+        wb=load_workbook(io.BytesIO(response.content));self.assertEqual(wb.sheetnames,['Captura','Tiempo aprobado','Resumen'])
         values=list(wb['Tiempo aprobado'].values)[1:];self.assertAlmostEqual(sum(row[8] for row in values),8)
         filtered=uc.get('/api/export.xlsx?month=2026-01&kind=OT')
         wb2=load_workbook(io.BytesIO(filtered.content));self.assertTrue(all(row[4]=='Onsite Overtime' for row in list(wb2['Tiempo aprobado'].values)[1:]))

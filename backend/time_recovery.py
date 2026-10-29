@@ -97,7 +97,7 @@ def install_recovery(app, namespace):
             with zipfile.ZipFile(io.BytesIO(raw)) as archive:
                 if len(archive.infolist())>200 or sum(x.file_size for x in archive.infolist())>25_000_000:raise ValueError()
             book=load_workbook(io.BytesIO(raw),read_only=True,data_only=False)
-        except Exception:s.fail('Selecciona un archivo .xlsx válido de Pulse (máximo 6 MB).')
+        except Exception:s.fail('Selecciona un respaldo .pulse o un Excel .xlsx válido (máximo 6 MB).')
         try:
             items=[];warnings=[]
             if 'Respaldo Pulse' in book.sheetnames:
@@ -200,7 +200,8 @@ def install_recovery(app, namespace):
             table=Table(displayName='ResultadoMensual',ref=page.dimensions);table.tableStyleInfo=TableStyleInfo(name='TableStyleMedium2',showRowStripes=True);page.add_table(table)
         if 'Resumen' in wb.sheetnames:wb['Resumen'].append(['Campos externos','Category y autorización DIL no se infieren: quedan vacíos. Semana es semana del mes con inicio sábado. Sólo horas aprobadas en Captura.'])
 
-    @app.get('/api/time-backup.xlsx')
+    @app.get('/api/time-backup.xlsx', include_in_schema=False)
+    @app.get('/api/time-backup.pulse')
     def download(month:str,actor=Depends(s.current_user)):
         s.operational(actor);s.analytics_months(month)
         wb=Workbook();wb.remove(wb.active)
@@ -218,7 +219,7 @@ def install_recovery(app, namespace):
             if page.title not in ('Captura','Respaldo Pulse'):
                 for col in page.columns:page.column_dimensions[col[0].column_letter].width=28
         out=io.BytesIO();wb.save(out);out.seek(0)
-        return StreamingResponse(out,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',headers={'Content-Disposition':f'attachment; filename="Operational_Pulse_Respaldo_{month}.xlsx"'})
+        return StreamingResponse(out,media_type='application/vnd.operational-pulse.backup',headers={'Content-Disposition':f'attachment; filename="Operational_Pulse_Respaldo_{month}.pulse"'})
 
     @app.post('/api/time-recovery/preview')
     def preview(data:dict=Body(...),actor=Depends(s.current_user)):

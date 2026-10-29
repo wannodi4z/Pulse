@@ -1,3 +1,10 @@
+# v1.0.10 · Organización y respaldo propio
+
+- Backend y frontend separados físicamente; entrada server:app, comandos Mac, rutas web y datos existentes compatibles.
+- Documentación técnica en docs/ y mapa de arquitectura vigente.
+- Descarga personal .pulse separada del Excel .xlsx de aprobados; recuperación retrocompatible, con revisión del Manager.
+- ZIP sin bases personales, claves, entornos ni archivos temporales.
+
 # Historial de versiones
 
 La entrega vigente es la primera entrada. Las versiones repetidas en entradas antiguas corresponden a reinicios de numeración solicitados durante el diseño.

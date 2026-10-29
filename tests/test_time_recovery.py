@@ -40,7 +40,7 @@ class TimeRecoveryTests(unittest.TestCase):
   rule=self.f.post('/api/rules',{'name':'Cobertura','effective_from':'2026-01-01','segments':[{'day':5,'start':'00:00','end':'08:00'}]},self.mc)['id']
   guard=self.f.post('/api/guards',{'rule_id':rule,'start_date':'2026-01-03','end_date':'2026-01-03'},self.uc)['id'];self.f.approve(self.mc,'guard',guard)
   ot=self.f.ot(self.uc,'2026-01-03T03:00:00-06:00','2026-01-03T04:30:00-06:00',reference='INC-RESTORE');self.f.approve(self.mc,'ot',ot)
-  response=self.uc.get('/api/time-backup.xlsx?month=2026-01');self.assertEqual(response.status_code,200,response.text if response.status_code!=200 else '')
+  response=self.uc.get('/api/time-backup.pulse?month=2026-01');self.assertIn('.pulse',response.headers['content-disposition']);self.assertEqual(response.headers['content-type'],'application/vnd.operational-pulse.backup');self.assertEqual(response.status_code,200,response.text if response.status_code!=200 else '')
   w=load_workbook(io.BytesIO(response.content));self.assertEqual(w.sheetnames[0],'Captura');self.assertIn('Respaldo Pulse',w.sheetnames)
   self.assertEqual(w['Captura'].max_column,29);self.assertEqual(w['Captura']['N2'].value,'T001');self.assertIsNone(w['Captura']['W2'].value);self.assertIsNone(w['Captura']['AB2'].value)
   self.assertAlmostEqual(sum(r[8] for r in list(w['Captura'].values)[1:]),8)

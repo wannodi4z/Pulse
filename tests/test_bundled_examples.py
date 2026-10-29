@@ -5,7 +5,9 @@ ROOT=Path(__file__).resolve().parents[1]
 class BundledExamplesTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
-        shutil.copy(ROOT/'server.py',self.root/'server.py');shutil.copy(ROOT/'time_recovery.py',self.root/'time_recovery.py');shutil.copytree(ROOT/'static',self.root/'static');shutil.copytree(ROOT/'fixtures',self.root/'fixtures')
+        shutil.copy(ROOT/'server.py',self.root/'server.py')
+        for directory in ('backend','frontend','fixtures'):
+            shutil.copytree(ROOT/directory,self.root/directory,ignore=shutil.ignore_patterns('__pycache__'))
     def tearDown(self):self.temp.cleanup()
     def run_code(self,code,custom=False):
         env={k:v for k,v in os.environ.items() if k!='PULSE_DB_PATH'}

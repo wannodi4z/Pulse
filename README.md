@@ -1,8 +1,23 @@
-# Operational Pulse · 1.0.9
+# Entrega v1.0.10 · estructura y respaldos separados
+
+- `start.command`: arranque habitual (sin cambios).
+- `server.py`: entrada compatible para Uvicorn e integraciones.
+- `backend/application.py`: API, permisos, persistencia y cálculo de horas.
+- `backend/time_recovery.py`: recuperación revisada y exportaciones de respaldo.
+- `frontend/index.html` y `frontend/static/`: interfaz, estilos, iconos y JavaScript.
+- `scripts/`: configuración y preparación de datos de ejemplo.
+- `fixtures/`: base inicial de demostración; nunca reemplaza una base existente.
+- `tests/`: pruebas de API, cálculo e interfaz.
+- `docs/`: especificación, validación, historial y presentación.
+
+Consulta [la arquitectura](docs/ARCHITECTURE.md) y [el uso de respaldos](docs/BACKUPS.md).
+Las secciones históricas que siguen describen versiones anteriores; la estructura vigente es la indicada arriba.
+
+# Operational Pulse · 1.0.10
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Versión vigente · v1.0.9 · Revisión de interfaz
+## Versión vigente · v1.0.10 · Revisión de interfaz
 
 El login incorpora un panel azul profundo, acentos naranjas, una tarjeta blanca con transparencia suave y una identidad compacta en móvil. La cabecera usa un efecto translúcido discreto con fondo opaco de respaldo; los colores de aprobación, pendiente y rechazo conservan su significado. La autenticación, activación y recuperación no cambian. Las entradas suaves del login y los títulos duran 180–420 ms, con respuesta discreta en botones y tarjetas; no se repiten al actualizar datos y respetan Reducir movimiento.
 
@@ -328,40 +343,38 @@ python -m playwright install chromium
 python tests/browser_smoke.py
 ```
 
-La prueba inicia y detiene su propio servidor local. No necesitas dejar la aplicación abierta. Los resultados ejecutados en la entrega se documentan en `VALIDATION.md`. No se ha ejecutado esta entrega en una Mac física; la validación disponible usa Linux y Chromium. Puedes probar Safari manualmente con el mismo servidor local.
+La prueba inicia y detiene su propio servidor local. No necesitas dejar la aplicación abierta. Los resultados ejecutados en la entrega se documentan en `docs/VALIDATION.md`. No se ha ejecutado esta entrega en una Mac física; la validación disponible usa Linux y Chromium. Puedes probar Safari manualmente con el mismo servidor local.
 
 Para validar sintaxis JavaScript, si tienes Node instalado opcionalmente:
 
 ```bash
-node --check static/app.js
+node --check frontend/static/app.js
 python -m py_compile server.py
 ```
 
 ## Estructura
 
 ```text
-Operational_Pulse_v1.1.4/
-  index.html
+Operational_Pulse_v1.0.10/
+  start.command
+  iniciar_pruebas.command
+  configurar_banorte.command
   server.py
   requirements.txt
   requirements-dev.txt
   README.md
-  SPECIFICATION.md
-  VALIDATION.md
-  CHANGELOG.md
   THIRD_PARTY_NOTICES.md
-  start.command
-  .gitignore
-  .vscode/
-  static/
-    app.js
-    app.css
-    favicon.svg
-    kyndryl-logo.svg
-    icons.svg
+  backend/
+    application.py
+    time_recovery.py
+  frontend/
+    index.html
+    static/
+  scripts/
+  fixtures/
+  docs/
   tests/
-    test_api.py
-    browser_smoke.py
+  .vscode/
 ```
 
 `/api/state` entrega el estado compartido según la sesión y el alcance autorizado. El servidor valida cada cambio mediante endpoints específicos; la interfaz no sobrescribe toda la base con un JSON global. Las contraseñas y verificadores de códigos se almacenan mediante PBKDF2 con salt aleatorio. Para consultar un código de recuperación vigente, su valor se guarda además cifrado con Fernet; la clave local se conserva fuera de SQLite y del repositorio. Las sesiones usan cookies HttpOnly y SameSite; los permisos se verifican en el backend. El API local se documenta automáticamente en `/docs`.
@@ -381,7 +394,7 @@ Autores del proyecto:
 
 ## Novedades de v1.0.1
 
-Activación y recuperación ahora tienen modales propios con información por secciones, ayuda para el código, botones para mostrar la contraseña, comprobación de coincidencia y confirmaciones al terminar. El flujo de recuperación conserva el usuario y explica que el código lo entrega el responsable por un canal corporativo. La contraseña continúa requiriendo al menos 10 caracteres. El historial y el criterio de numeración están en `CHANGELOG.md`.
+Activación y recuperación ahora tienen modales propios con información por secciones, ayuda para el código, botones para mostrar la contraseña, comprobación de coincidencia y confirmaciones al terminar. El flujo de recuperación conserva el usuario y explica que el código lo entrega el responsable por un canal corporativo. La contraseña continúa requiriendo al menos 10 caracteres. El historial y el criterio de numeración están en `docs/CHANGELOG.md`.
 
 ## Ajuste de lectura v1.0.2
 

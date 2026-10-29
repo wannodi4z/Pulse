@@ -31,8 +31,8 @@ try:
   assert fixture.uc.get('/api/accounting?month=2026-01').json()['ot_minutes']==0
   page.locator('[data-action=time-recovery]').click()
   with page.expect_download() as pending:page.locator('.recovery-download').click()
-  dest=Path(fixture.f.temp.name)/'download.xlsx';pending.value.save_as(dest);w=load_workbook(dest);assert w.sheetnames[0]=='Captura';assert w['Respaldo Pulse'].max_row==3
-  page.locator('[name=backup_file]').set_input_files(source);page.locator('#modal [type=submit]').click();page.wait_for_function('()=>!busy');expect(page.locator('#modal')).to_contain_text('2 duplicados');expect(page.locator('#modal [type=submit]')).to_be_disabled()
+  assert pending.value.suggested_filename.endswith('.pulse');dest=Path(fixture.f.temp.name)/'download.pulse';pending.value.save_as(dest);w=load_workbook(io.BytesIO(dest.read_bytes()));assert w.sheetnames[0]=='Captura';assert w['Respaldo Pulse'].max_row==3
+  page.locator('[name=backup_file]').set_input_files(dest);page.locator('#modal [type=submit]').click();page.wait_for_function('()=>!busy');expect(page.locator('#modal')).to_contain_text('2 duplicados');expect(page.locator('#modal [type=submit]')).to_be_disabled()
   assert not errors,errors
   b.close();print('PASS: personal backup download with Captura first, legacy preview before persistence, owner confirmation, required OT documentation, pending Guard, duplicate protection, mobile layout and no JS errors')
 finally:

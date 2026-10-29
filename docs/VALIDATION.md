@@ -1,3 +1,12 @@
+# Validación de estructura v1.0.10
+
+- Backend: 103 pruebas aprobadas, incluidos cálculos, permisos, recuperación y arranque de paquete.
+- ZIP extraído: integridad SQLite, tres accesos originales, recursos estáticos y descargas separadas comprobados.
+- Interfaz: 80 combinaciones de rol/página/resolución sin errores JavaScript ni desbordamiento horizontal.
+- Login: cinco resoluciones, activación, recuperación, acceso, visibilidad de contraseña y movimiento reducido.
+- Recuperación: descarga .pulse, lectura nativa y Excel anterior, vista previa sin persistencia, documentación obligatoria, nueva aprobación y duplicados.
+- Rutas web /static e inicio Mac conservados; datos de trabajo excluidos del paquete.
+
 # Validación ejecutada · Operational Pulse 1.1.4
 
 ## Entrega v1.1.4 · 28 de octubre de 2026
