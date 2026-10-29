@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.6'
+VERSION = '1.0.7'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -1285,6 +1285,17 @@ def add_rule(data: dict = Body(...), identity: str = '', actor=Depends(current_u
             normalized.append({'day': int(s['day']), 'start': start_time.strftime('%H:%M'), 'end': end_time.strftime('%H:%M')})
         except (KeyError, ValueError, TypeError):
             fail('Revisa los días y horas de la regla.')
+    weekly=[]
+    for segment in normalized:
+        minute=lambda value:int(value[:2])*60+int(value[3:])
+        start=segment['day']*1440+minute(segment['start'])
+        duration=(minute(segment['end'])-minute(segment['start']))%1440 or 1440
+        end=start+duration
+        weekly.extend([(start,min(end,10080))]+([(0,end-10080)] if end>10080 else []))
+    previous_end=-1
+    for start,end in sorted(weekly):
+        if start<previous_end:fail('Hay intervalos de Guardia traslapados, incluso entre días. Ajusta la cobertura antes de guardar.')
+        previous_end=end
     try:
         effective = date.fromisoformat(text(data, 'effective_from')).isoformat()
     except ValueError:
@@ -2013,10 +2024,20 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
         totals=empty_totals()
         for row in period_rows[key]:add(totals,row)
         comparisons.append({'month':key,'minutes':rounded(totals)})
+    hourly=[{'hour':h,'minutes':empty_totals()} for h in range(24)]
+    for record in detail:
+        cursor=parse_at(record['start_at']).astimezone(TZ)
+        stop=parse_at(record['end_at']).astimezone(TZ)
+        while cursor<stop:
+            boundary=cursor.replace(minute=0,second=0,microsecond=0)+timedelta(hours=1)
+            end=min(boundary,stop)
+            add(hourly[cursor.hour]['minutes'],{**record,'minutes':(end-cursor).total_seconds()/60})
+            cursor=end
+    for item in hourly:item['minutes']=rounded(item['minutes'])
     counts={}
     for record in matched:counts[record['display_status']]=counts.get(record['display_status'],0)+1
     return {'month': month, 'months':selected_months,'comparison':comparisons,'records':matched,'record_counts':counts,'record_count':len(matched),'timezone': str(TZ), 'basis': 'APPROVED_ACTUAL', 'filters': {'user_id': user_id, 'group_id': group_id,'q':query,'status':status,'record_type':record_type,'period':period},
-            'mode': 'PERSONAL' if personal else 'TEAM', 'summary': rounded(summary),
+            'mode': 'PERSONAL' if personal else 'TEAM', 'summary': rounded(summary), 'hourly':hourly, 'as_of':datetime.now(TZ).isoformat(),
             'groups': sorted(by_group.values(), key=lambda g: (-g['minutes']['total_minutes'], g['name'])),
             'users': sorted(by_user.values(), key=lambda u: (-u['minutes']['total_minutes'], u['name'])),
             'days': [{'date': day, 'minutes': rounded(values)} for day, values in sorted(by_day.items())], 'rows': detail}
@@ -2034,10 +2055,10 @@ def personal_analytics_query(request):
 
 
 @app.get('/api/my-analytics')
-def my_analytics(request: Request, month: str, actor=Depends(current_user)):
+def my_analytics(request: Request, month: str, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', actor=Depends(current_user)):
     personal_analytics_query(request)
     with connection() as c:
-        return analytics_report(c, actor, month, personal=True)
+        return analytics_report(c, actor, month, personal=True, query=q, status=status, record_type=record_type, months=months, period=period)
 
 
 @app.get('/api/analytics.xlsx')
@@ -2048,10 +2069,10 @@ def analytics_excel(month: str, user_id: str | None = None, group_id: str | None
 
 
 @app.get('/api/my-analytics.xlsx')
-def my_analytics_excel(request: Request, month: str, actor=Depends(current_user)):
+def my_analytics_excel(request: Request, month: str, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', actor=Depends(current_user)):
     personal_analytics_query(request)
     with connection() as c:
-        report = analytics_report(c, actor, month, personal=True)
+        report = analytics_report(c, actor, month, personal=True, query=q, status=status, record_type=record_type, months=months, period=period)
     return analytics_workbook(report)
 
 
@@ -2078,14 +2099,15 @@ def analytics_workbook(report):
     names = dict(zip(ANALYTICS_TYPES, ['OT de emergencia', 'OT programada', 'OT histórica', 'Guardia neta']))
     for row in report['rows']:
         detail.append([row['date'], safe(row['employee_id']), safe(row['name']), safe(row['group_name']), names[row['capture_type']], row['start'], row['end'], row['hours'], safe(row['reference'])])
-    if report['mode']=='TEAM':
-        records=wb.create_sheet('Registros');records.append(['Employee ID','Técnico','Grupo','Tipo','Referencia','Descripción','Inicio','Fin','Estado'])
-        for r in report['records']:
-            records.append([safe(r['employee_id']),safe(r['name']),safe(r['group_name']),r['capture_type'],safe(r['reference']),safe(r['description']),r['from_at'],r['to_at'],r['display_status']])
-        summary.append(['Búsqueda',safe(report['filters']['q'])]);summary.append(['Periodos',', '.join(report['months'])]);summary.append(['Registros encontrados',report['record_count']])
-        if len(report['comparison'])>1:
-            comparison=wb.create_sheet('Comparativa');comparison.append(['Mes',*labels])
-            for item in report['comparison']:comparison.append([item['month'],*values(item['minutes'])])
+    records=wb.create_sheet('Registros');records.append(['Employee ID','Técnico','Grupo','Tipo','Referencia','Descripción','Inicio','Fin','Estado'])
+    for r in report['records']:
+        records.append([safe(r['employee_id']),safe(r['name']),safe(r['group_name']),r['capture_type'],safe(r['reference']),safe(r['description']),r['from_at'],r['to_at'],r['display_status']])
+    summary.append(['Búsqueda',safe(report['filters']['q'])]);summary.append(['Periodos',', '.join(report['months'])]);summary.append(['Registros encontrados',report['record_count']])
+    if len(report['comparison'])>1:
+        comparison=wb.create_sheet('Comparativa');comparison.append(['Mes',*labels])
+        for item in report['comparison']:comparison.append([item['month'],*values(item['minutes'])])
+    hourly=wb.create_sheet('Por hora');hourly.append(['Franja horaria',*labels])
+    for item in report['hourly']:hourly.append([f"{item['hour']:02}:00–{item['hour']+1:02}:00",*values(item['minutes'])])
     for sheet in wb:
         for cell in sheet[1]:
             cell.font = Font(bold=True, color='FFFFFF'); cell.fill = PatternFill('solid', fgColor='1C5185')

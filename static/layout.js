@@ -52,6 +52,7 @@ window.PulseLayout=(()=>{
   function page(main,key){
     if(!main)return;
     const heading=q(':scope > .page-heading',main),footer=q(':scope > .main-footer',main);
+    if(['analytics','myAnalytics'].includes(key)){main.classList.add('analytics-workspace');return;}
     if(main.querySelector('.team-kanban-workspace')){main.classList.add('admin-workspace');return;}
     if(main.querySelector('.admin-dashboard,.admin-accounts,.admin-account-detail')){main.classList.add('admin-workspace');return;}
     const {sticky,items}=compose(main,key,heading,footer);
@@ -127,6 +128,7 @@ window.PulseLayout=(()=>{
   function reveal(target){
     if(!target)return;const ruleDay=target.closest('[data-rule-day]');if(ruleDay){all('[data-rule-day]').forEach(n=>n.hidden=n!==ruleDay);all('[data-action=rule-day-open]').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.id===ruleDay.dataset.ruleDay)));}
     for(let detail=target.closest('details');detail;detail=detail.parentElement?.closest('details'))detail.open=true;
+    if(target.closest('.analytics-workspace'))target.scrollIntoView({block:'start',inline:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
     if(target.closest('#modal'))target.scrollIntoView({block:'nearest',inline:'nearest'});
     const stage=target.closest('.viewport-stage');stage?._show(target);
     let parent=target;

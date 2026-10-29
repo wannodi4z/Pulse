@@ -1,8 +1,14 @@
-# Operational Pulse · 1.0.6
+# Operational Pulse · 1.0.7
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Versión vigente · v1.0.6 · Calendario ampliado y corrección de horarios
+## Versión vigente · v1.0.7 · Reglas visuales y Analítica operativa
+
+**Analítica muestra el dashboard y el historial en la misma página.** Búsqueda, estado, tipo, Grupo, Técnico y hasta 24 meses se aplican a todos los indicadores, gráficas y Excel. Un Grupo abre sus Técnicos; una persona lleva a sus registros. La comparación muestra horas y variación absoluta/porcentual frente al mes anterior seleccionado. Meses en curso son parciales; se indica la fecha de corte. Los Grupos representan la asignación actual; el origen sigue disponible en Detalle.
+
+La distribución por franja horaria reparte los tramos aprobados en sus horas reales, incluyendo medianoche. Suma personas y fechas, no Timers simultáneos. Guardia neta descuenta OT aprobada coincidente. Pendientes y rechazados no suman. El Excel añade Por hora. Mi resumen ofrece búsqueda, comparativas e historial personales, sin datos de compañeros. El Lead ve el equipo sólo con delegación activa. Admin conserva su panel organizativo.
+
+**Reglas visuales:** configura un día y copia sus horarios a los días seleccionados. Define excepciones, 24 horas y revisa el total semanal. Se bloquean traslapes incluso entre domingo y lunes. Vigencia, auditoría, snapshots y avisos al Técnico se conservan: editar una regla no cambia automáticamente las horas aprobadas.
 
 **Ampliar calendario** abre una vista previa adaptada a la pantalla, con todos los días del mes, navegación y acceso al detalle de actividades. El calendario principal conserva el clic para OT y la selección de periodos para Guardias.
 

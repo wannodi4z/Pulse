@@ -1,4 +1,12 @@
-# Operational Pulse 1.0.6 · especificación de la implementación nueva
+# Operational Pulse 1.0.7 · especificación de la implementación nueva
+
+## Analítica y reglas · v1.0.7
+
+Dashboard continuo con Grupos, Técnicos, distribución por hora, comparación mensual e historial. Todos usan analytics_report y sus filtros. Endpoints personales aceptan búsqueda, estado, tipo, periodo y meses, manteniendo visible={actor.id} y rechazando user_id/group_id. Admin conserva su panel organizativo; alcance de Manager y Lead no cambia.
+
+hourly divide start_at/end_at de contabilidad aprobada por límites de hora en la zona operativa. Conserva minutos reales, deduplicación y Guardia neta. Exportación añade Por hora; Registros y Comparativa también disponibles en modo personal. Atribución por Grupo actual, origen consultable en Detalle.
+
+Editor semanal con copia a múltiples días, preview y total. La API valida minutos semanales, divide domingo a lunes y rechaza intersecciones, permitiendo adyacencias. Snapshots existentes no cambian. Gráficas SVG compatibles con CSP sin estilos inline.
 
 ## Calendario y horarios · v1.0.6
 

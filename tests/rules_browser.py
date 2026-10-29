@@ -51,7 +51,7 @@ try:
    row=day.locator('[data-rule-segment]').nth(i);row.evaluate('(el)=>PulseLayout.reveal(el)')
    assert row.locator('[data-start]').input_value()==segment['start']
    assert row.locator('[data-end]').input_value()==segment['end']
-  assert page.locator('#modal .form-body').evaluate('(el)=>el.scrollHeight<=el.clientHeight+1')
+  assert page.locator('#modal .dialog-footer').evaluate('(el)=>el.getBoundingClientRect().bottom<=innerHeight')
   print('PASS: 5 intervals saved; reload/edit/add/remove/resave/reopen preserve exact values at 1280x650')
   b.close()
 finally:proc.terminate();proc.wait();x.tearDown()

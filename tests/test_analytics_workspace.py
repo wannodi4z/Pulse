@@ -48,7 +48,7 @@ class AnalyticsWorkspaceTests(unittest.TestCase):
         response=self.mc.get('/api/analytics.xlsx',params={'month':'2026-01','months':'2026-02,2026-03','q':'CHG-ALPHA'})
         self.assertEqual(response.status_code,200)
         wb=load_workbook(io.BytesIO(response.content))
-        self.assertEqual(wb.sheetnames,['Resumen','Por grupo','Por técnico','Detalle','Registros','Comparativa'])
+        self.assertEqual(wb.sheetnames,['Resumen','Por grupo','Por técnico','Detalle','Registros','Comparativa','Por hora'])
         self.assertEqual(len(list(wb['Registros'].values))-1,3)
         self.assertEqual([row[-1] for row in list(wb['Comparativa'].values)[1:]],[2,3,0])
         self.assertEqual(sum(row[7] for row in list(wb['Detalle'].values)[1:]),5)
