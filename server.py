@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.4'
+VERSION = '1.0.5'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -127,6 +127,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS transfer_requests(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), requested_by TEXT NOT NULL REFERENCES users(id), source_group_id TEXT NOT NULL REFERENCES groups(id), destination TEXT NOT NULL, reason TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT REFERENCES users(id), decision_reason TEXT NOT NULL DEFAULT '', destination_group_id TEXT REFERENCES groups(id));
         CREATE UNIQUE INDEX IF NOT EXISTS one_pending_transfer ON transfer_requests(user_id) WHERE status='SUBMITTED';
         CREATE TABLE IF NOT EXISTS manager_transfers(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),source_manager_id TEXT NOT NULL REFERENCES users(id),target_manager_id TEXT NOT NULL REFERENCES users(id),source_group_id TEXT NOT NULL REFERENCES groups(id),reason TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,decided_at TEXT,decision_reason TEXT NOT NULL DEFAULT '',destination_group_id TEXT REFERENCES groups(id));
+        CREATE TABLE IF NOT EXISTS ot_group_activities(source_id TEXT PRIMARY KEY REFERENCES overtime(id), window_id TEXT UNIQUE NOT NULL REFERENCES windows(id), authorized_by TEXT REFERENCES users(id), snapshot TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS record_origins(record_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
@@ -486,6 +487,13 @@ def state(user=Depends(current_user)):
                   'manager_transfers':[dict(r,user_name=(get(c,'users',r['user_id'])['first']+' '+get(c,'users',r['user_id'])['last']),employee_id=get(c,'users',r['user_id'])['employee_id'],source_name=get(c,'users',r['source_manager_id'])['first']+' '+get(c,'users',r['source_manager_id'])['last'],target_name=get(c,'users',r['target_manager_id'])['first']+' '+get(c,'users',r['target_manager_id'])['last']) for r in rows(c,'manager_transfers') if user['role']=='MANAGER' and user['id'] in (r['source_manager_id'],r['target_manager_id'])],
                   'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
                   'audit': [a for a in rows(c, 'audit') if user['role'] == 'ADMIN' or a['actor_id'] in visible or a['entity_id'] in visible_entities][-300:]}
+        result['group_activities']=[]
+        if user['role']=='USER' and not user['is_lead'] and user['group_id']:
+            for link in rows(c,'ot_group_activities'):
+                w=get(c,'windows',link['window_id'])
+                if w['group_id']!=user['group_id'] or parse_at(w['scheduled_end'])<=datetime.now(timezone.utc) or w['status'] not in ('SUBMITTED','APPROVED','REJECTED'):continue
+                author=get(c,'users',w['created_by'])
+                result['group_activities'].append({**w,'source_id':link['source_id'],'author_name':author['first']+' '+author['last']})
         people_by_id={p['id']:p for p in people}
         for request in result['transfer_requests']:
             target=people_by_id.get(request['user_id'],{});author=people_by_id.get(request['requested_by'],{})
@@ -1381,6 +1389,29 @@ def add_guard(data: dict = Body(...), actor=Depends(current_user)):
     return {'id': identity}
 
 
+def sync_group_ot(c,source,decision=None,approver=None):
+    owner=get(c,'users',source['user_id'])
+    if source['capture_type']!='PLANNED' or source['execution'] not in ('SCHEDULED','RUNNING') or not owner['group_id'] or owner['is_lead']:return
+    link=c.execute('SELECT * FROM ot_group_activities WHERE source_id=?',(source['id'],)).fetchone()
+    if source['window_id'] and not link:return
+    status=decision or source['status']
+    if status=='APPROVED' and not (approver or source['approved_by']):status='SUBMITTED'
+    snapshot={key:source[key] for key in ('reference','description','justification','impact','in_lieu','scheduled_start','scheduled_end')}
+    if link:
+        c.execute('UPDATE windows SET scheduled_start=?,scheduled_end=?,reference=?,description=?,status=? WHERE id=?',(source['scheduled_start'],source['scheduled_end'],source['reference'],source['description'],status,link['window_id']))
+        c.execute('UPDATE ot_group_activities SET authorized_by=?,snapshot=? WHERE source_id=?',(approver or source['approved_by'] if status=='APPROVED' else None,json.dumps(snapshot),source['id']))
+    else:
+        wid=uid();c.execute('INSERT INTO windows VALUES(?,?,?,?,?,?,?,?,?)',(wid,owner['group_id'],owner['id'],source['scheduled_start'],source['scheduled_end'],source['reference'],source['description'],status,now()))
+        c.execute('INSERT INTO ot_group_activities VALUES(?,?,?,?)',(source['id'],wid,(approver or source['approved_by']) if status=='APPROVED' else None,json.dumps(snapshot)))
+        c.execute('UPDATE overtime SET window_id=? WHERE id=?',(wid,source['id']))
+
+
+# Existing future plans gain the same group visibility; personal history is retained.
+with connection(True) as _migration:
+    for _plan in rows(_migration,'overtime'):
+        if _plan['window_id'] is None and _plan['capture_type']=='PLANNED' and _plan['execution'] in ('SCHEDULED','RUNNING') and parse_at(_plan['scheduled_end'])>datetime.now(timezone.utc):sync_group_ot(_migration,_plan)
+
+
 @app.post('/api/windows')
 def add_window(data: dict = Body(...), actor=Depends(current_user)):
     fail('La programación se solicita desde Mi tiempo por cada Técnico; el responsable revisa y autoriza.', 403)
@@ -1430,6 +1461,7 @@ def add_overtime(data: dict = Body(...), actor=Depends(current_user)):
         fail('Inicia la OT de emergencia con el Timer.')
     with connection(True) as c:
         identity = insert_ot(c, actor, data)
+        sync_group_ot(c,get(c,'overtime',identity))
         audit(c, actor, 'CREATE_OT', identity)
     return {'id': identity}
 
@@ -1441,7 +1473,14 @@ def join_window(identity: str, actor=Depends(current_user)):
         w = get(c, 'windows', identity)
         if w['group_id'] != actor['group_id'] or w['status'] != 'APPROVED' or parse_at(w['scheduled_end']) <= datetime.now(timezone.utc):
             fail('Esta ventana no está disponible para tu Grupo.')
-        otid = insert_ot(c, actor, {}, w)
+        existing=c.execute('SELECT id FROM overtime WHERE user_id=? AND window_id=?',(actor['id'],identity)).fetchone()
+        if existing:
+            if c.execute('SELECT 1 FROM ot_group_activities WHERE window_id=?',(identity,)).fetchone():return {'id':existing['id']}
+            fail('Ya participas en esta actividad.',409)
+        link=c.execute('SELECT * FROM ot_group_activities WHERE window_id=?',(identity,)).fetchone()
+        snapshot=json.loads(link['snapshot']) if link else {}
+        otid = insert_ot(c, actor, snapshot, w)
+        if link:c.execute('UPDATE overtime SET approved_by=? WHERE id=?',(link['authorized_by'],otid))
         audit(c, actor, 'JOIN_SHARED_OT', otid)
     return {'id': otid}
 
@@ -1454,12 +1493,16 @@ def edit_ot(identity: str, data: dict = Body(...), actor=Depends(current_user)):
             fail('Sólo el Técnico propietario puede editar su OT.', 403)
         if o['execution'] in ('RUNNING','PAUSED'):
             fail('Detén o finaliza el Timer antes de documentar.')
+        if o['execution']=='SCHEDULED' and c.execute('SELECT 1 FROM ot_group_activities WHERE source_id=?',(identity,)).fetchone() and c.execute('SELECT 1 FROM overtime WHERE window_id=? AND id!=?',(o['window_id'],identity)).fetchone():fail('Hay integrantes inscritos en esta actividad. Conserva su ventana y registra una nueva OT si necesitas otra programación.',409)
         ref = valid_reference(data)
         if o['execution'] == 'SCHEDULED':
             a, b = interval(data, 'scheduled_start', 'scheduled_end')
             capture = classify_ot_period(a, b)
             c.execute('UPDATE overtime SET scheduled_start=?,scheduled_end=?,capture_type=?,execution=?,start_at=?,end_at=? WHERE id=?', (a, b, capture, 'COMPLETED' if capture=='HISTORICAL' else 'SCHEDULED', a if capture=='HISTORICAL' else None, b if capture=='HISTORICAL' else None, identity))
         c.execute("UPDATE overtime SET reference=?,description=?,justification=?,impact=?,in_lieu=?,status='SUBMITTED',approved_by=NULL,revision=revision+1,updated_at=? WHERE id=?", (ref, text(data, 'description'), text(data, 'justification'), text(data, 'impact'), text(data, 'in_lieu'), now(), identity))
+        updated=get(c,'overtime',identity)
+        if updated['capture_type']=='PLANNED':sync_group_ot(c,updated)
+        elif o['window_id'] and c.execute('SELECT 1 FROM ot_group_activities WHERE source_id=?',(identity,)).fetchone():c.execute("UPDATE windows SET status='CANCELLED' WHERE id=?",(o['window_id'],))
         audit(c, actor, 'EDIT_OT_REOPEN_APPROVAL', identity, {'previous_status': o['status'], 'revision': o['revision'] + 1})
     return {'ok': True}
 
@@ -1602,6 +1645,7 @@ def decide(kind: str, identity: str, data: dict = Body(...), actor=Depends(curre
         if decision == 'REJECTED' and not text(data, 'reason', False):
             fail('Agrega el motivo del rechazo.')
         c.execute(f'UPDATE {table} SET status=?,approved_by=? WHERE id=?', (decision, actor['id'], identity))
+        if kind=='ot' and r['execution']=='SCHEDULED':sync_group_ot(c,get(c,'overtime',identity),decision,actor['id'])
         audit(c, actor, decision, identity, {'kind': kind, 'reason': text(data, 'reason', False)})
     return {'ok': True}
 
@@ -1740,10 +1784,27 @@ def selected_users(c, actor, user_id=None, group_id=None):
     return visible
 
 
+def claim_accounting(c,visible,month):
+    try:first=date.fromisoformat(month+'-01')
+    except ValueError:fail('Mes inválido.')
+    last=(first.replace(day=28)+timedelta(days=4)).replace(day=1)-timedelta(days=1)
+    start=first-timedelta(days=(first.weekday()-5)%7)
+    end=last+timedelta(days=(4-last.weekday())%7)
+    months={start.strftime('%Y-%m'),month,end.strftime('%Y-%m')}
+    detail=[row for key in sorted(months) for row in accounting(c,visible,key) if start.isoformat()<=row['date']<=end.isoformat()]
+    detail.sort(key=lambda r:(r['date'],r['start'],r['kind'],r['id']))
+    total=lambda kind,selected:round(sum(r['minutes'] for r in selected if r['kind']==kind),4)
+    monthly=[r for r in detail if r['date'].startswith(month)]
+    return {'rows':detail,'ot_minutes':total('OT',detail),'guard_minutes':total('GUARD',detail),'month_ot_minutes':total('OT',monthly),'month_guard_minutes':total('GUARD',monthly),'period_start':start.isoformat(),'period_end':end.isoformat(),'timezone':str(TZ),'view':'claim','basis':'APPROVED_ACTUAL'}
+
+
 @app.get('/api/accounting')
-def capture(month: str, user_id: str | None = None, group_id: str | None = None, actor=Depends(current_user)):
+def capture(month: str, user_id: str | None = None, group_id: str | None = None, view: str | None = None, actor=Depends(current_user)):
     with connection() as c:
-        result = accounting(c, selected_users(c, actor, user_id, group_id), month)
+        visible=selected_users(c,actor,user_id,group_id)
+        if view=='claim':return claim_accounting(c,visible,month)
+        if view:fail('Vista de captura inválida.')
+        result = accounting(c, visible, month)
     return {'rows': result, 'ot_minutes': round(sum(r['minutes'] for r in result if r['kind'] == 'OT'), 4), 'guard_minutes': round(sum(r['minutes'] for r in result if r['kind'] == 'GUARD'), 4), 'timezone': str(TZ)}
 
 
@@ -1995,9 +2056,12 @@ def analytics_workbook(report):
 
 
 @app.get('/api/export.xlsx')
-def export_excel(month: str, user_id: str | None = None, group_id: str | None = None, kind: str | None = None, actor=Depends(current_user)):
+def export_excel(month: str, user_id: str | None = None, group_id: str | None = None, kind: str | None = None, view: str | None = None, actor=Depends(current_user)):
     with connection() as c:
-        result = accounting(c, selected_users(c, actor, user_id, group_id), month)
+        visible=selected_users(c,actor,user_id,group_id)
+        if view and view!='claim':fail('Vista de captura inválida.')
+        claim=claim_accounting(c,visible,month) if view=='claim' else None
+        result = claim['rows'] if claim else accounting(c,visible,month)
         if kind:
             if kind not in ('OT', 'GUARD'):
                 fail('Tipo de exportación inválido.')
@@ -2025,6 +2089,25 @@ def export_excel(month: str, user_id: str | None = None, group_id: str | None = 
     summary.append(['Horas OT', sum(r['hours'] for r in result if r['kind'] == 'OT')])
     summary.append(['Horas Guardia neta', sum(r['hours'] for r in result if r['kind'] == 'GUARD')])
     summary.append(['Criterio', 'Sólo aprobados; OT única; Guardia menos OT; división por día local.'])
+    if claim:
+        from decimal import Decimal, ROUND_HALF_UP
+        matrix=wb.create_sheet('Claim semanal',0)
+        matrix.append(['Semana desde','Concepto','Total','Sábado','Domingo','Lunes','Martes','Miércoles','Jueves','Viernes'])
+        cursor=date.fromisoformat(claim['period_start']);last=date.fromisoformat(claim['period_end'])
+        while cursor<=last:
+            for key,label in [('GUARD','Stand By'),('OT','OT')]:
+                values=[(Decimal(str(sum(r['minutes'] for r in result if r['kind']==key and r['date']==(cursor+timedelta(days=i)).isoformat())))/Decimal(60)).quantize(Decimal('0.01'),rounding=ROUND_HALF_UP) for i in range(7)]
+                matrix.append([cursor.isoformat(),label,float(sum(values)),*[float(v) for v in values]])
+            cursor+=timedelta(days=7)
+        for cell in matrix[1]:cell.font=Font(bold=True,color='FFFFFF');cell.fill=PatternFill('solid',fgColor='173E48')
+        for row in matrix.iter_rows(min_row=2,min_col=3):
+            for cell in row:cell.number_format='0.00'
+        matrix.freeze_panes='D2';matrix.auto_filter.ref=matrix.dimensions
+        for column in matrix.columns:matrix.column_dimensions[column[0].column_letter].width=18
+        summary.append(['Periodo Claim completo',claim['period_start']+' / '+claim['period_end']])
+        summary.append(['Unidad Claim','Horas decimales; 90 minutos = 1.5 horas; captura diaria a 2 decimales.'])
+        summary.append(['OT del mes seleccionado',claim['month_ot_minutes']/60])
+        summary.append(['Stand By del mes seleccionado',claim['month_guard_minutes']/60])
     stream = io.BytesIO()
     wb.save(stream)
     stream.seek(0)

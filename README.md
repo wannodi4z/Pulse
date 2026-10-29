@@ -1,8 +1,14 @@
-# Operational Pulse · 1.0.4
+# Operational Pulse · 1.0.5
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Versión vigente · v1.0.4 · calendario y próximas actividades
+## Versión vigente · v1.0.5 · Claim semanal y Timer
+
+**Claim reproduce la captura semanal de sábado a viernes:** dos filas separadas para **Stand By (Guardia neta)** y **OT**, siete columnas diarias y sus totales en horas decimales. 90 minutos son 1.5 horas; no se aplica un factor de conversión. La fila se puede copiar y el Excel incluye una hoja Claim semanal. ADP conserva su guía de domingo a sábado con inicio y duración HH:MM.
+
+Las semanas se muestran completas, incluso si comienzan o terminan en otro mes. Los indicadores superiores muestran sólo el mes elegido; cada semana indica sus propias fechas y totales. Claim usa exclusivamente contabilidad aprobada: une solapamientos y descuenta la OT coincidente de la Guardia. Para la captura se redondea cada día a dos decimales; los totales semanales suman esas cifras. El detalle y ADP conservan los minutos reales.
+
+El Timer tiene un modal propio con reloj destacado, estado, inicio y fin autorizado. Conserva la pausa al vencer, extensión, reanudación manual y **Detener y documentar**. Los avisos de documentación y la identificación de actividades en el calendario se mantienen.
 
 **Mi tiempo usa un calendario mensual interactivo para OT y Guardias.** Sustituye la línea de tiempo y conserva los botones individuales. Un clic en un día abre una OT con fecha precargada; arrastrar un rango abre una Guardia. Las selecciones se revisan antes de guardar. Detalle permite consultar, editar, documentar y abrir el Timer de los registros propios. Los registros nuevos aparecen en el calendario del periodo elegido; las emergencias usan el mes actual.
 
@@ -24,7 +30,7 @@ La vista diaria muestra fecha completa, total de horas escrito y desglose con no
 
 Para conservar tus usuarios y registros al actualizar, respalda y conserva tu SQLite de trabajo y su archivo de clave. El ZIP conserva los ejemplos; el arranque no sobrescribe una base existente. Las notas siguientes son historial de versiones anteriores.
 
-## Versión vigente · v1.0.2 · un solo movimiento
+## Historial · v1.0.2 · un solo movimiento
 
 La ficha del Técnico ofrece una sola acción **Mover**. El mismo modal permite cambiarlo entre Grupos propios o enviarlo a otro Manager, incluso de otra Cuenta. El arrastre abre ese modal con el Grupo destino preseleccionado.
 
@@ -614,3 +620,11 @@ El Panel del Técnico y Lead muestra sus próximas OT programadas, con Detalle y
 Los modales muestran el formulario completo, sin Continuar/Anterior ni pasos ocultos. El encabezado y las acciones permanecen visibles; en ventanas pequeñas se desplaza sólo el contenido. La OT distribuye fechas y referencia a todo el ancho y documentación en dos columnas (una en móvil), conservando validaciones y envío a aprobación. Las listas de los modales tampoco se convierten en pasos.
 
 El calendario empieza en domingo y termina en sábado, tanto en los encabezados como en la posición real de cada fecha y el sombreado de fin de semana.
+
+### OT programada normal visible al Grupo
+Al registrar una OT programada normal, Pulse identifica automáticamente el Grupo del Técnico y muestra su referencia, actividad y ventana a los integrantes. No hay un tipo de registro adicional. Antes de la aprobación o del horario, el Timer permanece deshabilitado. Cada participante inicia y detiene su propio Timer, conserva sus tramos y envía sus horas a revisión individual; Claim y ADP usan las horas de esa persona. Las OT históricas y emergentes permanecen individuales.
+
+La autorización de la programación se conserva por separado de la revisión de horas del autor. Si el autor termina antes, los demás pueden seguir participando dentro de la ventana autorizada. Una programación con integrantes inscritos conserva su ventana; para otra programación se registra una nueva OT. Las extensiones se solicitan y autorizan por participante.
+
+### Presentación del proyecto
+[PowerPoint de 5 diapositivas](docs/Operational_Pulse_v1.0.5_Presentacion.pptx): propósito, roles, funciones rápidas, Claim/ADP y beneficios. Incluye imágenes del entorno de pruebas, ejemplos de conversión y texto editable.

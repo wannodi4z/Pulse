@@ -1,6 +1,14 @@
-# Operational Pulse 1.0.4 · especificación de la implementación nueva
+# Operational Pulse 1.0.5 · especificación de la implementación nueva
 
-## Calendario vigente · v1.0.4
+## Claim y Timer · v1.0.5
+
+Claim usa /api/accounting?view=claim con el mismo control de alcance y motor aprobado. Extiende el periodo al sábado anterior/inicial y al viernes final/siguiente del mes y devuelve detalle aprobado de esos días, además de totales exclusivos del mes seleccionado. La matriz y Excel separan GUARD/Stand By y OT por día y semana. No se suma jornada base ni se aplica un factor. 90 minutos equivalen a 1.5 horas. La captura redondea cada día a 2 decimales (mitades hacia arriba) y suma esos valores para sus totales; accounting estándar y ADP no cambian.
+
+El modal Timer tiene una presentación propia, manteniendo acciones y estados existentes: activo, pausa por ventana, solicitud/decisión de extensión, reanudación manual y documentación al detener emergencia. Se conservan el aviso persistente y el calendario.
+
+La OT programada normal del Técnico se publica automáticamente en su Grupo mediante una autorización de ventana vinculada al registro original. ot_group_activities vincula la fuente y conserva la autorización y documentación de la programación. Se exponen sólo los metadatos programados al Grupo actual de la ventana; las horas y Timers de otras personas siguen restringidos. Cada participación usa un registro OT y Timer propios, con unicidad por persona/actividad y aprobación individual de sus horas trabajadas. Las históricas no se publican. La fuente no se reprograma cuando hay integrantes inscritos; las extensiones son individuales. Se migran planes futuros existentes sin cambiar su contabilidad.
+
+## Calendario · v1.0.4
 
 El calendario mensual sustituye la línea de tiempo y es la vista principal de Mi tiempo. Reutiliza los registros propios y el mes de consulta existentes, sin nueva fuente de datos. Los días de Guardias salen de timeline_days; las OT se expanden por fechas locales operativas y excluyen el día de fin si acaba exactamente a medianoche. Los eventos conservan Detalle y estado accesible; el exceso se abre en una agenda del día.
 
