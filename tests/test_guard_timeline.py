@@ -28,3 +28,36 @@ class GuardTimelineTests(unittest.TestCase):
  def test_full_day_and_privacy(self):
   _,guard=self.coverage([{'day':6,'start':'00:00','end':'00:00'}],start='2026-02-01',end='2026-02-01');days=self.uc.get('/api/state').json()['guards'][0]['timeline_days'];self.assertEqual(len(days),1);self.assertTrue(days[0]['end_at'].startswith('2026-02-02T00:00:00'))
   _,other,_=self.f.person('USER','T-PRIVATE',group=self.g);self.assertEqual(other.get('/api/state').json()['guards'],[])
+
+ def test_rule_change_notice_and_explicit_revision_reapproval(self):
+  rule,guard=self.coverage([{'day':5,'start':'22:00','end':'02:00'}],end='2026-01-31')
+  self.f.approve(self.mc,'guard',guard)
+  self.assertFalse(self.uc.get('/api/state').json()['guards'][0]['rule_changed'])
+  self.assertEqual(self.mc.put('/api/rules/'+rule,json={'name':'Nueva cobertura','effective_from':'2026-01-01','segments':[{'day':5,'start':'20:00','end':'02:00'}]}).status_code,200)
+  current=self.uc.get('/api/state').json()['guards'][0];self.assertTrue(current['rule_changed']);self.assertEqual(current['status'],'APPROVED')
+  self.assertEqual(self.uc.get('/api/accounting?month=2026-01').json()['guard_minutes'],120)
+  review=self.uc.get('/api/guards/'+guard+'/revision').json()
+  payload={'expected':review['expected'],'rule_token':review['rules'][0]['token'],'rule_id':rule,'start_date':'2026-01-31','end_date':'2026-01-31','reason':'Actualizar intervalos','confirm':True}
+  self.assertEqual(self.mc.put('/api/guards/'+guard,json=payload).status_code,403)
+  self.assertEqual(self.uc.put('/api/guards/'+guard,json={**payload,'confirm':False}).status_code,422)
+  self.assertEqual(self.uc.put('/api/guards/'+guard,json=payload).status_code,200)
+  current=self.uc.get('/api/state').json()['guards'][0];self.assertEqual(current['id'],guard);self.assertEqual(current['status'],'SUBMITTED');self.assertIsNone(current['approved_by']);self.assertFalse(current['rule_changed'])
+  self.assertEqual(self.uc.get('/api/accounting?month=2026-01').json()['guard_minutes'],0)
+  self.f.approve(self.mc,'guard',guard)
+  self.assertEqual(self.uc.get('/api/accounting?month=2026-01').json()['guard_minutes'],240)
+  with self.f.server.connection() as c:self.assertIsNotNone(c.execute("SELECT 1 FROM audit WHERE action='REVISE_GUARD' AND entity_id=?",(guard,)).fetchone())
+ def test_revision_rejects_changed_rule_stale_guard_and_foreign_owner(self):
+  rule,guard=self.coverage([{'day':5,'start':'22:00','end':'02:00'}],end='2026-01-31')
+  review=self.uc.get('/api/guards/'+guard+'/revision').json()
+  payload={'expected':review['expected'],'rule_token':review['rules'][0]['token'],'rule_id':rule,'start_date':'2026-01-31','end_date':'2026-01-31','reason':'Revisar','confirm':True}
+  _,other,_=self.f.person('USER','PRIVATE-REV',group=self.g)
+  self.assertEqual(other.get('/api/guards/'+guard+'/revision').status_code,403)
+  self.assertEqual(other.put('/api/guards/'+guard,json=payload).status_code,403)
+  self.assertEqual(self.uc.put('/api/guards/'+guard,json={**payload,'expected':'stale'}).status_code,409)
+  self.mc.put('/api/rules/'+rule,json={'name':'Cambio concurrente','effective_from':'2026-01-01','segments':[{'day':5,'start':'20:00','end':'02:00'}]})
+  self.assertEqual(self.uc.put('/api/guards/'+guard,json=payload).status_code,409)
+ def test_removed_rule_retains_snapshot_and_notifies_owner(self):
+  rule,guard=self.coverage([{'day':5,'start':'22:00','end':'02:00'}],end='2026-01-31')
+  before=self.uc.get('/api/state').json()['guards'][0]['timeline_days']
+  self.assertEqual(self.mc.delete('/api/rules/'+rule).status_code,200)
+  after=self.uc.get('/api/state').json()['guards'][0];self.assertTrue(after['rule_changed']);self.assertEqual(after['timeline_days'],before)

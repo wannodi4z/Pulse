@@ -500,7 +500,9 @@ def state(user=Depends(current_user)):
         result['audit_people']=[{key:person[key] for key in ('id','first','last','employee_id','role')} for person in people if person['id'] in actor_ids]
         for g in result['guards']:
             g['rule_snapshot'] = json.loads(g['rule_snapshot'])
-            if user['role']=='USER' and g['user_id']==user['id']:g['timeline_days']=guard_timeline_days(g)
+            if user['role']=='USER' and g['user_id']==user['id']:
+                g['timeline_days']=guard_timeline_days(g)
+                g['rule_changed']=g['status']!='CANCELLED' and guard_rule_changed(c,g)
         for r in result['recoveries']:
             r.pop('code_hash', None)
             r['code_available'] = bool(r['status'] == 'ISSUED' and r['expires_at'] and parse_at(r['expires_at']) > datetime.now(timezone.utc) and c.execute('SELECT 1 FROM recovery_code_vault WHERE recovery_id=?', (r['id'],)).fetchone())
@@ -1301,6 +1303,57 @@ def delete_rule(identity: str, actor=Depends(current_user)):
         c.execute('DELETE FROM rules WHERE id=?',(identity,))
         audit(c,actor,'DELETE_RULE',identity,{'previous':rule,'existing_requests_preserved':True})
     return {'ok':True}
+
+
+def guard_revision_token(record):
+    return hashlib.sha256(json.dumps(dict(record),sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+
+
+def guard_rule_changed(c,guard):
+    snapshot=guard['rule_snapshot']
+    current=c.execute('SELECT * FROM rules WHERE id=?',(snapshot.get('id'),)).fetchone()
+    if not current:return True
+    def content(rule):
+        segments=rule['segments'] if isinstance(rule['segments'],list) else json.loads(rule['segments'])
+        return (rule['name'],rule['effective_from'],sorted((int(s['day']),s['start'],s['end']) for s in segments))
+    return content(snapshot)!=content(dict(current))
+
+
+@app.get('/api/guards/{identity}/revision')
+def guard_revision_preview(identity:str,actor=Depends(current_user)):
+    operational(actor)
+    with connection() as c:
+        guard=get(c,'guards',identity)
+        if actor['is_lead'] or guard['user_id']!=actor['id']:fail('Sólo puedes editar tus Guardias.',403)
+        if guard['status']=='CANCELLED':fail('La Guardia está cancelada.')
+        manager=get(c,'groups',actor['group_id'])['manager_id']
+        rules=[{**r,'segments':json.loads(r['segments']),'token':guard_revision_token(r)} for r in rows(c,'rules') if r['manager_id']==manager]
+        return {'guard':{**guard,'rule_snapshot':json.loads(guard['rule_snapshot'])},'expected':guard_revision_token(guard),'rules':rules}
+
+
+@app.put('/api/guards/{identity}')
+def revise_guard(identity:str,data:dict=Body(...),actor=Depends(current_user)):
+    operational(actor)
+    if actor['is_lead']:fail('El Lead no solicita Guardias.',403)
+    reason=text(data,'reason')
+    if data.get('confirm') is not True:fail('Confirma el reenvío de la Guardia a aprobación.')
+    try:a,b=date.fromisoformat(text(data,'start_date')),date.fromisoformat(text(data,'end_date'))
+    except ValueError:fail('Fechas inválidas.')
+    if b<a or (b-a).days>31:fail('La Guardia debe durar entre 1 y 32 días.')
+    with connection(True) as c:
+        guard=get(c,'guards',identity)
+        if guard['user_id']!=actor['id']:fail('Sólo puedes editar tus Guardias.',403)
+        if guard['status']=='CANCELLED':fail('La Guardia está cancelada.')
+        if not hmac.compare_digest(str(data.get('expected','')),guard_revision_token(guard)):fail('La Guardia cambió. Vuelve a abrir la revisión.',409)
+        rule=get(c,'rules',text(data,'rule_id'))
+        if rule['manager_id']!=get(c,'groups',actor['group_id'])['manager_id']:fail('Elige una regla de tu Manager.',403)
+        if not hmac.compare_digest(str(data.get('rule_token','')),guard_revision_token(rule)):fail('La regla cambió mientras la revisabas. Abre nuevamente el formulario.',409)
+        if rule['effective_from']>a.isoformat():fail('El inicio es anterior a la vigencia de la regla seleccionada.')
+        previous=json.loads(guard['rule_snapshot']);snapshot=dict(rule,segments=json.loads(rule['segments']))
+        if previous.get('coverage_end_at'):snapshot['coverage_end_at']=previous['coverage_end_at']
+        c.execute("UPDATE guards SET start_date=?,end_date=?,rule_snapshot=?,status='SUBMITTED',approved_by=NULL WHERE id=?",(str(a),str(b),json.dumps(snapshot),identity))
+        audit(c,actor,'REVISE_GUARD',identity,{'reason':reason,'previous':guard,'new_snapshot':snapshot,'start_date':str(a),'end_date':str(b)})
+    return {'id':identity,'status':'SUBMITTED'}
 
 
 @app.post('/api/guards')

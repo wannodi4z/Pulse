@@ -14,6 +14,12 @@ Pruebas: suite completa de 75 API en 55.874 s; tests/test_guard_timeline.py (int
 
 Al detener una OT emergente se abre Documentar OT. Si se cierra el formulario, Control del Timer conserva un recordatorio persistente con Documentar OT, incluso tras recargar y aunque el periodo seleccionado sea otro. Sólo desaparece cuando la documentación se envía a aprobación. El reloj, estado y acciones del Timer ocupan áreas separadas y se adaptan a pantallas estrechas.
 
+## Avisos y revisión explícita de Guardias
+
+Las tarjetas de la cronología son compactas y conservan Detalle. /api/state informa rule_changed sólo al propietario de la Guardia comparando la regla guardada con la regla actual (nombre, vigencia e intervalos ordenados); también avisa si fue retirada. La consulta conserva snapshot y totales.
+
+El propietario puede revisar su solicitud con GET /api/guards/{id}/revision y confirmar cambios con PUT /api/guards/{id}. La operación exige motivo, confirmación, revisión vigente de la solicitud y regla (tokens contra cambios concurrentes), regla del Manager actual, fechas válidas y vigencia. Actualiza la misma identidad, conserva el cierre de cobertura, registra el estado previo en auditoría y vuelve a SUBMITTED sin aprobador. Los cambios de regla no recalculan solicitudes existentes automáticamente.
+
 ## Movimiento vigente · v1.0.2
 
 Una sola acción Mover en la ficha abre technicianMoveModal. Dos opciones: Grupos del mismo Manager (aplicación directa con confirmación) u otro Manager/Cuenta (solicitud al receptor). Las rutas internas siguen siendo /api/team/people/{id}/move y /api/team/transfers; el formulario unificado sólo envía los campos correspondientes a la opción activa.

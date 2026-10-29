@@ -599,3 +599,6 @@ El Manager abre un Grupo desde su nombre en **Mi equipo** y selecciona **Elimina
 Cada solicitud de Guardia (diaria o semanal) aparece en una sola tarjeta con el periodo y el total de cobertura, y requiere una sola decisión del Manager. La cobertura del periodo se distingue del total mensual aprobado y de la Guardia neta tras descontar OT.
 
 El Timer emergente muestra **Detener y documentar**. Al detenerlo se abre el formulario; si se cierra sin enviarlo, queda una tarjeta persistente **Documentar OT** en Control del Timer, también después de recargar. La OT no suma al aprobado hasta completar documentación y obtener aprobación.
+
+### Revisión por cambios en reglas de Guardia
+**Mi tiempo** avisa al Técnico cuando una regla de sus solicitudes cambió o fue retirada. Las tarjetas compactas conservan **Detalle** y ofrecen **Revisar cambio**. La solicitud mantiene sus horas anteriores hasta que el Técnico confirma el ajuste; se actualiza la misma solicitud, vuelve a pendiente y requiere nueva aprobación. El formulario muestra la vigencia y permite consultar los intervalos actuales. Se conservan el origen, los cambios en auditoría y cualquier cierre administrativo de cobertura.
