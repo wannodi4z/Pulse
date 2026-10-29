@@ -10,7 +10,7 @@
 - `tests/`: pruebas de API, cálculo e interfaz.
 - `docs/`: especificación, validación, historial y presentación.
 
-Consulta [la arquitectura](docs/ARCHITECTURE.md) y [el uso de respaldos](docs/BACKUPS.md).
+Consulta la [guía completa de funcionamiento](docs/GUIA_COMPLETA.md), con PowerPoint y PDF de 71 diapositivas, y [la arquitectura](docs/ARCHITECTURE.md) y [el uso de respaldos](docs/BACKUPS.md).
 Las secciones históricas que siguen describen versiones anteriores; la estructura vigente es la indicada arriba.
 
 # Operational Pulse · 1.0.10
