@@ -634,3 +634,5 @@ dialog.team-relocate-dialog{max-width:740px}.team-relocate-dialog .move-subject{
 .analytics-overview .monthly-summary{min-width:380px;table-layout:auto}.analytics-overview .monthly-summary :is(td,th){padding:10px 7px;font-size:11px}.monthly-comparison-note{font-size:11px;padding:0 7px}.analytics-overview h2{font-size:18px}
 
 .comparison-instructions{padding:14px 16px;border:1px solid #cfe3ed;border-radius:10px;background:#f1f8fc;font-size:12px;line-height:1.6;color:#42637e}.comparison-instructions>strong{color:#204e6e;font-size:13px}.comparison-instructions ol{margin:9px 0;padding-left:19px}.comparison-instructions li+li{margin-top:6px}.comparison-instructions p{margin:10px 0 0;font-size:11px}
+
+.analytics-empty{margin-top:18px;text-align:center;padding:24px}.analytics-empty>.secondary{margin:0 auto 12px}.analytics-empty .empty-state{margin:0}

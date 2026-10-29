@@ -5,6 +5,8 @@ let page = 'dashboard';
 let month = new Date().toLocaleDateString('sv-SE', {timeZone:state?.timezone||'America/Mexico_City'}).slice(0,7);
 let ledger = {rows:[],ot_minutes:0,guard_minutes:0};
 let analyticsReport = null;
+let analyticsRequestKey = '';
+let analyticsFailure = null;
 let analyticsDetailType = null;
 let comparisonMonths = [];
 let comparisonDraft = [];
@@ -123,8 +125,9 @@ async function loadLedger(){
     try{
       const report=await api((reportPage==='myAnalytics'?'/api/my-analytics?':'/api/analytics?')+q);
       if(sequence!==reportSequence||page!==reportPage)return;
-      analyticsReport=report;ledger={rows:report.rows,ot_minutes:report.summary.ot_minutes,guard_minutes:report.summary.GUARD};
+      analyticsRequestKey=reportPage+':'+q.toString();analyticsFailure=null;analyticsReport=report;ledger={rows:report.rows,ot_minutes:report.summary.ot_minutes,guard_minutes:report.summary.GUARD};
     }catch(error){
+      if(sequence===reportSequence&&page===reportPage){analyticsFailure={key:reportPage+':'+q.toString(),message:error.message};render();}
       if(error.status===403&&reportPage==='analytics'){
         analyticsReport=null;analyticsDetailType=null;state=await api('/api/state');page=isTech()?'myAnalytics':'dashboard';filters={group:'',person:'',status:'',kind:'',search:'',period:'MONTH'};await loadLedger();render();
       }
@@ -220,8 +223,14 @@ function unifiedAnalyticsPage(personal=false){
   const report=analyticsReport,groups=state.groups.filter(g=>state.scope.includes(g.id)),people=state.people.filter(p=>p.role==='USER'&&(state.scope.includes(p.group_id)||p.is_lead&&p.manager_id===me().id)&&(!filters.group||p.group_id===filters.group));
   const header=heading('CONSULTA Y COMPARACIÓN',personal?'Mi analítica':'Analítica del equipo','Horas aprobadas, comparativas e historial en un solo lugar.',monthControl()+analyticsExportLink(personal));
   const controls=`<section class="panel analytics-filters unified-filters"><div class="analytics-tools"><form data-form="analytics-search"><label class="search">${icon('search')}<input id="analytics-search" name="search" type="search" maxlength="500" value="${esc(filters.search)}" placeholder="Buscar referencia, actividad, Employee ID o Grupo…" aria-label="Buscar registros en Analítica" autocomplete="off"></label><button type="submit" class="secondary">Buscar</button></form>${btn('Comparar meses','analytics-months','','secondary')}</div><div class="analytics-filter-grid">${select('filter-period','Periodo',`<option value="MONTH" ${filters.period!=='ALL'?'selected':''}>Meses seleccionados</option><option value="ALL" ${filters.period==='ALL'?'selected':''}>Todo el historial</option>`)}${personal?'':select('filter-group','Grupo',options(groups,filters.group,g=>entityCode(g)+' · '+g.name,'Todos mis Grupos'))+select('filter-person','Técnico',options(people,filters.person,full,'Todos los Técnicos'))}${select('filter-status','Estado',`<option value="">Todos los estados</option>${['SUBMITTED','APPROVED','REJECTED','DOCUMENTATION','RUNNING','PAUSED','CANCELLED'].map(s=>`<option value="${s}" ${filters.status===s?'selected':''}>${statuses[s]}</option>`).join('')}`)}${select('filter-kind','Tipo',`<option value="">OT y Guardias</option><option value="OT" ${filters.kind==='OT'?'selected':''}>Toda la OT</option>${analyticsTypes.map(t=>`<option value="${t}" ${filters.kind===t?'selected':''}>${analyticsNames[t]}</option>`).join('')}`)}</div><div class="analytics-result-context"><span id="analytics-query-status" role="status">${filters.period==='ALL'?'Todo el historial':selectedAnalyticsMonths().map(monthLabel).join(' · ')}</span>${btn('Restablecer','analytics-reset','','link')}</div></section>`;
-  const correct=report&&report.month===month&&report.mode===(personal?'PERSONAL':'TEAM')&&report.filters.q===(filters.search||'')&&report.filters.status===(filters.status||'')&&report.filters.record_type===(filters.kind||'')&&report.filters.period===(filters.period||'MONTH')&&report.filters.group_id===(filters.group||null)&&report.filters.user_id===(personal?me().id:filters.person||null)&&(filters.period==='ALL'||report.months.join(',')===selectedAnalyticsMonths().join(','));
-  if(!correct)return header+controls+`<section class="panel">${empty('Cargando los resultados…')}</section>`;
+  const query=new URLSearchParams({month});if(!personal){if(filters.group)query.set('group_id',filters.group);if(filters.person)query.set('user_id',filters.person);}appendAnalyticsQuery(query);
+  const requestKey=(personal?'myAnalytics':'analytics')+':'+query.toString();
+  if(analyticsFailure?.key===requestKey)return header+controls+`<section class="panel">${empty('No se pudieron consultar los registros','Intenta buscar nuevamente. Si el problema continúa, revisa tu conexión.')}</section>`;
+  if(!report||analyticsRequestKey!==requestKey)return header+controls+`<section class="panel">${empty('Consultando registros…')}</section>`;
+  if(!report.record_count){
+    const employee=personal?me():person(filters.person),title=employee?`${full(employee)} no tiene registros con estos filtros`:'No hay registros con estos filtros';
+    return header+controls+resultMetrics(report,true)+`<section class="panel analytics-empty" role="status">${empty(title,`${filters.period==='ALL'?'Se consultó todo el historial.':'Periodo consultado: '+selectedAnalyticsMonths().map(monthLabel).join(' · ')+'.'} Prueba otro periodo o cambia los filtros de búsqueda.`)}${btn('Restablecer filtros','analytics-reset','','secondary')}</section>`;
+  }
   const counts=report.record_counts,caption=`${report.record_count} registros · ${counts.APPROVED||0} aprobados · ${counts.SUBMITTED||0} pendientes · ${counts.REJECTED||0} rechazados`;
   return header+controls+`<div class="analytics-dashboard">${resultMetrics(report,true)}${analyticsDashboard(report,personal)}</div>`+`<section class="panel table-panel result-records" id="analytics-records"><div class="section-heading padded"><div><h2>Registros encontrados</h2><p class="muted">${caption}. Las horas suman sólo tiempo real aprobado.</p></div></div><div class="table-scroll"><table><thead><tr><th>Técnico / Grupo</th><th>Referencia / Actividad</th><th>Periodo</th><th>Estado</th><th>Consulta</th></tr></thead><tbody>${report.records.map(analyticsRecordRow).join('')}</tbody></table></div>${report.records.length?'':empty('Sin registros con esta búsqueda','Cambia el texto, los filtros o los meses seleccionados.')}</section>`;
 }
