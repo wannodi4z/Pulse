@@ -1,12 +1,12 @@
-# Operational Pulse · 1.0.3
+# Operational Pulse · 1.0.4
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Versión vigente · v1.0.3 · cronología de OT y Guardias
+## Versión vigente · v1.0.4 · calendario y próximas actividades
 
-**Mi tiempo reúne OT y Guardias en una sola línea de tiempo.** Las Guardias se muestran por día con los intervalos de la regla guardada en la solicitud, incluidos periodos múltiples, cobertura de 24 horas, cruces de medianoche y continuación al mes siguiente. Se conservan estado y acceso a Ver solicitud; la cobertura mostrada no sustituye la Guardia neta aprobada de los totales. Las capturas históricas de OT siguen insertándose por fecha real de actividad. Se elimina la sección separada que repetía las Guardias.
+**Mi tiempo usa un calendario mensual interactivo para OT y Guardias.** Sustituye la línea de tiempo y conserva los botones individuales. Un clic en un día abre una OT con fecha precargada; arrastrar un rango abre una Guardia. Las selecciones se revisan antes de guardar. Detalle permite consultar, editar, documentar y abrir el Timer de los registros propios. Los registros nuevos aparecen en el calendario del periodo elegido; las emergencias usan el mes actual.
 
-Las tarjetas separan identidad/estado, horario/disponibilidad y acciones. Detalle permanece visible. La cronología se recorre dentro del área central, sin paginar una actividad por clic ni desbordar la página.
+El Panel personal muestra próximas actividades y permite iniciar el Timer sólo con aprobación y dentro del horario autorizado. El calendario usa la zona horaria operativa, representa la cobertura real de Guardias y respeta los cruces de medianoche. **Seleccionar periodo** permite elegir los extremos sin arrastrar, también en móvil.
 
 ### Timer y extensiones
 
@@ -602,3 +602,10 @@ El Timer emergente muestra **Detener y documentar**. Al detenerlo se abre el for
 
 ### Revisión por cambios en reglas de Guardia
 **Mi tiempo** avisa al Técnico cuando una regla de sus solicitudes cambió o fue retirada. Las tarjetas compactas conservan **Detalle** y ofrecen **Revisar cambio**. La solicitud mantiene sus horas anteriores hasta que el Técnico confirma el ajuste; se actualiza la misma solicitud, vuelve a pendiente y requiere nueva aprobación. El formulario muestra la vigencia y permite consultar los intervalos actuales. Se conservan el origen, los cambios en auditoría y cualquier cierre administrativo de cobertura.
+
+### Calendario mensual · v1.0.4
+**Mi tiempo** abre el Calendario como vista principal; la línea de tiempo ha sido sustituida por el calendario. Un clic en un día abre una OT con fecha y horario precargados: el sistema clasifica histórica/programada según el periodo real. Un periodo que ya está en curso requiere el Timer.
+
+Arrastra entre dos días para abrir una solicitud de Guardia con el rango completo (máximo 32 días); puedes arrastrar en ambos sentidos. **Seleccionar periodo** permite elegir inicio y fin con clics o teclado, también en móvil. La solicitud se revisa y confirma antes de guardarse. Una Guardia aparece en los días de cobertura real; abrirla muestra la misma solicitud. Las actividades que cruzan medianoche aparecen en los días que ocupan. **+ más** muestra la agenda del día; **Hoy** vuelve al mes actual. El calendario usa la zona horaria operativa y sólo los registros propios.
+
+El Panel del Técnico y Lead muestra sus próximas OT programadas, con Detalle y **Iniciar Timer**. Se habilita dentro de la ventana autorizada y sólo con aprobación; otro Timer propio activo impide iniciar uno adicional. Las actividades de otros integrantes no se incluyen en este calendario personal.

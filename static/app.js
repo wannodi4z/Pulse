@@ -77,7 +77,7 @@ function credentials(code,username,title='Datos de activación'){
   showModal(title,`<div class="form-body"><p>Entrega este código por un canal corporativo. La persona definirá su contraseña desde «Activar cuenta».</p>${username?`<p>Usuario: <strong>${esc(username)}</strong></p>`:''}<div class="secret-code">${esc(code)}</div><p class="muted">El código se muestra sólo al generar o regenerar el acceso.</p></div><footer class="dialog-footer">${btn('Listo','close','','primary')}</footer>`);
 }
 function login(){
-  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">CONTROL DE TIEMPO EXTRA</p><h1>Planea.<br>Trabaja. Controla.</h1><p>Registra tiempo extra, gestiona guardias<br>y consulta tus horas aprobadas.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.0.3</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">ACCESO A OPERATIONAL PULSE</p><h2>Control de OT y guardias</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}<label class="field" for="login-password"><span>Contraseña</span><span class="login-password-input"><input id="login-password" name="password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" data-action="password-visibility" data-id="login-password" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button></span></label><p class="form-error" role="alert"></p><button type="submit" class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Control de OT, guardias y aprobaciones.</small></p></div></div><footer>Operational Pulse · OT y guardias <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
+  return `<div class="login-shell"><section class="login-story"><a class="brand" href="/" aria-label="Operational Pulse"><img src="/static/favicon.svg" alt=""><span>Operational<span class="brand-light">Pulse</span></span></a><div class="story-copy"><p class="eyebrow">CONTROL DE TIEMPO EXTRA</p><h1>Planea.<br>Trabaja. Controla.</h1><p>Registra tiempo extra, gestiona guardias<br>y consulta tus horas aprobadas.</p><div class="pulse-line"><span></span><i></i><span></span></div></div><footer><div class="login-brand-credit">${kyndrylBrand()}<span>Operación conectada. Mejores resultados.</span></div><span class="release-tag">v1.0.4</span></footer></section><main class="login-main"><div class="login-card"><p class="eyebrow">ACCESO A OPERATIONAL PULSE</p><h2>Control de OT y guardias</h2><p class="muted">Ingresa con tu Employee ID o usuario administrador.</p><form data-form="login">${field('identity','Usuario o Employee ID','','text','required autocomplete="username"')}<label class="field" for="login-password"><span>Contraseña</span><span class="login-password-input"><input id="login-password" name="password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" data-action="password-visibility" data-id="login-password" aria-label="Mostrar contraseña" aria-pressed="false">${icon('eye')}</button></span></label><p class="form-error" role="alert"></p><button type="submit" class="primary login-submit">Iniciar sesión <span>→</span></button></form><div class="login-links">${btn('¿Olvidaste tu contraseña?','recovery-request','','link')}${btn('Activar cuenta','activate','','link')}</div><div class="login-note"><span>◇</span><p>Acceso interno<br><small>Control de OT, guardias y aprobaciones.</small></p></div></div><footer>Operational Pulse · OT y guardias <button class="link" data-action="about">Acerca del proyecto</button></footer></main></div>`;
 }
 function nav(){
   const work=isAdmin()?['dashboard','organization','admins','recoveries']:isManager()?['dashboard','team','teamTime','analytics']:['dashboard','time','myAnalytics','claim','adp',...(state.can_approve?['team','teamTime','analytics']:[])];
@@ -138,7 +138,7 @@ async function loadLedger(){
 async function refresh(silent=false){
   const sequence=++refreshSequence;
   try{
-    const fresh=await api('/api/state');if(sequence!==refreshSequence||silent&&draggedTechnician)return;
+    const fresh=await api('/api/state');if(sequence!==refreshSequence||silent&&(draggedTechnician||calendarDrag))return;
     serverOffset=new Date(fresh.server_time).getTime()-Date.now();
     const previous=state?JSON.stringify({...state,server_time:''}):'';
     state=fresh;
@@ -157,7 +157,8 @@ async function navigate(next){
 function tick(){
   const code=$('[data-code-expires]');if(code&&new Date(code.dataset.codeExpires).getTime()<=Date.now()+serverOffset){code.textContent='Código vencido';code.removeAttribute('data-code-expires');}
   $$('[data-elapsed]').forEach(el=>{const current=Date.now()+serverOffset,limit=el.dataset.until?new Date(el.dataset.until).getTime():current,total=Math.max(0,Math.floor((Math.min(current,limit)-new Date(el.dataset.elapsed).getTime())/1000)+Math.floor(Number(el.dataset.base)||0));if(el.dataset.until&&current>=limit&&!el.dataset.reconciled){el.dataset.reconciled='true';refresh(true).then(()=>{const modal=$('#modal');if(state&&modal.open&&modal.classList.contains('own-timer-dialog')){const o=state.overtime.find(o=>o.id===modal.dataset.overtimeId);if(o&&(o.execution!=='RUNNING'||new Date(o.scheduled_end).getTime()>Date.now()+serverOffset))ownTimerModal(o.id);}});}el.textContent=[Math.floor(total/3600),Math.floor(total/60)%60,total%60].map(x=>String(x).padStart(2,'0')).join(':');});
-  if($$('[data-available-at]').some(el=>new Date(el.dataset.availableAt).getTime()<=Date.now()+serverOffset)&&!busy&&!$('#modal').open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))render();
+  if($$('[data-available-at]').some(el=>new Date(el.dataset.availableAt).getTime()<=Date.now()+serverOffset)&&!busy&&!calendarDrag&&!$('#modal').open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))render();
+  $$('#modal [data-action=timer-planned]').forEach(button=>{const o=state.overtime.find(o=>o.id===button.dataset.id);if(o?.execution!=='SCHEDULED')return;const ready=o.status==='APPROVED'&&Date.parse(o.scheduled_start)<=Date.now()+serverOffset&&Date.parse(o.scheduled_end)>Date.now()+serverOffset&&!state.timers.some(t=>t.user_id===me().id);button.disabled=!ready;button.textContent=ready?'Iniciar Timer':'Timer';});
   const clock=$('[data-local-clock]');if(clock)clock.textContent=new Date(Date.now()+serverOffset).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',timeZone:state.timezone});
 }
 function kpi(label,value,detail,symbol,accent='',target=''){
@@ -165,13 +166,22 @@ function kpi(label,value,detail,symbol,accent='',target=''){
   return `<${tag} class="kpi ${accent} ${target?'kpi-link':''}" ${attrs}><div><span>${label}</span><i>${icon(({'⌘':'organization','♧':'team','▦':'dashboard','◎':'profile','↗':'arrow','◷':'time','≡':'teamTime','●':'time'})[symbol]||'dashboard')}</i></div><strong>${value}</strong><small>${detail}${target?icon('arrow'):''}</small></${tag}>`;
 }
 
+function upcomingActivities(){
+ const current=Date.now()+serverOffset,active=state.timers.some(t=>t.user_id===me().id);
+ const records=state.overtime.filter(o=>o.user_id===me().id&&o.capture_type==='PLANNED'&&o.execution==='SCHEDULED'&&o.status!=='CANCELLED'&&Date.parse(o.scheduled_end)>current).sort((a,b)=>Date.parse(a.scheduled_start)-Date.parse(b.scheduled_start));
+ const documents=state.overtime.filter(o=>o.user_id===me().id&&o.status==='DOCUMENTATION').length;
+ return `<div class="upcoming-list">${records.slice(0,4).map(o=>{
+ const before=Date.parse(o.scheduled_start)>current,ready=!before&&o.status==='APPROVED'&&!active;
+ return `<article class="upcoming-activity"><div><span class="small-label">${range(o.scheduled_start,o.scheduled_end)}</span><h3>${esc(o.reference||'OT programada')}</h3>${badge(o.status)}<p ${before?`data-available-at="${esc(o.scheduled_start)}"`:''}>${before?'Timer disponible el '+fmtDate(o.scheduled_start)+' a las '+fmtTime(o.scheduled_start)+(o.status!=='APPROVED'?' · requiere aprobación.':'.'):active?'Detén tu Timer activo antes de iniciar otra OT.':o.status!=='APPROVED'?'Falta aprobación para iniciar el Timer.':'Dentro del horario autorizado.'}</p></div><div class="upcoming-actions">${btn('Detalle','record-detail','ot:'+o.id,'link')}${btn('▶ Iniciar Timer','timer-planned',o.id,ready?'primary small':'secondary small',ready?'':'disabled')}</div></article>`;
+ }).join('')||'<p class="upcoming-empty">No tienes OT programadas próximas. Agrégalas desde tu calendario.</p>'}</div><div class="upcoming-footer"><button class="secondary small" data-action="open-calendar">Abrir calendario</button>${documents?`<button class="link" data-page="time">${documents} OT por documentar</button>`:''}</div>`;
+}
 function dashboard(){
   if(isAdmin())return adminDashboard();
   const ownTimers=state.timers.filter(t=>t.user_id===me().id),reviewer=isManager();
   return heading('TU OPERACIÓN AL DÍA',`Hola, ${esc(me().first)}.`,isTech()?'Tu OT, tus guardias y sus aprobaciones del mes.':'Un vistazo al tiempo y las prioridades de tu equipo.',monthControl())+
   (ownTimers.length?timerPanel(ownTimers):'')+
   `<section class="kpis">${kpi('Tiempo extra aprobado',`${hours(ledger.ot_minutes)} <em>h</em>`,'Tiempo real, sin duplicados','↗','',reviewer?'ot':'')}${kpi('Guardia neta',`${hours(ledger.guard_minutes)} <em>h</em>`,'Con OT descontada','◷','',reviewer?'guard':'')}${kpi('Por revisar',reviewer?pendingCount():state.overtime.filter(o=>o.user_id===me().id&&o.status==='SUBMITTED').length,'Solicitudes pendientes','≡','',reviewer?'pending':'')}${kpi('Timers activos',isTech()?ownTimers.length:state.timers.length,'Actualización en tiempo real','●','accent',reviewer?'running':'')}</section>
-  <section class="two-columns"><article class="panel"><div class="section-heading"><div><p class="eyebrow">ANALÍTICA MENSUAL</p><h2>${esc(monthLabel(month))}</h2></div><span class="pill">Horas aprobadas</span></div>${analyticsChart()}<div class="legend"><span><i class="dot ot"></i>Tiempo extra</span><span><i class="dot guard"></i>Guardia neta</span></div></article><article class="panel"><div class="section-heading"><div><p class="eyebrow">REQUIERE TU ATENCIÓN</p><h2>${isTech()?'El siguiente paso':'Solicitudes para revisar'}</h2></div></div>${isTech()?`<div class="attention-number">${state.overtime.filter(o=>o.user_id===me().id&&o.status==='DOCUMENTATION').length}<small>registros por documentar</small></div><button class="secondary" data-page="time">Ir a Mi tiempo →</button>`:dashboardPriorities()}${isTech()?'<div class="quick-note">Claim, ADP y Excel se calculan sobre el mismo tiempo aprobado.</div>':''}</article></section>
+  <section class="two-columns"><article class="panel"><div class="section-heading"><div><p class="eyebrow">ANALÍTICA MENSUAL</p><h2>${esc(monthLabel(month))}</h2></div><span class="pill">Horas aprobadas</span></div>${analyticsChart()}<div class="legend"><span><i class="dot ot"></i>Tiempo extra</span><span><i class="dot guard"></i>Guardia neta</span></div></article><article class="panel"><div class="section-heading"><div><p class="eyebrow">REQUIERE TU ATENCIÓN</p><h2>${isTech()?'Próximas actividades':'Solicitudes para revisar'}</h2></div></div>${isTech()?upcomingActivities():dashboardPriorities()}</article></section>
   ${state.timers.length&&!isTech()?`<article class="panel"><div class="section-heading"><div><p class="eyebrow">AHORA</p><h2>Tu equipo en tiempo real</h2></div><span class="live-label"><i></i>En vivo</span></div>${timerPanel(state.timers)}</article>`:''}`;
 }
 function dashboardPriorities(){
@@ -371,9 +381,9 @@ function ownTimerModal(id){
  const o=state.overtime.find(o=>o.id===id&&o.user_id===me().id);if(!o)return;
  const t=state.timers.find(t=>t.overtime_id===id&&t.user_id===me().id);
  if(!t&&o.execution!=='PAUSED')return detailModal('ot:'+id);
- showModal('Timer · '+esc(o.reference||'Tiempo extra'),`<div class="form-body own-timer-body">${timerPanel(t?[t]:[],o.execution==='PAUSED'?[o]:[])}<p class="callout">Solicita la extensión desde este Timer si necesitas continuar. Al terminar la ventana autorizada, se pausa hasta que el responsable apruebe la extensión.</p></div><footer class="dialog-footer">${btn('Cerrar','close','','secondary')}</footer>`);$('#modal').classList.add('admin-dialog','own-timer-dialog');$('#modal').dataset.overtimeId=id;tick();
+ showModal('Timer · '+esc(o.reference||'Tiempo extra'),`<div class="form-body own-timer-body">${timerPanel(t?[t]:[],o.execution==='PAUSED'?[o]:[])}<p class="callout">${o.capture_type==='PLANNED'?'Solicita la extensión desde este Timer si necesitas continuar. Al terminar la ventana autorizada, se pausa hasta que el responsable apruebe la extensión.':'Al detener el Timer, documenta la OT para enviarla a aprobación.'}</p></div><footer class="dialog-footer">${btn('Cerrar','close','','secondary')}</footer>`);$('#modal').classList.add('admin-dialog','own-timer-dialog');$('#modal').dataset.overtimeId=id;tick();
 }
-function timelineTimerControl(o){
+function recordTimerControl(o){
  if(o.capture_type!=='PLANNED')return '';
  if(state.timers.some(t=>t.overtime_id===o.id)||o.execution==='PAUSED')return btn('Ver Timer','own-timer-open',o.id,'secondary');
  if(o.execution!=='SCHEDULED')return '';
@@ -403,45 +413,75 @@ function exportLink(extra=''){
   const q=new URLSearchParams({month});if(['time','claim','adp'].includes(page)&&isTech())q.set('user_id',me().id);else{if(filters.group)q.set('group_id',filters.group);if(filters.person)q.set('user_id',filters.person);if(filters.kind)q.set('kind',filters.kind);}
   return `<a class="secondary button" href="/api/export.xlsx?${esc(q.toString())}" download>↓ Excel ${extra||'aprobados'}</a>`;
 }
+let calendarDrag=null,calendarRangeMode=false,calendarRangeStart=null,calendarSuppressClickUntil=0;
+function paintCalendarRange(start,end){
+ const [a,b]=[start,end].sort();
+ $$('[data-calendar-date]').forEach(cell=>{const d=cell.dataset.calendarDate;cell.classList.toggle('calendar-selected',d>=a&&d<=b);cell.classList.toggle('calendar-range-start',d===a);cell.classList.toggle('calendar-range-end',d===b);});
+ const hint=$('#calendar-selection-hint');if(hint)hint.textContent=start===end?'Inicio: '+fmtDate(start)+'. Selecciona el día final.':'Guardia del '+fmtDate(a)+' al '+fmtDate(b)+'.';
+}
+function resetCalendarRange(){calendarRangeStart=null;$$('.calendar-selected').forEach(cell=>cell.classList.remove('calendar-selected','calendar-range-start','calendar-range-end'));const hint=$('#calendar-selection-hint');if(hint)hint.textContent=calendarRangeMode?'Selecciona el día inicial y después el final.':'Un clic registra OT. Arrastra varios días para solicitar una Guardia.';}
+function calendarGuardRange(start,end){
+ const [a,b]=[start,end].sort();
+ if(me()?.is_lead){resetCalendarRange();return toast('El Lead puede registrar OT; no solicita Guardias.',true);}
+ if((Date.parse(b)-Date.parse(a))/86400000>31){resetCalendarRange();return toast('Selecciona un periodo de hasta 32 días para la Guardia.',true);}
+ calendarRangeMode=false;resetCalendarRange();$('[data-action=calendar-range]')?.setAttribute('aria-pressed','false');guardModal(a,b);
+}
+function calendarPickRange(day){
+ if(!calendarRangeStart){calendarRangeStart=day;paintCalendarRange(day,day);return;}
+ calendarGuardRange(calendarRangeStart,day);
+ const toggle=$('[data-action=calendar-range]');if(toggle)toggle.setAttribute('aria-pressed','false');
+}
+function calendarDate(value){return new Date(value).toLocaleDateString('sv-SE',{timeZone:state?.timezone||'America/Mexico_City'});}
+function calendarEvents(day){
+ const events=[];
+ for(const o of state.overtime.filter(o=>o.user_id===me().id)){
+  const start=recordStart(o),end=o.end_at||o.scheduled_end||new Date(Date.now()+serverOffset).toISOString();
+  if(calendarDate(start)>day||calendarDate(end)<day)continue;
+  // A midnight end belongs to the preceding day, unless the record starts at that instant.
+  if(calendarDate(end)===day&&fmtTime(end)==='00:00'&&calendarDate(start)!==day)continue;
+  events.push({key:'ot:'+o.id,kind:o.capture_type==='PLANNED'?'planned':o.capture_type==='EMERGENCY'?'emergency':'historical',title:o.reference||'OT por documentar',time:calendarDate(start)===day?fmtTime(start):'Continúa',status:o.status});
+ }
+ for(const g of state.guards.filter(g=>g.user_id===me().id)){
+  const parts=(g.timeline_days||[]).filter(p=>p.date===day);
+  if(!parts.length&&((g.timeline_days||[]).length||g.start_date!==day))continue;
+  events.push({key:'guard:'+g.id,kind:'guard',title:g.rule_snapshot.name,time:'Guardia',status:g.status});
+ }
+ return events.sort((a,b)=>(a.kind==='guard'?-1:1)-(b.kind==='guard'?-1:1)||a.time.localeCompare(b.time)||a.key.localeCompare(b.key));
+}
+function monthlyCalendar(){
+ const [year,number]=month.split('-').map(Number),first=new Date(Date.UTC(year,number-1,1)),days=new Date(Date.UTC(year,number,0)).getUTCDate();
+ const offset=(first.getUTCDay()+6)%7,count=Math.ceil((offset+days)/7)*7,visibleEvents=innerHeight>=900&&innerWidth>=700?2:1,today=calendarDate(new Date(Date.now()+serverOffset));
+ const cells=Array.from({length:count},(_,i)=>{
+  const date=new Date(Date.UTC(year,number-1,i-offset+1)),day=date.toISOString().slice(0,10),outside=day.slice(0,7)!==month,events=calendarEvents(day);
+  return `<div class="calendar-day ${outside?'calendar-outside':''} ${day===today?'calendar-today':''}" data-calendar-date="${day}" data-action="calendar-new" data-id="${day}"><div class="calendar-day-head">${btn(String(date.getUTCDate()),'calendar-new',day,'calendar-date-button',`aria-label="Registrar OT el ${esc(fmtDate(day))}${day<today?', fecha pasada':''}" ${day===today?'aria-current="date"':''}`)}${btn('＋','calendar-new',day,'calendar-add',`aria-label="Agregar registro el ${esc(fmtDate(day))}"`)}</div><div class="calendar-events">${events.slice(0,visibleEvents).map(e=>`<button type="button" class="calendar-event calendar-${e.kind} ${['REJECTED','CANCELLED'].includes(e.status)?'calendar-inactive':''}" data-action="record-detail" data-id="${esc(e.key)}" aria-label="${esc(e.title+' · '+e.time+' · '+statuses[e.status])}" title="${esc(e.title+' · '+statuses[e.status])}">${e.kind==='guard'?'':`<span>${esc(e.time)}</span>`}<strong>${esc(e.title)}</strong><i class="calendar-status ${e.status.toLowerCase()}" aria-hidden="true"></i></button>`).join('')}${events.length>visibleEvents?btn('+'+(events.length-visibleEvents)+' más','calendar-day',day,'calendar-more'):''}</div></div>`;
+ }).join('');
+ return `<section class="panel monthly-calendar" data-view-label="Calendario"><header class="calendar-heading"><div><h2>${esc(monthLabel(month))}</h2></div><div class="calendar-heading-actions">${!me().is_lead?btn('Seleccionar periodo','calendar-range','','secondary small',`aria-pressed="${calendarRangeMode}"`):''}${btn('Hoy','calendar-today','','secondary small')}</div></header><div class="calendar-legend"><span class="planned">OT programada</span><span class="historical">OT histórica</span><span class="emergency">Emergencia</span><span class="guard">Guardia</span><small id="calendar-selection-hint" class="calendar-selection-hint" role="status">${calendarRangeMode?'Selecciona el día inicial y después el final.':'Un clic registra OT. Arrastra varios días para solicitar una Guardia.'}</small></div><div class="calendar-scroll"><div class="calendar-weekdays">${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<span>${d}</span>`).join('')}</div><div class="calendar-grid">${cells}</div></div></section>`;
+}
+function calendarNewRecord(day){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return;
+ otModal();const form=$('#modal [data-form=ot]');
+ form.elements.scheduled_start.value=day+'T09:00';form.elements.scheduled_end.value=day+'T10:00';
+ if(day===calendarDate(new Date(Date.now()+serverOffset))){
+  const next=new Date(Date.now()+serverOffset+3600000),end=new Date(next.getTime()+3600000);
+  form.elements.scheduled_start.value=localInput(next.toISOString());form.elements.scheduled_end.value=localInput(end.toISOString());
+ }
+ syncOtType();
+}
+function calendarDayModal(day){
+ const events=calendarEvents(day);
+ showModal('Agenda · '+fmtDate(day),`<div class="form-body calendar-agenda"><p>OT y Guardias de este día. Abre un registro para consultar sus detalles.</p>${events.map(e=>`<button type="button" class="calendar-agenda-event calendar-${e.kind}" data-action="record-detail" data-id="${esc(e.key)}"><span>${esc(e.time)}</span><strong>${esc(e.title)}</strong>${badge(e.status)}</button>`).join('')}</div><footer class="dialog-footer">${btn('Cerrar','close','','secondary')}${btn('Registrar OT','calendar-new',day,'primary')}</footer>`);$('#modal').classList.add('admin-dialog','calendar-day-dialog');
+}
+function calendarDocumentationNotice(){
+ const pending=state.overtime.filter(o=>o.user_id===me().id&&o.status==='DOCUMENTATION'&&o.execution!=='RUNNING');
+ return pending.length?`<div class="guard-rule-notice calendar-documentation-notice" role="status">${icon('info')}<span>Tienes ${pending.length} OT por documentar. Completa la actividad para enviarla a aprobación.</span>${btn('Documentar OT','ot-edit',pending[0].id,'secondary small')}</div>`:'';
+}
 function timePage(){
-  const own=state.overtime.filter(o=>o.user_id===me().id&&timelineMonth(o)).sort((a,b)=>new Date(timelineStart(a))-new Date(timelineStart(b))||a.id.localeCompare(b.id));
-  const timeline=own.map(o=>({kind:'ot',record:o,start:timelineStart(o),key:o.id})).concat(state.guards.filter(g=>g.user_id===me().id).flatMap(guardTimelineItems)).sort((a,b)=>new Date(a.start)-new Date(b.start)||a.key.localeCompare(b.key));
-  const guardCount=new Set(timeline.filter(t=>t.kind==='guard').map(t=>t.record.id)).size;
-  const shared=state.windows.filter(w=>w.group_id===me().group_id&&w.status==='APPROVED'&&new Date(w.scheduled_end)>new Date());
   return heading('HORAS EXTRA Y GUARDIAS','Mi tiempo','Programa y registra OT, solicita guardias y revisa tus horas aprobadas.',monthControl()+exportLink())+
+  monthlyCalendar()+
   timerPanel(state.timers.filter(t=>t.user_id===me().id),state.overtime.filter(o=>o.user_id===me().id&&o.execution==='PAUSED'),state.overtime.filter(o=>o.user_id===me().id&&o.status==='DOCUMENTATION'&&o.execution!=='RUNNING'))+
-  `<section class="time-actions">${btn('＋ Programar OT','ot-new','','primary')}${btn('⚡ Iniciar emergencia','timer-start','','secondary')}${!me().is_lead?btn('＋ Solicitar Guardia','guard-new','','secondary'):''}${state.guards.some(g=>g.user_id===me().id&&g.rule_changed)?`<div class="guard-rule-notice" role="status">${icon('info')}<span>Tu Manager actualizó una regla de Guardia. Tienes ${state.guards.filter(g=>g.user_id===me().id&&g.rule_changed).length} solicitudes que necesitan revisión.</span>${state.guards.filter(g=>g.user_id===me().id&&g.rule_changed).slice(0,1).map(g=>btn(fmtDate(g.start_date)+' · Revisar','guard-edit',g.id,'secondary small')).join('')}</div>`:''}</section><section class="kpis three">${kpi('Tiempo extra aprobado',`${hours(ledger.ot_minutes)} <em>h</em>`,'Tiempo real trabajado','↗')}${kpi('Guardia neta',`${hours(ledger.guard_minutes)} <em>h</em>`,'Guardia aprobada menos OT','◷')}${kpi('Total del mes',`${hours(ledger.ot_minutes+ledger.guard_minutes)} <em>h</em>`,'Mismo cálculo en Claim y ADP','▦')}</section>
-  ${shared.length?`<section class="panel"><div class="section-heading"><div><p class="eyebrow">CON TU GRUPO</p><h2>Actividades programadas del Grupo</h2></div></div><div class="record-list">${shared.map(w=>`<article class="record-card"><div><span class="small-label">${esc(w.reference)}</span><h3>${esc(w.description)}</h3><p>${range(w.scheduled_start,w.scheduled_end)}</p></div>${state.overtime.some(o=>o.window_id===w.id&&o.user_id===me().id)?'<span class="pill">Ya participas</span>':btn('Participar','window-join',w.id,'secondary')}</article>`).join('')}</div></section>`:''}
-  <section class="panel personal-timeline" data-view-label="Línea de tiempo"><div class="section-heading"><div><p class="eyebrow">OT Y GUARDIAS · TU ACTIVIDAD, EN ORDEN</p><h2>Línea de tiempo</h2></div><span class="pill">${own.length} OT · ${guardCount} ${guardCount===1?'Guardia':'Guardias'}</span></div><p class="timeline-context">OT y Guardias por fecha de actividad. Sólo lo aprobado suma; la Guardia neta descuenta la OT coincidente.</p><div class="record-list timeline-list">${timeline.map(t=>t.kind==='ot'?timelineEntry(t.record):guardTimelineEntry(t)).join('')||empty('Sin OT ni Guardias en este mes','Programa OT, registra trabajo histórico o solicita una Guardia.')}</div></section>`;
-
+  `<section class="time-actions">${btn('＋ Programar OT','ot-new','','primary')}${btn('⚡ Iniciar emergencia','timer-start','','secondary')}${!me().is_lead?btn('＋ Solicitar Guardia','guard-new','','secondary'):''}${state.guards.some(g=>g.user_id===me().id&&g.rule_changed)?`<div class="guard-rule-notice" role="status">${icon('info')}<span>Tu Manager actualizó una regla de Guardia. Tienes ${state.guards.filter(g=>g.user_id===me().id&&g.rule_changed).length} solicitudes que necesitan revisión.</span>${state.guards.filter(g=>g.user_id===me().id&&g.rule_changed).slice(0,1).map(g=>btn(fmtDate(g.start_date)+' · Revisar','guard-edit',g.id,'secondary small')).join('')}</div>`:''}${calendarDocumentationNotice()}</section><section class="kpis three">${kpi('Tiempo extra aprobado',`${hours(ledger.ot_minutes)} <em>h</em>`,'Tiempo real trabajado','↗')}${kpi('Guardia neta',`${hours(ledger.guard_minutes)} <em>h</em>`,'Guardia aprobada menos OT','◷')}${kpi('Total del mes',`${hours(ledger.ot_minutes+ledger.guard_minutes)} <em>h</em>`,'Mismo cálculo en Claim y ADP','▦')}</section>`;
 }
-function guardTimelineItems(g){
- const days=g.timeline_days||[],visible=days.some(day=>day.date.slice(0,7)===month);
- if(!visible&&(g.start_date.slice(0,7)>month||g.end_date.slice(0,7)<month))return [];
- const minutes=days.reduce((total,day)=>total+day.segments.reduce((sum,part)=>sum+(Date.parse(part.end_at)-Date.parse(part.start_at))/60000,0),0);
- const anchor=days.find(day=>day.date.slice(0,7)===month)?.start_at||(g.start_date.slice(0,7)===month?g.start_date:month+'-01')+'T12:00:00Z';
- return [{kind:'guard',record:g,minutes,start:anchor,key:g.id}];
-}
-function guardTimelineEntry(item){
- const g=item.record;
- return `<div class="timeline-entry timeline-guard" data-timeline-id="${esc(g.id)}" data-timeline-kind="guard" data-timeline-at="${esc(item.start)}"><div class="timeline-date"><time datetime="${esc(g.start_date)}">${fmtDate(g.start_date)}</time><strong>Guardia</strong><span>${g.start_date===g.end_date?'Por día':'Por periodo'}</span></div><article class="record-card guard-timeline-card"><div class="grow"><div class="record-title"><span class="small-label">UNA SOLICITUD · UNA AUTORIZACIÓN</span>${badge(g.status)}</div><h3>${esc(g.rule_snapshot.name)}</h3><p>${fmtDate(g.start_date)}${g.start_date!==g.end_date?' → '+fmtDate(g.end_date):''}</p><div class="guard-request-total"><strong>${hours(item.minutes)} <small>h</small></strong><span>Total de cobertura del periodo</span></div>${g.rule_snapshot.coverage_end_at?`<small>Cobertura cerrada: ${fmtDate(g.rule_snapshot.coverage_end_at)} · ${fmtTime(g.rule_snapshot.coverage_end_at)}</small>`:''}</div><div class="entity-actions">${g.rule_changed?'<span class="guard-change-hint">Regla actualizada · revisa tu Guardia</span>':''}${btn('Detalle','record-detail','guard:'+g.id,'secondary')}${g.status!=='CANCELLED'?btn(g.rule_changed?'Revisar cambio':'Editar','guard-edit',g.id,'secondary'):''}</div></article></div>`;
-}
-function timelineStart(o){return o.start_at||o.scheduled_start||o.created_at;}
-function timelineMonth(o){
-  const local=value=>new Date(value).toLocaleDateString('sv-SE',{timeZone:state?.timezone||'America/Mexico_City'}).slice(0,7);
-  return local(timelineStart(o))<=month&&local(o.end_at||o.scheduled_end||new Date(Date.now()+serverOffset).toISOString())>=month;
-}
-function timelineEntry(o){
-  const start=timelineStart(o),active=state.timers.some(t=>t.overtime_id===o.id),future=o.capture_type==='PLANNED'&&!o.start_at;
-  const label=active?'En curso':o.execution==='PAUSED'?'Pausada':future?'Planificada':o.capture_type==='HISTORICAL'?'Captura histórica':'Trabajo realizado';
-  return `<div class="timeline-entry ${active?'timeline-running':future?'timeline-planned':'timeline-worked'}" data-timeline-id="${esc(o.id)}" data-timeline-kind="ot" data-timeline-at="${esc(start)}"><div class="timeline-date"><time datetime="${esc(start)}">${fmtDate(start)}</time><strong>${fmtTime(start)}</strong><span>${label}</span>${o.capture_type==='HISTORICAL'?`<small>Capturada el ${fmtDate(o.created_at)}</small>`:''}</div>${otCard(o)}</div>`;
-}
-function otCard(o){
-  const current=Date.now()+serverOffset,active=state.timers.some(t=>t.overtime_id===o.id),paused=o.execution==='PAUSED';
-  const before=o.capture_type==='PLANNED'&&o.execution==='SCHEDULED'&&new Date(o.scheduled_start).getTime()>current;
-  return `<article class="record-card"><div class="grow"><div class="record-title"><span class="small-label">${o.capture_type==='EMERGENCY'?'EMERGENCIA':o.capture_type==='HISTORICAL'?'OT HISTÓRICA':'OT PROGRAMADA'}</span>${badge(active?'RUNNING':paused?'PAUSED':o.status)}</div><h3>${esc(o.reference||'Pendiente de documentación')}</h3><p>${esc(o.description||'Detén el Timer y documenta el trabajo realizado.')}</p><small>${o.start_at?`Real: ${range(o.start_at,o.end_at)}`:`Programado: ${range(o.scheduled_start,o.scheduled_end)}`}</small>${before?`<small id="ot-availability-${esc(o.id)}" class="ot-availability" data-available-at="${esc(o.scheduled_start)}">Timer disponible el ${fmtDate(o.scheduled_start)} a las ${fmtTime(o.scheduled_start)}${o.status!=='APPROVED'?' · requiere aprobación previa':''}.</small>`:''}${paused?`<p class="callout">Timer pausado · ${hours((o.worked_seconds||0)/60)} h trabajadas. La espera no suma tiempo.</p>`:''}${!before&&o.execution==='SCHEDULED'?`<small id="ot-availability-${esc(o.id)}" class="ot-availability">${new Date(o.scheduled_end).getTime()<=current?'La ventana terminó sin iniciar. Edita y reenvía para solicitar un nuevo horario.':o.status!=='APPROVED'?'El Timer requiere aprobación antes de iniciar dentro del horario programado.':'Timer habilitado dentro de la ventana autorizada.'}</small>`:''}${extensionHistory(o)}${o.revision?`<small>Revisión ${o.revision} · La última edición requiere aprobación.</small>`:''}</div><div class="entity-actions">${btn('Detalle','record-detail','ot:'+o.id,'link')}${!active&&!paused?btn(o.status==='DOCUMENTATION'?'Documentar':'Editar y reenviar','ot-edit',o.id,'secondary'):''}${timelineTimerControl(o)}</div></article>`;
-}
-
+function recordStart(o){return o.start_at||o.scheduled_start||o.created_at;}
 function teamTimePage(){
   const people=state.people.filter(p=>p.role==='USER'&&(state.scope.includes(p.group_id)||p.is_lead&&p.manager_id===me().id));
   return heading('DECISIONES PENDIENTES','Aprobaciones','Revisa OT, Guardias y extensiones pendientes de tu equipo.')+`<section class="panel filters"><div>${select('filter-group','Grupo',options(state.groups,filters.group,g=>g.name,'Todos los Grupos'))}${select('filter-person','Técnico',options(people.filter(p=>!filters.group||p.group_id===filters.group),filters.person,full,'Todos los Técnicos'))}${select('filter-kind','Solicitud',`<option value="">OT y Guardias</option><option value="OT" ${filters.kind==='OT'?'selected':''}>Tiempo extra</option><option value="GUARD" ${filters.kind==='GUARD'?'selected':''}>Guardia</option>`)}</div><p class="muted footnote approvals-note">Sólo solicitudes pendientes, de todos los periodos. Para consultar registros y comparar horas, abre Analítica.</p></section>`+extensionReview()+`<section class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Técnico / Grupo</th><th>Registro</th><th>Periodo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${teamRows()}</tbody></table></div>${!teamRecords().length?empty('No hay solicitudes pendientes con estos filtros','Los registros aprobados y rechazados se consultan en Analítica.'):''}</section>`;
@@ -729,10 +769,10 @@ async function guardRevisionModal(id){
  showModal('Revisar Guardia',form('guard-revision',`<input type="hidden" name="expected" value="${esc(review.expected)}"><input type="hidden" name="rule_token"><p class="callout">Revisa la regla y el periodo. Al confirmar, esta misma solicitud vuelve a aprobación; sus horas dejan de sumar al aprobado hasta que el Manager la autorice nuevamente.</p>${select('rule_id','Regla actual *',ruleOptions,'required')}<div class="form-grid">${field('start_date','Inicio *',g.start_date,'date','required')}${field('end_date','Fin *',g.end_date,'date','required')}</div><p id="guard-date-help" class="callout" role="status"></p><details class="guard-rule-preview"><summary>Ver intervalos de la regla seleccionada</summary><div id="guard-revision-intervals"></div></details>${field('reason','Motivo del ajuste *','','text','required maxlength="2000"')}<label class="checkbox"><input name="confirm" type="checkbox" required><span>Revisé el cambio y confirmo reenviar la Guardia a aprobación.</span></label>`,id,'Actualizar y reenviar'));
  $('#modal').classList.add('admin-dialog','guard-revision-dialog');$('#modal [data-form=guard-revision]').guardRules=review.rules;syncGuardDates();
 }
-function guardModal(){
+function guardModal(startDate='',endDate=''){
   if(!state.rules.length)return toast('Tu Manager debe crear una regla de Guardia primero.',true);
   showModal('Solicitar Guardia',form('guard',select('rule_id','Regla de Guardia *',options(state.rules,'',x=>`${x.name} · vigente para Guardias desde ${fmtDate(x.effective_from)}`),'required')+`<div class="form-grid">${field('start_date','Fecha de inicio *','','date','required')}${field('end_date','Fecha de fin *','','date','required')}</div><p id="guard-date-help" class="callout" role="status"></p><p class="callout">La solicitud es individual y requiere aprobación. La OT aprobada se descuenta de la Guardia al calcular el neto.</p>`,'','Enviar solicitud'));
-  syncGuardDates();
+  const f=$('#modal [data-form=guard]');if(startDate)f.elements.start_date.value=startDate;if(endDate)f.elements.end_date.value=endDate;syncGuardDates();
 }
 function syncGuardDates(){
   const f=$('[data-form=guard],[data-form=guard-revision]');if(!f)return;
@@ -816,10 +856,22 @@ function accessResult(kind,username){
   accessShell(title,subtitle,pending?'recoveries':'check',body,{success:true});
 }
 
+function ownerRecordActions(kind,r){
+ if(!isTech()||r.user_id!==me().id)return '';
+ if(kind==='guard')return !me().is_lead&&r.status!=='CANCELLED'?btn(r.rule_changed?'Revisar cambio':'Editar Guardia','guard-edit',r.id,'secondary'):'';
+ const active=state.timers.some(t=>t.overtime_id===r.id);
+ if(active||r.execution==='PAUSED')return btn('Ver Timer','own-timer-open',r.id,'primary');
+ return btn(r.status==='DOCUMENTATION'?'Documentar OT':'Editar y reenviar','ot-edit',r.id,'secondary')+recordTimerControl(r);
+}
+function recordAvailability(r){
+ if(r.capture_type!=='PLANNED'||r.execution!=='SCHEDULED'||r.user_id!==me().id)return '';
+ const future=Date.parse(r.scheduled_start)>Date.now()+serverOffset;
+ return `<p class="callout" id="ot-availability-${esc(r.id)}">${future?'Timer disponible el '+fmtDate(r.scheduled_start)+' a las '+fmtTime(r.scheduled_start)+'.':Date.parse(r.scheduled_end)<=Date.now()+serverOffset?'La ventana terminó sin iniciar. Edita y reenvía para solicitar otro horario.':'El Timer requiere aprobación y una ventana autorizada vigente.'}</p>`;
+}
 function detailModal(key){
   const [kind,id]=key.split(':'),r=(kind==='ot'?state.overtime:state.guards).find(r=>r.id===id);if(!r)return toast('El registro cambió o ya no está en tu alcance.',true);
   const logs=state.audit.filter(a=>a.entity_id===id),activeTimer=state.timers.find(t=>t.overtime_id===id),segments=(state.timer_segments||[]).filter(t=>t.overtime_id===id);
-  showModal('Detalle del registro',`<div class="form-body"><p class="form-instructions"><strong>Revisa antes de decidir</strong>Consulta el periodo, la documentación y la trazabilidad. Si tienes autoridad, puedes aprobar o explicar el rechazo al final.</p><div class="detail-hero">${identity(person(r.user_id))}${badge(r.execution==='RUNNING'?'RUNNING':r.execution==='PAUSED'?'PAUSED':r.status)}</div>${r.execution==='RUNNING'?`<div class="detail-live"><span class="live-dot"></span><span>Timer activo</span><strong data-elapsed="${esc(activeTimer?.start_at||r.start_at)}" data-base="${r.worked_seconds||0}" ${r.capture_type==='PLANNED'?`data-until="${esc(r.scheduled_end)}"`:''}>00:00:00</strong></div>`:''}<dl>${r.origin_info?`<dt>${r.origin_info.inferred?'Grupo al incorporar trazabilidad':'Grupo de origen'}</dt><dd>${esc(r.origin_info.group_code)} · ${esc(r.origin_info.group_name)} · ${esc(r.origin_info.account_name)}</dd>`:''}<dt>Registro</dt><dd>${esc(r.reference||r.rule_snapshot?.name||'Por documentar')}</dd><dt>Periodo</dt><dd>${kind==='ot'?range(r.start_at||r.scheduled_start,r.end_at||r.scheduled_end):`${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`}</dd>${kind!=='ot'&&r.rule_snapshot?.coverage_end_at?`<dt>Cierre administrativo</dt><dd>${fmtDate(r.rule_snapshot.coverage_end_at)} · ${fmtTime(r.rule_snapshot.coverage_end_at)}</dd>`:''}${kind==='ot'?`<dt>Descripción</dt><dd>${esc(r.description||'—')}</dd><dt>Justificación</dt><dd>${esc(r.justification||'—')}</dd><dt>Impacto</dt><dd>${esc(r.impact||'—')}</dd><dt>Tiempo compensatorio</dt><dd>${esc(r.in_lieu||'—')}</dd><dt>Revisiones</dt><dd>${r.revision}</dd>`:''}</dl>${kind==='ot'&&segments.length?`<section class="worked-segments"><h3>Tramos trabajados</h3><p class="muted">La espera entre tramos no suma OT. Tiempo cerrado: ${hours((r.worked_seconds||0)/60)} h.</p><div class="timer-segment-list">${segments.map(t=>`<p>${range(t.start_at,t.end_at)}${!t.end_at?' · En curso':''}</p>`).join('')}</div></section>`:''}<h3>Trazabilidad</h3><div class="audit-list">${logs.map(a=>{let d={};try{d=JSON.parse(a.detail)}catch{}return `<div><span></span><p><strong>${esc(auditLabel(a.action))}</strong><small>${fmtDate(a.created_at)} · ${fmtTime(a.created_at)} · ${esc(a.actor_id?full(person(a.actor_id)):'Sistema')}</small>${d.decision?`<small>${esc(statuses[d.decision]||d.decision)}</small>`:''}${d.to?`<small>Nuevo fin: ${fmtDate(d.to)} · ${fmtTime(d.to)}</small>`:''}${d.reason?`<small>${esc(d.reason)}</small>`:''}</p></div>`;}).join('')||'<p class="muted">Sin eventos disponibles.</p>'}</div></div><footer class="dialog-footer">${btn('Cerrar','close','','secondary')}${page!=='analytics'&&state.can_approve&&r.user_id!==me().id&&r.status==='SUBMITTED'&&r.execution!=='RUNNING'?btn('Rechazar','reject',key,'text-danger')+btn('Aprobar','approve',key,'primary'):''}</footer>`);tick();
+  showModal('Detalle del registro',`<div class="form-body"><p class="form-instructions"><strong>Revisa antes de decidir</strong>Consulta el periodo, la documentación y la trazabilidad. Si tienes autoridad, puedes aprobar o explicar el rechazo al final.</p><div class="detail-hero">${identity(person(r.user_id))}${badge(r.execution==='RUNNING'?'RUNNING':r.execution==='PAUSED'?'PAUSED':r.status)}</div>${r.execution==='RUNNING'?`<div class="detail-live"><span class="live-dot"></span><span>Timer activo</span><strong data-elapsed="${esc(activeTimer?.start_at||r.start_at)}" data-base="${r.worked_seconds||0}" ${r.capture_type==='PLANNED'?`data-until="${esc(r.scheduled_end)}"`:''}>00:00:00</strong></div>`:''}<dl>${r.origin_info?`<dt>${r.origin_info.inferred?'Grupo al incorporar trazabilidad':'Grupo de origen'}</dt><dd>${esc(r.origin_info.group_code)} · ${esc(r.origin_info.group_name)} · ${esc(r.origin_info.account_name)}</dd>`:''}${kind==='guard'&&r.timeline_days?`<dt>Cobertura total del periodo</dt><dd class="guard-detail-total">${hours(r.timeline_days.reduce((sum,day)=>sum+day.segments.reduce((n,p)=>n+(Date.parse(p.end_at)-Date.parse(p.start_at))/60000,0),0))} h</dd>`:''}<dt>Registro</dt><dd>${esc(r.reference||r.rule_snapshot?.name||'Por documentar')}</dd><dt>Periodo</dt><dd>${kind==='ot'?range(r.start_at||r.scheduled_start,r.end_at||r.scheduled_end):`${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`}</dd>${kind!=='ot'&&r.rule_snapshot?.coverage_end_at?`<dt>Cierre administrativo</dt><dd>${fmtDate(r.rule_snapshot.coverage_end_at)} · ${fmtTime(r.rule_snapshot.coverage_end_at)}</dd>`:''}${kind==='ot'?`<dt>Descripción</dt><dd>${esc(r.description||'—')}</dd><dt>Justificación</dt><dd>${esc(r.justification||'—')}</dd><dt>Impacto</dt><dd>${esc(r.impact||'—')}</dd><dt>Tiempo compensatorio</dt><dd>${esc(r.in_lieu||'—')}</dd><dt>Revisiones</dt><dd>${r.revision}</dd>`:''}</dl>${kind==='ot'&&segments.length?`<section class="worked-segments"><h3>Tramos trabajados</h3><p class="muted">La espera entre tramos no suma OT. Tiempo cerrado: ${hours((r.worked_seconds||0)/60)} h.</p><div class="timer-segment-list">${segments.map(t=>`<p>${range(t.start_at,t.end_at)}${!t.end_at?' · En curso':''}</p>`).join('')}</div></section>`:''}${kind==='ot'?recordAvailability(r):''}<h3>Trazabilidad</h3><div class="audit-list">${logs.map(a=>{let d={};try{d=JSON.parse(a.detail)}catch{}return `<div><span></span><p><strong>${esc(auditLabel(a.action))}</strong><small>${fmtDate(a.created_at)} · ${fmtTime(a.created_at)} · ${esc(a.actor_id?full(person(a.actor_id)):'Sistema')}</small>${d.decision?`<small>${esc(statuses[d.decision]||d.decision)}</small>`:''}${d.to?`<small>Nuevo fin: ${fmtDate(d.to)} · ${fmtTime(d.to)}</small>`:''}${d.reason?`<small>${esc(d.reason)}</small>`:''}</p></div>`;}).join('')||'<p class="muted">Sin eventos disponibles.</p>'}</div></div><footer class="dialog-footer">${btn('Cerrar','close','','secondary')}${ownerRecordActions(kind,r)}${page!=='analytics'&&state.can_approve&&r.user_id!==me().id&&r.status==='SUBMITTED'&&r.execution!=='RUNNING'?btn('Rechazar','reject',key,'text-danger')+btn('Aprobar','approve',key,'primary'):''}</footer>`);tick();
 }
 function auditLabel(action){return {PAUSE_PLANNED_WINDOW:'Timer pausado al terminar la ventana',REQUEST_OT_EXTENSION:'Extensión solicitada',DECIDE_OT_EXTENSION:'Extensión revisada',CANCEL_OT_EXTENSION:'Extensión cancelada',FINISH_PAUSED_OT:'Tiempo trabajado enviado a revisión',CREATE_OT:'Registro de OT',EDIT_OT_REOPEN_APPROVAL:'Edición y reenvío a aprobación',REQUEST_GUARD:'Solicitud de Guardia',REVISE_GUARD:'Guardia actualizada y reenviada a aprobación',APPROVED:'Aprobado',REJECTED:'Rechazado',START_TIMER:'Timer iniciado',STOP_TIMER:'Timer detenido',JOIN_SHARED_OT:'Participación en actividad programada',ADMIN_STOP_TIMER_ON_OFFBOARD:'Timer cerrado por baja administrativa',ADMIN_DOCUMENT_ON_OFFBOARD:'Documentación completada durante la baja',CANCEL_SCHEDULE_ON_OFFBOARD:'OT sin ejecutar cancelada por baja',CLOSE_GUARD_ON_OFFBOARD:'Cobertura cerrada por baja',TRANSFER_PERSON:'Técnico transferido',TRANSFER_GROUP:'Grupo transferido',OFFBOARD_PERSON:'Baja de acceso',REACTIVATE_PERSON:'Reactivación solicitada'}[action]||action;}
 
@@ -904,6 +956,11 @@ async function perform(action,id,button){
     case 'recovery-complete':publicModal('complete');return;
     case 'recovery-view':{const result=await api(`/api/recoveries/${id}/view`,'POST',{});recoveryCodeModal(result,'Código vigente');return;}
     case 'recovery-issue':{const previous=state.recoveries.find(r=>r.id===id),regenerated=previous?.status==='ISSUED';const result=await api(`/api/recoveries/${id}/issue`,'POST',{});await refresh();recoveryCodeModal(result,regenerated?'Código regenerado':'Código generado',regenerated);return;}
+    case 'open-calendar':await navigate('time');PulseLayout.reveal($('.monthly-calendar'));return;
+    case 'calendar-range':calendarRangeMode=!calendarRangeMode;resetCalendarRange();button?.setAttribute('aria-pressed',String(calendarRangeMode));return;
+    case 'calendar-new':if(calendarRangeMode)calendarPickRange(id);else calendarNewRecord(id);return;
+    case 'calendar-day':calendarDayModal(id);return;
+    case 'calendar-today':month=calendarDate(new Date(Date.now()+serverOffset)).slice(0,7);await loadLedger();render();$('.monthly-calendar')?.scrollIntoView({block:'nearest'});PulseLayout.reveal($('.monthly-calendar'));return;
     case 'ot-new':otModal();return;
     case 'ot-edit':otModal(id);return;
     case 'guard-new':guardModal();return;
@@ -920,14 +977,14 @@ async function perform(action,id,button){
     case 'dashboard-drill':{await navigate(id==='pending'?'teamTime':'analytics');filters.kind=id==='ot'?'OT':id==='guard'?'GUARD':id==='running'?'OT':'';filters.status=id==='pending'?'SUBMITTED':id==='running'?'RUNNING':'APPROVED';filters.period=['pending','running'].includes(id)?'ALL':'MONTH';await loadLedger();render();PulseLayout.reveal(id==='pending'?($('.extension-review')||$('.table-panel')):$('#analytics-records'));return;}
     case 'timer-open':{const record=state.overtime.find(o=>o.id===id);if(!record)return;await navigate('analytics');filters.person=record.user_id;filters.status='RUNNING';filters.period='ALL';await loadLedger();render();detailModal('ot:'+id);return;}
     case 'delegation-revoke':await api('/api/delegations/'+id,'DELETE');delegationDraftLead='';break;
-    case 'timer-start':await api('/api/timers/start','POST',{});break;
+    case 'timer-start':{const result=await api('/api/timers/start','POST',{});month=calendarDate(new Date(Date.now()+serverOffset)).slice(0,7);$('#modal').close();await refresh();const timer=state.timers.find(t=>t.id===result.id);if(timer)ownTimerModal(timer.overtime_id);toast('Timer de emergencia iniciado.');return;}
     case 'extension-new':extensionModal(id);return;
     case 'extension-cancel':await api('/api/extensions/'+id,'DELETE');break;
     case 'extension-approve':await api('/api/extensions/'+id+'/decision','POST',{decision:'APPROVED'});break;
     case 'extension-reject':showModal('Rechazar extensión',form('extension-reject',`<label class="field"><span>Motivo del rechazo *</span><textarea name="reason" rows="3" required></textarea></label>`,id,'Rechazar extensión'));$('#modal').classList.add('compact-dialog');return;
     case 'paused-finish':await api('/api/overtime/'+id+'/finish','POST',{});break;
     case 'own-timer-open':ownTimerModal(id);return;
-    case 'timer-planned':await api('/api/timers/start','POST',{overtime_id:id});break;
+    case 'timer-planned':await api('/api/timers/start','POST',{overtime_id:id});$('#modal').close();await refresh();ownTimerModal(id);toast('Timer iniciado.');return;
     case 'timer-stop':{const oid=state.timers.find(t=>t.id===id)?.overtime_id;await api(`/api/timers/${id}/stop`,'POST',{});$('#modal').close();await refresh();const o=state.overtime.find(o=>o.id===oid);if(o?.status==='DOCUMENTATION'){otModal(oid);toast('Timer detenido. Documenta la OT para enviarla a aprobación.');}else toast('Timer detenido. La OT se envió a revisión.');return;}
     case 'approve':{const [kind,identity]=id.split(':');await api(`/api/approvals/${kind}/${identity}`,'POST',{decision:'APPROVED'});$('#modal').close();break;}
     case 'reject':showModal('Rechazar registro',form('reject',`<label class="field"><span>Motivo del rechazo *</span><textarea name="reason" rows="4" required></textarea></label>`,id,'Rechazar registro'));return;
@@ -962,15 +1019,15 @@ async function submitForm(f){
     case 'transfer':await api(`/api/admin/people/${id}/transfer`,'POST',data);break;
     case 'group-transfer':{const source=group(id);await api('/api/groups/'+id,'PUT',{...source,...data});break;}
     case 'reactivate':response=await api(`/api/admin/people/${id}/reactivate`,'POST',data);await refresh();credentials(response.activation_code,response.username);return;
-    case 'guard-revision':data.confirm=fd.has('confirm');await api('/api/guards/'+id,'PUT',data);break;
+    case 'guard-revision':data.confirm=fd.has('confirm');await api('/api/guards/'+id,'PUT',data);month=data.start_date.slice(0,7);break;
     case 'group-removal':data.confirm=fd.has('confirm');await api('/api/groups/'+id,'DELETE',data);break;
     case 'offboard':{data.confirm=fd.has('confirm');data.stop_timers=fd.has('stop_timers');data.transfers=Object.fromEntries([...fd].filter(([k])=>k.startsWith('transfer:')).map(([k,v])=>[k.slice(9),v]));data.documents=$$('[data-offboard-document]',f).map(section=>({id:section.dataset.offboardDocument,...Object.fromEntries($$('input,textarea',section).map(input=>[input.dataset.key,input.value]))}));await api(`/api/admin/people/${id}/offboard`,'POST',data);break;}
     case 'profile':await api('/api/profile','PUT',data);break;
     case 'password':await api('/api/password','PUT',data);state=null;render();toast('Contraseña actualizada. Vuelve a iniciar sesión.');return;
     case 'extension':await api('/api/overtime/'+id+'/extensions','POST',data);break;
     case 'extension-reject':await api('/api/extensions/'+id+'/decision','POST',{decision:'REJECTED',reason:data.reason});break;
-    case 'ot':await api('/api/overtime'+(id?'/'+id:''),id?'PUT':'POST',data);break;
-    case 'guard':await api('/api/guards','POST',data);break;
+    case 'ot':await api('/api/overtime'+(id?'/'+id:''),id?'PUT':'POST',data);if(data.scheduled_start)month=data.scheduled_start.slice(0,7);break;
+    case 'guard':await api('/api/guards','POST',data);month=data.start_date.slice(0,7);break;
     case 'rule':data.segments=$$('[data-rule-day]',f).flatMap(section=>{if(!$('[name=days]',section).checked)return [];const day=Number(section.dataset.ruleDay);return $('[data-full-day]',section).checked?[{day,start:'00:00',end:'00:00'}]:$$('[data-rule-segment]',section).map(row=>({day,start:$('[data-start]',row).value,end:$('[data-end]',row).value}));});await api('/api/rules'+(id?'/'+id:''),id?'PUT':'POST',data);break;
     case 'delegation':data.replace_current=true;await api('/api/delegations','POST',data);delegationDraftLead='';break;
     case 'reject':{const [recordType,identity]=id.split(':');await api(`/api/approvals/${recordType}/${identity}`,'POST',{decision:'REJECTED',reason:data.reason});break;}
@@ -1077,7 +1134,7 @@ setInterval(tick,1000);
 setInterval(()=>{if(state&&!busy&&!draggedTechnician&&!teamBoardDrag&&!document.hidden&&!$('#modal').open&&!$('#delegation-editor')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))refresh(true);},5000);
 
 function aboutProject(){
-  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.0.3 · OT y guardias</span></div>${kyndrylBrand()}</div><p>Control de horas extra (OT) y guardias, con timers, aprobaciones, historial y reportes en un solo lugar.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
+  showModal('Acerca de Operational Pulse',`<div class="about-project"><div class="about-brand"><img src="/static/favicon.svg" width="50" height="50" alt=""><div><strong>Operational Pulse</strong><span>Versión 1.0.4 · OT y guardias</span></div>${kyndrylBrand()}</div><p>Control de horas extra (OT) y guardias, con timers, aprobaciones, historial y reportes en un solo lugar.</p><div class="about-divider"></div><p class="eyebrow">AUTORES DEL PROYECTO</p><div class="author-list">${projectAuthors.map(name=>`<article><span class="author-avatar">${esc(name.split(' ').slice(0,2).map(n=>n[0]).join(''))}</span><div><strong>${esc(name)}</strong><small>Autor del proyecto</small></div></article>`).join('')}</div><div class="about-bottom"><span class="live-dot"></span>Una operación más clara, desde el primer día.</div></div><footer class="dialog-footer">${btn('Cerrar','close','','primary')}</footer>`);
 }
 
 // Only real interaction renews the idle session; polling and Timer ticks do not.
@@ -1099,3 +1156,28 @@ for(const type of ['pointerdown','pointermove','keydown','input','wheel','touchs
 },{passive:true});
 setInterval(()=>{if(!state){lastInteraction=Date.now();return;}if(Date.now()-lastInteraction>=300000)void closeIdleSession();},1000);
 document.addEventListener('visibilitychange',()=>{if(state&&Date.now()-lastInteraction>=300000)void closeIdleSession();});
+
+// Pointer range selection never intercepts existing records or their Details buttons.
+document.addEventListener('pointerdown',event=>{
+ const day=event.target.closest('[data-calendar-date]');
+ if(!day||event.button!==0||event.pointerType!=='mouse'||busy||$('#modal').open||event.target.closest('.calendar-event,.calendar-more'))return;
+ calendarDrag={start:day.dataset.calendarDate,end:day.dataset.calendarDate,x:event.clientX,y:event.clientY,moved:false,pointer:event.pointerId};
+});
+document.addEventListener('pointermove',event=>{
+ if(!calendarDrag||event.pointerId!==calendarDrag.pointer)return;
+ const day=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-calendar-date]');
+ if(!day)return;
+ if(Math.hypot(event.clientX-calendarDrag.x,event.clientY-calendarDrag.y)>5)calendarDrag.moved=true;
+ if(calendarDrag.moved){calendarDrag.end=day.dataset.calendarDate;paintCalendarRange(calendarDrag.start,calendarDrag.end);}
+});
+document.addEventListener('pointerup',event=>{
+ if(!calendarDrag||event.pointerId!==calendarDrag.pointer)return;
+ const selection=calendarDrag;calendarDrag=null;
+ if(selection.moved&&selection.start!==selection.end&&document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-calendar-date]')){calendarSuppressClickUntil=Date.now()+350;calendarGuardRange(selection.start,selection.end);}
+ else if(!calendarRangeMode)resetCalendarRange();
+});
+document.addEventListener('pointercancel',()=>{calendarDrag=null;resetCalendarRange();});
+document.addEventListener('click',event=>{
+ if(Date.now()<calendarSuppressClickUntil){const inside=event.target.closest('.monthly-calendar');calendarSuppressClickUntil=0;if(inside){event.preventDefault();event.stopImmediatePropagation();}}
+},true);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){calendarDrag=null;calendarRangeMode=false;resetCalendarRange();$('[data-action=calendar-range]')?.setAttribute('aria-pressed','false');}});

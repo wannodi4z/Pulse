@@ -64,7 +64,7 @@ window.PulseLayout=(()=>{
     bar.innerHTML=`<label>${key==='organization'?'Cuenta':'Contenido'} <select aria-label="Vista de la página">${items.map((n,i)=>`<option value="${i}">${esc(name(n,i))}</option>`).join('')}</select></label><span class="viewport-location" aria-live="polite"></span><div><button type="button" data-section-prev aria-label="Vista anterior">←</button><button type="button" data-section-next aria-label="Vista siguiente">→</button></div>`;
     main.insertBefore(bar,stage);let index=Math.min(memory.get('section:'+key)||0,items.length-1);
     function show(next){
-      index=Math.max(0,Math.min(items.length-1,next));memory.set('section:'+key,index);
+      index=Math.max(0,Math.min(items.length-1,next));main.classList.toggle('calendar-focus',key==='time'&&items[index].matches('.monthly-calendar'));memory.set('section:'+key,index);
       items.forEach((n,i)=>n.classList.toggle('viewport-off',i!==index));q('select',bar).value=String(index);q('.viewport-location',bar).textContent=`${index+1} / ${items.length}`;
       q('[data-section-prev]',bar).disabled=index===0;q('[data-section-next]',bar).disabled=index===items.length-1;
       fitCollection(items[index],stage.clientHeight,key+':'+index);useAvailableSpace(items[index],stage.clientHeight,key+':'+index);

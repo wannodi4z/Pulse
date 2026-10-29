@@ -27,35 +27,33 @@ try:
         page.goto(base);page.locator('.sidebar [data-page=time]').click();page.wait_for_function('()=>!busy')
         def set_month(value):
             page.locator('#month').fill(value);page.locator('#month').dispatch_event('change');page.locator('h1').click();page.wait_for_function('()=>!busy')
-            page.locator('.personal-timeline').evaluate('(el)=>PulseLayout.reveal(el)')
+            page.locator('.monthly-calendar').evaluate('(el)=>PulseLayout.reveal(el)')
         set_month('2026-01')
-        expect(page.locator('[data-timeline-kind=guard]')).to_have_count(1)
-        expect(page.locator('.guard-request-total')).to_contain_text('14 h')
+        expect(page.locator('.calendar-event.calendar-guard')).to_have_count(7)
         assert len([g for g in mc.get('/api/state').json()['guards'] if g['status']=='SUBMITTED'])==1
         assert uc.get('/api/accounting?month=2026-01').json()['guard_minutes']==0
         assert mc.put('/api/rules/'+rule,json={'name':'Guardia actualizada','effective_from':'2026-01-01','segments':[{'day':day,'start':'02:00','end':'05:00'} for day in range(7)]}).status_code==200
         page.evaluate('()=>refresh()')
         expect(page.locator('.guard-rule-notice')).to_be_visible()
-        page.locator('.personal-timeline').evaluate('(el)=>PulseLayout.reveal(el)')
-        expect(page.locator('[data-timeline-id="'+guard+'"]')).to_contain_text('Regla actualizada')
+        page.locator('.monthly-calendar').evaluate('(el)=>PulseLayout.reveal(el)')
+        expect(page.locator('.calendar-event.calendar-guard').first).to_contain_text('Guardia semanal')
         for width,height in [(1440,780),(1280,650),(390,844)]:
             page.set_viewport_size({'width':width,'height':height})
-            card=page.locator('[data-timeline-id="'+guard+'"] article')
+            card=page.locator('.monthly-calendar')
             box=card.bounding_box();assert box['x']>=0 and box['x']+box['width']<=width+1
-            if width>600:assert box['height']<185,box
         page.set_viewport_size({'width':1440,'height':780})
         page.screenshot(path='/tmp/pulse-compact-rule-notice.png')
-        page.locator('[data-timeline-id="'+guard+'"] [data-action=guard-edit]').click()
+        page.locator('.guard-rule-notice [data-action=guard-edit]').click()
         expect(page.locator('#dialog-title')).to_have_text('Revisar Guardia')
         page.locator('#modal [name=reason]').fill('Actualizar la regla de mi Guardia')
         page.locator('#modal [name=confirm]').check()
         page.locator('#modal [type=submit]').click();page.wait_for_function('()=>!busy')
         expect(page.locator('#modal')).not_to_be_visible()
         expect(page.locator('.guard-rule-notice')).to_have_count(0)
-        page.locator('.personal-timeline').evaluate('(el)=>PulseLayout.reveal(el)')
-        expect(page.locator('.guard-request-total')).to_contain_text('21 h')
-        expect(page.locator('[data-timeline-kind=guard]')).to_have_count(1)
-        page.locator('[data-timeline-kind=guard] [data-action=record-detail]').click()
+        page.locator('.monthly-calendar').evaluate('(el)=>PulseLayout.reveal(el)')
+        expect(page.locator('.calendar-event.calendar-guard')).to_have_count(7)
+        page.locator('.calendar-event.calendar-guard').first.click()
+        expect(page.locator('.guard-detail-total')).to_contain_text('21 h')
         expect(page.locator('#modal')).to_contain_text('Guardia actualizada')
         assert not errors,errors
         print('PASS: compact responsive cards, Details retained, live rule-change notice, review and reapproval of same Guard, updated coverage and cleared notice; no JS errors')

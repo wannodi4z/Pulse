@@ -27,10 +27,10 @@ try:
         page.goto(base);page.locator('.sidebar [data-page=time]').click();page.wait_for_function('()=>!busy')
         def set_month(value):
             page.locator('#month').fill(value);page.locator('#month').dispatch_event('change');page.locator('h1').click();page.wait_for_function('()=>!busy')
-            page.locator('.personal-timeline').evaluate('(el)=>PulseLayout.reveal(el)')
+            page.locator('.monthly-calendar').evaluate('(el)=>PulseLayout.reveal(el)')
         set_month('2026-01')
-        expect(page.locator('[data-timeline-kind=guard]')).to_have_count(1)
-        expect(page.locator('.guard-request-total')).to_contain_text('14 h')
+        expect(page.locator('.calendar-event.calendar-guard')).to_have_count(7)
+        page.locator('.calendar-event.calendar-guard').first.click();expect(page.locator('.guard-detail-total')).to_contain_text('14 h');page.locator('#modal [data-action=close]').first.click()
         assert len([g for g in mc.get('/api/state').json()['guards'] if g['status']=='SUBMITTED'])==1
         assert uc.get('/api/accounting?month=2026-01').json()['guard_minutes']==0
         started=uc.post('/api/timers/start',json={});assert started.status_code==200

@@ -1,6 +1,14 @@
-# Operational Pulse 1.0.3 · especificación de la implementación nueva
+# Operational Pulse 1.0.4 · especificación de la implementación nueva
 
-## Presentación vigente · v1.0.3
+## Calendario vigente · v1.0.4
+
+El calendario mensual sustituye la línea de tiempo y es la vista principal de Mi tiempo. Reutiliza los registros propios y el mes de consulta existentes, sin nueva fuente de datos. Los días de Guardias salen de timeline_days; las OT se expanden por fechas locales operativas y excluyen el día de fin si acaba exactamente a medianoche. Los eventos conservan Detalle y estado accesible; el exceso se abre en una agenda del día.
+
+Un clic precarga una OT y reutiliza la clasificación y validación del formulario/API. Arrastrar fechas o seleccionar dos extremos mediante el botón Seleccionar periodo precarga una Guardia; no crea registros hasta confirmar. Se valida el límite de 32 días. El Panel personal ofrece las próximas OT por fecha, con Timer deshabilitado antes de inicio, sin aprobación o con otro Timer activo; el backend sigue validando. Las funciones de Manager/Admin conservan su alcance.
+
+Validación de v1.0.4: 83 pruebas API; calendar_browser.py comprueba privacidad, medianoche, agenda del día, creación histórica/programada, arrastre de rangos y selección por extremos, Guardias persistidas, Panel con Timer condicionado por fecha/aprobación, pausa, extensión y reanudación desde Detalle. guard_request_timer_browser.py y guard_rule_revision_browser.py verifican documentación persistente y avisos de regla desde el calendario. Chromium a 1440×780, 1280×650 y 390×844. Sin prueba en Mac/Safari físico.
+
+## Presentación anterior · v1.0.3
 
 La cronología personal concatena OT del mes y una tarjeta por solicitud de Guardia propia, ordenadas por fecha/hora efectiva. Cada tarjeta de Guardia resume el periodo completo y sus horas de cobertura; el desglose diario sólo se usa para cálculos. Una solicitud de un día o una semana genera una sola autorización. /api/state agrega timeline_days sólo a Guardias del usuario propietario con rol USER. guard_timeline_days es una proyección de sólo lectura: usa rule_snapshot, TZ operativa, unión de intervalos de una misma solicitud, división por medianoche y recorte coverage_end_at. No consulta la regla actual ni modifica registros. Las solicitudes sin intervalos conservan representación de solicitud. La lista identifica OT y Guardia, no duplica la antigua sección de Guardias y mantiene el total neto calculado por accounting.
 
