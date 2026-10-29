@@ -37,10 +37,10 @@ try:
             page.locator('.personal-timeline').evaluate('(el)=>PulseLayout.reveal(el)')
         set_month('2026-01')
         expect(page.locator('[data-timeline-kind=guard]')).to_have_count(2);expect(page.locator('[data-timeline-kind=ot]')).to_have_count(2)
-        first=page.locator('[data-timeline-id="'+pending_guard+'"]');expect(first).to_contain_text('02:00 — 04:00');expect(first).to_contain_text('20:00 — 00:00 (+1 día)');expect(first.locator('.record-title .badge')).to_contain_text('Pendiente')
+        first=page.locator('[data-timeline-id="'+pending_guard+'"]');expect(first.locator('.guard-request-total')).to_contain_text('6 h');expect(first.locator('.guard-coverage')).to_have_count(0);expect(first.locator('.record-title .badge')).to_contain_text('Pendiente')
         assert page.locator('[data-timeline-at]').evaluate_all('(els)=>els.every((el,i)=>!i||Date.parse(el.dataset.timelineAt)>=Date.parse(els[i-1].dataset.timelineAt))')
         first.locator('[data-action=record-detail]').click();expect(page.locator('#modal')).to_contain_text('Cobertura de prueba');page.locator('#modal [data-action=close]').first.click()
-        set_month('2026-02');expect(page.locator('[data-timeline-kind=ot]')).to_have_count(0);expect(page.locator('[data-timeline-kind=guard]')).to_have_count(1);expect(page.locator('.personal-timeline')).not_to_contain_text('Sin OT');expect(page.locator('.guard-coverage')).to_contain_text('00:00 — 02:00')
+        set_month('2026-02');expect(page.locator('[data-timeline-kind=ot]')).to_have_count(0);expect(page.locator('[data-timeline-kind=guard]')).to_have_count(1);expect(page.locator('.personal-timeline')).not_to_contain_text('Sin OT');expect(page.locator('.guard-request-total')).to_contain_text('4 h')
         assert context.request.get(base+'/api/accounting?month=2026-02').json()['guard_minutes']==120
         for width,height in [(1440,780),(1280,650),(390,844)]:
             page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(150);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight')

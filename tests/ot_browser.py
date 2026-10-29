@@ -25,7 +25,7 @@ try:
     for emp,password,role,lead in [('MGR0001','manager12026','MANAGER',False),('SL0001','lead120261','USER',True),('951357','tecnico12026','USER',False)]:
         user=fixture.login(fixture.client,emp,password)
         assert user['role']==role and bool(user['is_lead'])==lead and user['status']=='ACTIVE'
-    fixture.login(fixture.client,'admin1','admin12026')
+    fixture.login(fixture.client,'MGR0001','manager12026')
     group=next(u['group_id'] for u in before.values() if u['employee_id']=='951357')
     pending=fixture.post('/api/people',{'role':'USER','employee_id':'PENDING','first':'Usuario','last':'Pendiente','email':'pending@example.test','group_id':group})['id']
     with socket.socket() as s:s.bind(('127.0.0.1',0));port=s.getsockname()[1]
@@ -38,7 +38,7 @@ try:
         browser=p.chromium.launch(executable_path=os.environ.get('PULSE_CHROMIUM_EXECUTABLE','/usr/bin/chromium'),args=['--no-sandbox'])
         context=browser.new_context(timezone_id='America/Los_Angeles');page=context.new_page();errors=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
-        assert context.request.post(base+'/api/login',data={'identity':'admin1','password':'admin12026'}).ok
+        assert context.request.post(base+'/api/login',data={'identity':'MGR0001','password':'manager12026'}).ok
         def geometry():
             assert page.locator('#modal').evaluate('''el=>{const b=el.getBoundingClientRect();return el.scrollHeight<=el.clientHeight+1&&b.width<=540&&b.left>=0&&b.right<=innerWidth&&b.top>=0&&b.bottom<=innerHeight&&[...el.querySelectorAll('input,select,button')].filter(n=>n.getClientRects().length).every(n=>{const r=n.getBoundingClientRect();return r.left>=b.left&&r.right<=b.right+1&&r.bottom<=b.bottom+1})}''')
         for width,height in [(1440,780),(1280,650),(390,844)]:

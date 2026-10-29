@@ -2,7 +2,7 @@
 
 ## Presentación vigente · v1.0.3
 
-La cronología personal concatena OT del mes y días de cobertura de Guardias propias y ordena por fecha/hora efectiva. /api/state agrega timeline_days sólo a Guardias del usuario propietario con rol USER. guard_timeline_days es una proyección de sólo lectura: usa rule_snapshot, TZ operativa, unión de intervalos de una misma solicitud, división por medianoche y recorte coverage_end_at. No consulta la regla actual ni modifica registros. Las solicitudes sin intervalos conservan representación de solicitud. La lista identifica OT y Guardia, no duplica la antigua sección de Guardias y mantiene el total neto calculado por accounting.
+La cronología personal concatena OT del mes y una tarjeta por solicitud de Guardia propia, ordenadas por fecha/hora efectiva. Cada tarjeta de Guardia resume el periodo completo y sus horas de cobertura; el desglose diario sólo se usa para cálculos. Una solicitud de un día o una semana genera una sola autorización. /api/state agrega timeline_days sólo a Guardias del usuario propietario con rol USER. guard_timeline_days es una proyección de sólo lectura: usa rule_snapshot, TZ operativa, unión de intervalos de una misma solicitud, división por medianoche y recorte coverage_end_at. No consulta la regla actual ni modifica registros. Las solicitudes sin intervalos conservan representación de solicitud. La lista identifica OT y Guardia, no duplica la antigua sección de Guardias y mantiene el total neto calculado por accounting.
 
 La tarjeta OT conserva Detalle, muestra estado junto al encabezado y pone disponibilidad y acciones en áreas separadas. El botón Timer usa disabled real mientras falta aprobación, no llega el inicio o terminó la ventana. El reloj de frontend reevalúa la disponibilidad; el backend sigue validando el inicio. Las OT pausadas fuera del mes siguen accesibles en Control del Timer, sin insertarse artificialmente en la cronología de otro mes.
 
@@ -11,6 +11,8 @@ Solicitar extensión sólo aparece en el control del Timer propio activo/pausado
 analyticsDailyChart sustituye las barras verticales con escala implícita por filas con fecha completa, total numérico, meter proporcional y desglose por tipo. Sólo dibuja días con total aprobado positivo devueltos por el mismo reporte filtrado, sin reagrupar fechas de meses diferentes por número de día. Los cálculos del reporte y la comparativa mensual permanecen. La presentación no confunde cobertura de Guardia con Guardia neta ni suma pendientes.
 
 Pruebas: suite completa de 75 API en 55.874 s; tests/test_guard_timeline.py (intervalos, medianoche/mes, snapshot, cierre, 24 h, privacidad), tests/test_extensions.py, tests/timeline_browser.py y tests/unified_timeline_browser.py. El recorrido nuevo comprueba también habilitación real por reloj tras aprobación, extensiones dentro del Timer activo/pausado y gráfico con fechas y valores exactos a 1440×780, 1280×650 y 390×844. Sin errores JavaScript; sin pruebas en Mac físico/Safari.
+
+Al detener una OT emergente se abre Documentar OT. Si se cierra el formulario, Control del Timer conserva un recordatorio persistente con Documentar OT, incluso tras recargar y aunque el periodo seleccionado sea otro. Sólo desaparece cuando la documentación se envía a aprobación. El reloj, estado y acciones del Timer ocupan áreas separadas y se adaptan a pantallas estrechas.
 
 ## Movimiento vigente · v1.0.2
 

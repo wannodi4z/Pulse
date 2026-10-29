@@ -594,3 +594,8 @@ La sesión termina tras cinco minutos sin interacción. Las consultas automátic
 
 ### Eliminar Grupos
 El Manager abre un Grupo desde su nombre en **Mi equipo** y selecciona **Eliminar Grupo**. Si hay Técnicos (incluidos accesos dados de baja), debe elegir otro Grupo de su equipo, indicar el motivo y confirmar. El traslado y la retirada del Grupo se ejecutan juntos. Los Timers activos impiden continuar; las OT, Guardias y referencias históricas se conservan. Si no existe un destino, crea primero otro Grupo.
+
+### Guardia resumida y documentación de OT
+Cada solicitud de Guardia (diaria o semanal) aparece en una sola tarjeta con el periodo y el total de cobertura, y requiere una sola decisión del Manager. La cobertura del periodo se distingue del total mensual aprobado y de la Guardia neta tras descontar OT.
+
+El Timer emergente muestra **Detener y documentar**. Al detenerlo se abre el formulario; si se cierra sin enviarlo, queda una tarjeta persistente **Documentar OT** en Control del Timer, también después de recargar. La OT no suma al aprobado hasta completar documentación y obtener aprobación.
