@@ -4,7 +4,7 @@ window.PulseLayout=(()=>{
   const memory=new Map();
   const q=(s,r=document)=>r.querySelector(s),all=(s,r=document)=>[...r.querySelectorAll(s)];
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let dialogState=null,resizeFrame;
+  let resizeFrame;
   function name(node,index){
     if(node.dataset.viewLabel)return node.dataset.viewLabel;
     const known={'welcome-banner':'Bienvenida',kpis:'Indicadores','organization-summary':'Resumen de estructura','analytics-metrics':'Totales por tipo','analytics-criteria':'Criterios de cálculo','analytics-method':'Cómo se calcula','analytics-personal-scope':'Mi alcance','delegation-summary':'Backup del Manager','inline-delegation':'Configurar delegación','profile-grid':'Mi cuenta'};
@@ -126,7 +126,7 @@ window.PulseLayout=(()=>{
   }
   function reveal(target){
     if(!target)return;const ruleDay=target.closest('[data-rule-day]');if(ruleDay){all('[data-rule-day]').forEach(n=>n.hidden=n!==ruleDay);all('[data-action=rule-day-open]').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.id===ruleDay.dataset.ruleDay)));}
-    if(dialogState&&dialogState.body.contains(target)){const i=dialogState.pages.findIndex(part=>part.contains(target));if(i>=0)dialogState.show(i);}
+    if(target.closest('#modal'))target.scrollIntoView({block:'nearest',inline:'nearest'});
     const stage=target.closest('.viewport-stage');stage?._show(target);
     let parent=target;
     while(parent&&parent!==stage){
@@ -139,51 +139,18 @@ window.PulseLayout=(()=>{
     all('[data-search-row]').forEach(row=>{if(value)row.classList.remove('viewport-off');});
     all('tbody').forEach(list=>{if(list._viewport){list._viewport.control.hidden=!!value;if(!value)q('select',list._viewport.control).dispatchEvent(new Event('change'));}});
   }
-  function unwrapDialog(){
-    if(!dialogState)return;const {body,pages,bar,form}=dialogState;
-    pages.forEach(part=>{while(part.firstChild)body.insertBefore(part.firstChild,bar);part.remove();});bar.remove();body.classList.remove('wizard-body');
-    if(form){form.noValidate=false;all('[type=submit]',form).forEach(b=>b.hidden=false);}dialogState=null;
-  }
   function dialog(){
     const modal=q('#modal');if(!modal?.open)return;
-    const continuing=!!dialogState?.body.isConnected;
-    if(continuing)unwrapDialog();else dialogState=null;
-    const form=q(':scope > form',modal),body=q(':scope > form > .form-body,:scope > form > .access-body,:scope > .form-body,:scope > .about-project',modal);
-    if(!body)return;
-    if(body.scrollHeight>body.clientHeight+1)fitCollection(body,Math.max(140,body.clientHeight-58),'dialog-lists');
-    if(body.scrollHeight<=body.clientHeight+1)return;
-    const spacing=modal.classList.contains('admin-dialog')?parseFloat(getComputedStyle(body).paddingTop)+parseFloat(getComputedStyle(body).paddingBottom)+76:58;
-    const cap=Math.max(140,body.clientHeight-spacing),nodes=[...body.children],pages=[];
-    const fragments=[];
-    function flatten(node){
-      if(node.getBoundingClientRect().height>cap&&node.children.length>1&&node.matches('.form-grid,.access-section,.access-fields-grid')){
-        if(node.matches('fieldset')){const legend=q('legend',node);if(legend)fragments.push(legend);}
-        [...node.children].filter(n=>n.tagName!=='LEGEND').forEach(flatten);node.remove();
-      }else fragments.push(node);
-    }
-    nodes.forEach(flatten);
-    body.classList.add('wizard-body');const bar=document.createElement('nav');bar.className='wizard-navigation';body.append(bar);
-    let current=document.createElement('section');current.className='wizard-step';pages.push(current);body.insertBefore(current,bar);
-    fragments.forEach(node=>{
-      current.append(node);
-      if(current.getBoundingClientRect().height>cap&&current.children.length>1){node.remove();current=document.createElement('section');current.className='wizard-step';pages.push(current);body.insertBefore(current,bar);current.append(node);}
-    });
-    const initial=continuing?Math.min(memory.get('dialog:'+q('#dialog-title',modal)?.textContent)||0,pages.length-1):0;
-    let index=initial;
-    function show(value){index=Math.max(0,Math.min(pages.length-1,value));memory.set('dialog:'+q('#dialog-title',modal)?.textContent,index);pages.forEach((part,i)=>part.hidden=i!==index);bar.innerHTML=`<button type="button" data-step-back ${index===0?'disabled':''}>← Anterior</button><span aria-live="polite">Paso ${index+1} de ${pages.length}</span><button type="button" data-step-next ${index===pages.length-1?'disabled':''}>Continuar →</button>`;
-      if(form)all('[type=submit]',form).forEach(b=>b.hidden=index!==pages.length-1);
-      q('[data-step-back]',bar).onclick=()=>show(index-1);q('[data-step-next]',bar).onclick=()=>{const invalid=all('input,select,textarea',pages[index]).find(n=>!n.disabled&&!n.checkValidity());if(invalid){reveal(invalid);invalid.reportValidity();return;}show(index+1);};
-    }
-    if(form)form.noValidate=true;
-    dialogState={body,pages,bar,form,show};show(initial);
+    modal.classList.add('single-view-dialog');
+    if(q('[data-form=ot]',modal))modal.classList.add('ot-dialog');
+    const form=q(':scope > form',modal);
+    if(form)form.noValidate=false;
   }
   function validate(form){
     const invalid=all('input,select,textarea',form).find(n=>!n.disabled&&!n.checkValidity());
     if(!invalid)return true;
-    if(dialogState?.form===form){const index=dialogState.pages.findIndex(part=>part.contains(invalid));if(index>=0)dialogState.show(index);}
     reveal(invalid);invalid.reportValidity();return false;
   }
-  document.addEventListener('close',()=>{dialogState=null;},true);
   window.addEventListener('resize',()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{dialog();const stage=q('.viewport-stage');if(stage){all('*',stage).forEach(list=>{if(list._viewport){list._viewport.children.forEach(n=>n.classList.remove('viewport-off'));list._viewport.control.remove();delete list._viewport;list.classList.remove('viewport-single-column');}});const active=[...stage.children].find(n=>!n.classList.contains('viewport-off'));if(active){fitCollection(active,stage.clientHeight,'resize');useAvailableSpace(active,stage.clientHeight,'resize');}}});});
   return {page,dialog,reveal,validate,filterSearch};
 })();

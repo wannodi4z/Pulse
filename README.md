@@ -609,3 +609,8 @@ El Timer emergente muestra **Detener y documentar**. Al detenerlo se abre el for
 Arrastra entre dos días para abrir una solicitud de Guardia con el rango completo (máximo 32 días); puedes arrastrar en ambos sentidos. **Seleccionar periodo** permite elegir inicio y fin con clics o teclado, también en móvil. La solicitud se revisa y confirma antes de guardarse. Una Guardia aparece en los días de cobertura real; abrirla muestra la misma solicitud. Las actividades que cruzan medianoche aparecen en los días que ocupan. **+ más** muestra la agenda del día; **Hoy** vuelve al mes actual. El calendario usa la zona horaria operativa y sólo los registros propios.
 
 El Panel del Técnico y Lead muestra sus próximas OT programadas, con Detalle y **Iniciar Timer**. Se habilita dentro de la ventana autorizada y sólo con aprobación; otro Timer propio activo impide iniciar uno adicional. Las actividades de otros integrantes no se incluyen en este calendario personal.
+
+### Formularios en una sola vista y semanas de domingo a sábado
+Los modales muestran el formulario completo, sin Continuar/Anterior ni pasos ocultos. El encabezado y las acciones permanecen visibles; en ventanas pequeñas se desplaza sólo el contenido. La OT distribuye fechas y referencia a todo el ancho y documentación en dos columnas (una en móvil), conservando validaciones y envío a aprobación. Las listas de los modales tampoco se convierten en pasos.
+
+El calendario empieza en domingo y termina en sábado, tanto en los encabezados como en la posición real de cada fecha y el sombreado de fin de semana.
