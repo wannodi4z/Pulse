@@ -38,3 +38,15 @@ form[aria-busy=true] button[type=submit]{cursor:progress}
 @supports not (backdrop-filter:blur(1px)){.shell .topbar,.shell .sidebar,.login-card{background:#fff}}
 @media(max-width:700px){.shell .sidebar{border-right:0;border-bottom:1px solid #dbe6ef}.shell .sidebar .nav-item.active{box-shadow:inset 0 -2px #2665bf}.shell .sidebar .brand-title>strong::after{width:4px;height:4px}.login-card{box-shadow:0 10px 32px #224a640c}}
 @media(max-height:680px) and (min-width:701px){.login-shell{min-height:0}.login-main{min-height:640px;justify-content:flex-start}.login-story{min-height:640px}}
+/* Brief, purposeful motion; never replay screen entrances on background updates. */
+@keyframes ui-access-enter{from{opacity:.35;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ui-story-enter{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ui-view-enter{from{opacity:.6;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:no-preference){
+ .login-card{animation:ui-access-enter .34s cubic-bezier(.2,.7,.3,1)}.login-story .story-copy{animation:ui-story-enter .42s ease-out}.login-mobile-brand{animation:ui-story-enter .28s ease-out}#main.view-enter>.page-heading{animation:ui-view-enter .18s ease-out}
+ .primary,.secondary,.login-submit>svg{transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .15s ease}.team-tech-card,.admin-account-tile,.admin-manager-card{transition:border-color .18s ease,box-shadow .18s ease}
+}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+ .primary:not(:disabled):hover,.secondary:not(:disabled):hover{transform:translateY(-1px)}.primary:not(:disabled):active,.secondary:not(:disabled):active{transform:translateY(0)}.login-submit:hover>svg{transform:translateX(2px)}.team-tech-card:hover,.admin-account-tile:hover,.admin-manager-card:hover{border-color:#b1cbdf;box-shadow:0 5px 18px #24445d0c}
+}
+@media(prefers-reduced-motion:reduce){.login-card,.login-story .story-copy,.login-mobile-brand,#main.view-enter>.page-heading{animation:none!important}.primary:hover,.secondary:hover,.login-submit:hover>svg{transform:none!important}}

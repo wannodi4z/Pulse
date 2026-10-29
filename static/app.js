@@ -4,6 +4,7 @@ let state = null;
 let page = 'dashboard';
 let month = new Date().toLocaleDateString('sv-SE', {timeZone:state?.timezone||'America/Mexico_City'}).slice(0,7);
 let ledger = {rows:[],ot_minutes:0,guard_minutes:0};
+let pageEntrance = true;
 let analyticsReport = null;
 let analyticsRequestKey = '';
 let analyticsFailure = null;
@@ -113,7 +114,7 @@ function render(){
   renderDeferred=false;
   if(draggedTechnician)endTechnicianDrag();
   closeEntityMenu();closeGroupSearch();
-  $('#app').innerHTML=state?app():login();if(state)PulseLayout.page($('#main'),page);if(state&&isManager()&&page==='team')filterTeamBoard();if(state&&innerWidth<=700){const active=$('.sidebar [aria-current=page]'),nav=$('.sidebar nav');if(active&&nav)nav.scrollLeft=Math.max(0,active.offsetLeft-nav.clientWidth/2+active.offsetWidth/2);}tick();
+  $('#app').innerHTML=state?app():login();if(state)PulseLayout.page($('#main'),page);if(state&&pageEntrance){$('#main')?.classList.add('view-enter');pageEntrance=false;}if(state&&isManager()&&page==='team')filterTeamBoard();if(state&&innerWidth<=700){const active=$('.sidebar [aria-current=page]'),nav=$('.sidebar nav');if(active&&nav)nav.scrollLeft=Math.max(0,active.offsetLeft-nav.clientWidth/2+active.offsetWidth/2);}tick();
 }
 async function loadLedger(){
   if(!state)return;
@@ -154,7 +155,7 @@ async function refresh(silent=false){
   }catch(error){if(!silent)throw error;}
 }
 async function navigate(next){
-  if(!state)return;page=next;filters={group:'',person:'',status:next==='teamTime'?'SUBMITTED':'',kind:'',search:'',period:next==='teamTime'?'ALL':'MONTH'};comparisonMonths=[];clearTimeout(analyticsSearchTimer);delegationDraftLead='';analyticsDetailType=null;
+  if(!state)return;pageEntrance=true;page=next;filters={group:'',person:'',status:next==='teamTime'?'SUBMITTED':'',kind:'',search:'',period:next==='teamTime'?'ALL':'MONTH'};comparisonMonths=[];clearTimeout(analyticsSearchTimer);delegationDraftLead='';analyticsDetailType=null;
   $('#modal').close();await loadLedger();render();$('#main')?.focus({preventScroll:true});
 }
 function tick(){
@@ -1125,7 +1126,7 @@ async function submitForm(f){
   let response;
   switch(kind){
     case 'confirmation':$('#modal').close();await perform(data.action,data.target,{dataset:{confirmed:'true'}});return;
-    case 'login':await api('/api/login','POST',data);page='dashboard';await refresh();return;
+    case 'login':await api('/api/login','POST',data);pageEntrance=true;page='dashboard';await refresh();return;
     case 'activate':await api('/api/activate','POST',data);accessResult('activate',data.identity);return;
     case 'recovery-request':await api('/api/recoveries','POST',data);accessResult('request',data.identity);return;
     case 'recovery-complete':await api('/api/recoveries/complete','POST',data);accessResult('complete',data.identity);return;

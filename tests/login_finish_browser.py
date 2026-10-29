@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory() as d:
    try:urllib.request.urlopen(base+'/api/health',timeout=1);break
    except Exception:time.sleep(.1)
   with sync_playwright() as p:
-   b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.goto(base)
+   b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.emulate_media(reduced_motion='no-preference');page.goto(base)
    for width,height in [(1440,900),(1024,600),(800,540),(390,844),(320,568)]:
     page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(100)
     expect(page.locator('[data-form=login]')).to_be_visible();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
@@ -20,11 +20,16 @@ with tempfile.TemporaryDirectory() as d:
      node=page.locator(selector);node.scroll_into_view_if_needed();expect(node).to_be_in_viewport()
     page.locator('[name=identity]').scroll_into_view_if_needed()
     if width in (1440,390):page.screenshot(path=f'/tmp/pulse-login-refined-{width}.png',full_page=True)
+   assert page.locator('.login-card').evaluate('el=>getComputedStyle(el).animationName')=='ui-access-enter'
+   page.emulate_media(reduced_motion='reduce');assert page.locator('.login-card').evaluate('el=>parseFloat(getComputedStyle(el).animationDuration)<.001');page.emulate_media(reduced_motion='no-preference')
    page.set_viewport_size({'width':1440,'height':900});page.locator('[name=identity]').fill('951357');page.locator('#login-password').fill('not-the-password')
    page.locator('[data-action=password-visibility]').click();expect(page.locator('#login-password')).to_have_attribute('type','text');page.locator('[data-action=password-visibility]').click();expect(page.locator('#login-password')).to_have_attribute('type','password')
    page.locator('[data-form=login] [type=submit]').click();page.wait_for_function('()=>!busy');expect(page.locator('[data-form=login] .form-error')).not_to_be_empty();expect(page.locator('[data-form=login] .form-error')).to_be_focused()
    for action in ['activate','recovery-request']:
     page.locator('[data-action='+action+']').click();expect(page.locator('#modal')).to_be_visible();page.locator('#modal [data-action=close]').first.click()
-   page.locator('#login-password').fill('tecnico12026');page.locator('[data-form=login] [type=submit]').click();expect(page.locator('.sidebar')).to_be_visible();assert not errors,errors
-   b.close();print('PASS: refined login in five viewport sizes, no horizontal overflow, all actions reachable, password visibility, focused authentication error, activation and recovery dialogs, successful demo Technician login; no JS errors')
+   page.locator('#login-password').fill('tecnico12026');page.locator('[data-form=login] [type=submit]').click();expect(page.locator('.sidebar')).to_be_visible();expect(page.locator('#main.view-enter')).to_have_count(1)
+   page.evaluate('render()');expect(page.locator('#main.view-enter')).to_have_count(0)
+   page.evaluate("navigate('time')");page.wait_for_function('()=>!busy');expect(page.locator('#main.view-enter')).to_have_count(1)
+   assert not errors,errors
+   b.close();print('PASS: refined login in five viewport sizes, no horizontal overflow, all actions reachable, password visibility, focused authentication error, activation and recovery dialogs, successful demo Technician login; subtle entry motion respects reduced-motion preference and does not repeat on data renders; no JS errors')
  finally:proc.terminate();proc.wait(timeout=10)
