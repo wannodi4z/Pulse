@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -466,7 +466,7 @@ def state(user=Depends(current_user)):
                   'rules': [dict(r, segments=json.loads(r['segments'])) for r in rows(c, 'rules') if user['role'] == 'ADMIN' or r['manager_id'] == user['id'] or user['is_lead'] and r['manager_id']==user['manager_id'] or any(g['manager_id'] == r['manager_id'] for g in shown_groups)],
                   'delegations': [dict(d, group_ids=[g['id'] for g in rows(c, 'groups') if g['manager_id']==d['manager_id']] if not d['revoked_at'] else json.loads(d['group_ids'])) for d in rows(c, 'delegations') if user['role'] == 'ADMIN' or d['manager_id'] == user['id'] or d['lead_id'] == user['id']],
                   'transfer_requests':[r for r in rows(c,'transfer_requests') if user['role']=='ADMIN' or r['requested_by']==user['id']],
-                  'manager_directory':[{'id':p['id'],'first':p['first'],'last':p['last'],'employee_id':p['employee_id'],'account_name':get(c,'accounts',p['account_id'])['name']} for p in people if user['role']=='MANAGER' and p['role']=='MANAGER' and p['status']=='ACTIVE' and p['id']!=user['id']],
+                  'manager_directory':[{'id':p['id'],'first':p['first'],'last':p['last'],'employee_id':p['employee_id'],'account_name':get(c,'accounts',p['account_id'])['name'],'account_id':p['account_id'],'account_code':account_display_code(get(c,'accounts',p['account_id'])),'country_code':get(c,'accounts',p['account_id'])['country_code']} for p in people if user['role']=='MANAGER' and p['role']=='MANAGER' and p['status']=='ACTIVE' and p['id']!=user['id']],
                   'manager_transfers':[dict(r,user_name=(get(c,'users',r['user_id'])['first']+' '+get(c,'users',r['user_id'])['last']),employee_id=get(c,'users',r['user_id'])['employee_id'],source_name=get(c,'users',r['source_manager_id'])['first']+' '+get(c,'users',r['source_manager_id'])['last'],target_name=get(c,'users',r['target_manager_id'])['first']+' '+get(c,'users',r['target_manager_id'])['last']) for r in rows(c,'manager_transfers') if user['role']=='MANAGER' and user['id'] in (r['source_manager_id'],r['target_manager_id'])],
                   'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
                   'audit': [a for a in rows(c, 'audit') if user['role'] == 'ADMIN' or a['actor_id'] in visible or a['entity_id'] in visible_entities][-300:]}
@@ -956,6 +956,7 @@ def create_manager_transfer(data:dict=Body(...),actor=Depends(current_user)):
     with connection(True) as c:
         user=get(c,'users',text(data,'user_id'));target=get(c,'users',text(data,'target_manager_id'));reason=text(data,'reason')
         if user['role']!='USER' or user['is_lead'] or user['status']=='DISABLED' or not user['group_id'] or get(c,'groups',user['group_id'])['manager_id']!=actor['id']:fail('El Técnico debe pertenecer a tu equipo.',403)
+        if data.get('expected_group_id') and data['expected_group_id']!=user['group_id']:fail('El Técnico cambió de Grupo. Vuelve a abrir su ficha.',409)
         if target['role']!='MANAGER' or target['status']!='ACTIVE' or target['id']==actor['id']:fail('Selecciona otro Manager activo.')
         if len(reason)>2000:fail('Resume el motivo en 2000 caracteres.')
         if c.execute("SELECT 1 FROM manager_transfers WHERE user_id=? AND status='SUBMITTED'",(user['id'],)).fetchone():fail('Este Técnico ya tiene un traslado pendiente.',409)

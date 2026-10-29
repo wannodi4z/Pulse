@@ -1,4 +1,16 @@
-# Operational Pulse 1.0.1 · especificación de la implementación nueva
+# Operational Pulse 1.0.2 · especificación de la implementación nueva
+
+## Movimiento vigente · v1.0.2
+
+Una sola acción Mover en la ficha abre technicianMoveModal. Dos opciones: Grupos del mismo Manager (aplicación directa con confirmación) u otro Manager/Cuenta (solicitud al receptor). Las rutas internas siguen siendo /api/team/people/{id}/move y /api/team/transfers; el formulario unificado sólo envía los campos correspondientes a la opción activa.
+
+El directorio de Managers conserva el alcance mínimo existente y agrega account_id, account_code y country_code al nombre de Cuenta para filtrar con IDs estables. Es exclusivo de Managers; no incluye Grupos ni Técnicos ajenos. El filtro de Cuenta y la búsqueda de nombre/Employee ID actualizan únicamente el selector de destino, sin recrear el formulario o perder el motivo. Si el destino queda fuera de los filtros, se limpia y se exige una nueva selección. El resumen identifica Cuenta y Manager y aclara la aceptación pendiente. El motivo y los filtros se conservan al alternar entre opciones.
+
+Las solicitudes externas pueden enviar expected_group_id: si el Técnico ya no está en ese origen, la API devuelve 409 sin crear una solicitud. Se conserva compatibilidad con solicitudes existentes que no envían ese campo. Se mantienen comprobaciones de propiedad, Timer, destinatario, decisión atómica y snapshots de OT/Guardia.
+
+La bandeja se presenta como Traslados de Técnicos. No sustituye el flujo de baja de Manager: Admin reasigna Grupos y Lead en la baja administrativa, conservando registros y acceso hasta confirmar. No se añade un nuevo flujo de baja ni cambian sus permisos.
+
+Validación nueva: metadatos de Cuenta y directorio mínimo sin exposición de equipos; rechazo de origen desactualizado; unified_move_browser.py con filtro Cuenta, búsqueda por nombre/ID, resultados vacíos, limpieza de selección obsoleta, motivo persistente entre opciones, límites del modal a 1440×780, 1280×650 y 390×844, solicitud entre Cuentas y aceptación del receptor, sin errores JavaScript. Se conserva la suite API y el recorrido Manager existente.
 
 ## Presentación vigente · v1.0.1
 
@@ -245,3 +257,7 @@ Mi equipo presenta exclusivamente Grupos propios y Técnicos vigentes en columna
 ## Validación de la entrega reiniciada en v1.0.0
 
 69 pruebas API pasaron en 56.363 s en Linux/Python 3.12. Incluyen las reglas operativas existentes, límites de rol actualizados, alta y activación por Manager, movimientos internos, recepción/rechazo/cancelación de traslados, concurrencia de decisiones, origen obsoleto, Timer activo y conservación de OT/Guardias entre Cuentas. El recorrido manager_administration_browser.py pasó con creación de Grupo y Técnico, regeneración y activación, edición, arrastre real con cancelación sin escrituras, movimiento directo y aceptación por receptor; límites de pantalla a 1440×780, 1280×650 y 390×844; cero errores JavaScript. Se repitió el recorrido admin_workspace_browser.py. Se validaron sintaxis JavaScript, compilación Python y scripts de inicio. No se ejecutó en Mac físico ni Safari.
+
+## Resultado de validación · v1.0.2
+
+Suite completa: 71 pruebas API pasaron en 54.553 s. manager_administration_browser.py y unified_move_browser.py pasaron sin errores JavaScript; este último comprueba filtrado y solicitud entre Cuentas con aceptación del receptor. enterprise_finish_browser.py también pasó, conservando columnas uniformes, fichas, alta contextual, sidebar directo, nota de Aprobaciones y preferencia de movimiento reducido. Sintaxis de app.js/layout.js y compilación Python verificadas. No se ejecutó en un Mac físico ni Safari.

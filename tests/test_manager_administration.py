@@ -80,3 +80,14 @@ class ManagerAdministrationTests(unittest.TestCase):
   state=receiver.get('/api/state').json();self.assertEqual(next(o for o in state['overtime'] if o['id']==oid)['origin_info']['group_id'],self.gid)
   self.assertEqual(receiver.post('/api/approvals/ot/'+oid,json={'decision':'APPROVED'}).status_code,200);self.assertEqual(receiver.post('/api/approvals/guard/'+gid,json={'decision':'APPROVED'}).status_code,200)
   report=receiver.get('/api/analytics?month=2026-01').json();self.assertEqual(report['summary']['ot_minutes'],120);self.assertEqual(report['summary']['GUARD'],120);receiver.close()
+ def test_manager_directory_has_stable_account_metadata_and_no_team_leak(self):
+  directory=self.m.get('/api/state').json()['manager_directory'];self.assertGreater(len(directory),0)
+  for manager in directory:
+   self.assertTrue({'account_id','account_name','account_code','country_code'}.issubset(manager))
+   self.assertNotIn('group_id',manager);self.assertNotIn('password_hash',manager)
+   with self.s.connection() as c:account=self.s.get(c,'accounts',manager['account_id'])
+   self.assertEqual(manager['account_name'],account['name']);self.assertEqual(manager['account_code'],self.s.account_display_code(account))
+  self.assertEqual(self.tech.get('/api/state').json()['manager_directory'],[]);self.assertEqual(self.admin.get('/api/state').json()['manager_directory'],[])
+ def test_cross_manager_request_rejects_stale_displayed_origin(self):
+  r=self.m.post('/api/team/transfers',json={'user_id':self.uid,'target_manager_id':self.os['user']['id'],'reason':'Solicitud desde ficha obsoleta','expected_group_id':self.dest})
+  self.assertEqual(r.status_code,409,r.text);self.assertEqual(self.m.get('/api/state').json()['manager_transfers'],[])

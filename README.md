@@ -1,6 +1,20 @@
-# Operational Pulse · 1.0.1
+# Operational Pulse · 1.0.2
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Versión vigente · v1.0.2 · un solo movimiento
+
+La ficha del Técnico ofrece una sola acción **Mover**. El mismo modal permite cambiarlo entre Grupos propios o enviarlo a otro Manager, incluso de otra Cuenta. El arrastre abre ese modal con el Grupo destino preseleccionado.
+
+Para otro Manager/Cuenta, el modal incluye filtro por Cuenta (código y nombre), búsqueda por nombre o Employee ID, resultados de Managers activos y resumen explícito del destino. Al cambiar filtros se limpia un destino que dejó de estar visible; el motivo se conserva al alternar entre movimiento interno y traslado. No se muestran los Grupos o Técnicos de otros Managers.
+
+Los movimientos internos se aplican al confirmar. Para cambiar de Manager o Cuenta, el receptor debe aceptar y elegir uno de sus Grupos; el Técnico permanece en origen hasta entonces. La solicitud comprueba que el Grupo mostrado al abrir el modal siga vigente.
+
+La bandeja se llama **Traslados de Técnicos** y resuelve movimientos individuales. **La baja de un Manager sigue siendo una acción de Admin**: reasigna sus Grupos completos y su Lead antes de retirar el acceso. No se envía una solicitud por cada Técnico para efectuar esa baja.
+
+Validación: **71 pruebas de API** pasaron y se ejecutaron los recorridos Chromium de administración de Técnicos y movimiento unificado; filtros por Cuenta/nombre/Employee ID, ausencia de coincidencias, limpieza de selección obsoleta, conservación del motivo, movimientos internos y aceptación entre Cuentas. Modal verificado a 1440×780, 1280×650 y 390×844, sin desbordamiento de su cuerpo. No se probó en Mac físico ni Safari.
+
+Las notas siguientes conservan el historial; prevalece esta sección para el flujo Mover y el nombre de la bandeja.
 
 ## Versión vigente · v1.0.1 · tablero compacto y acabado enterprise
 
