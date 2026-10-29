@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -484,6 +484,7 @@ def state(user=Depends(current_user)):
         result['audit_people']=[{key:person[key] for key in ('id','first','last','employee_id','role')} for person in people if person['id'] in actor_ids]
         for g in result['guards']:
             g['rule_snapshot'] = json.loads(g['rule_snapshot'])
+            if user['role']=='USER' and g['user_id']==user['id']:g['timeline_days']=guard_timeline_days(g)
         for r in result['recoveries']:
             r.pop('code_hash', None)
             r['code_available'] = bool(r['status'] == 'ISSUED' and r['expires_at'] and parse_at(r['expires_at']) > datetime.now(timezone.utc) and c.execute('SELECT 1 FROM recovery_code_vault WHERE recovery_id=?', (r['id'],)).fetchone())
@@ -1417,8 +1418,8 @@ def request_extension(identity: str, data: dict=Body(...), actor=Depends(current
         o=get(c,'overtime',identity)
         if o['user_id']!=actor['id']:
             fail('Sólo el Técnico propietario solicita la extensión.',403)
-        if o['capture_type']!='PLANNED' or o['status']!='APPROVED' or o['execution'] not in ('SCHEDULED','RUNNING','PAUSED'):
-            fail('La extensión requiere una OT programada aprobada y no finalizada.')
+        if o['capture_type']!='PLANNED' or o['status']!='APPROVED' or o['execution'] not in ('RUNNING','PAUSED') or not o['start_at']:
+            fail('La extensión se solicita desde un Timer que ya inició o está pausado.')
         if end<=parse_at(o['scheduled_end']) or end<=parse_at(now()) or end-parse_at(o['scheduled_start'])>timedelta(days=31):
             fail('El nuevo fin debe ser futuro, posterior al autorizado y dentro de 31 días del inicio.')
         if c.execute("SELECT 1 FROM ot_extensions WHERE overtime_id=? AND status='SUBMITTED'",(identity,)).fetchone():
@@ -1490,6 +1491,27 @@ def decide(kind: str, identity: str, data: dict = Body(...), actor=Depends(curre
 
 
 # All accounting/export/capture views share this implementation, including cross-midnight splits.
+def guard_timeline_days(guard):
+    """Read-only daily coverage from the immutable request snapshot; never net/billable totals."""
+    snapshot=guard['rule_snapshot'];intervals=[]
+    day,last=date.fromisoformat(guard['start_date']),date.fromisoformat(guard['end_date'])
+    while day<=last:
+        for segment in snapshot.get('segments',[]):
+            if int(segment['day'])!=day.weekday():continue
+            start=datetime.combine(day,time.fromisoformat(segment['start']),TZ)
+            end=datetime.combine(day,time.fromisoformat(segment['end']),TZ)
+            if end<=start:end+=timedelta(days=1)
+            if snapshot.get('coverage_end_at'):end=min(end,parse_at(snapshot['coverage_end_at']).astimezone(TZ))
+            if end>start:intervals.append((start,end))
+        day+=timedelta(days=1)
+    days={}
+    for start,end in union_intervals(intervals):
+        while start<end:
+            stop=min(end,datetime.combine(start.date()+timedelta(days=1),time(),TZ))
+            days.setdefault(start.date().isoformat(),[]).append({'start_at':start.isoformat(),'end_at':stop.isoformat()});start=stop
+    return [{'date':day,'start_at':parts[0]['start_at'],'end_at':parts[-1]['end_at'],'segments':parts} for day,parts in sorted(days.items())]
+
+
 def union_intervals(intervals):
     result = []
     for a, b in sorted(intervals):

@@ -43,7 +43,7 @@ window.PulseLayout=(()=>{
     }
     roots().forEach(n=>{
       if(n.matches('.table-panel')&&q('[data-search-row]',n))n.dataset.viewLabel='Personas';
-      if(n.matches('.timer-list'))n.dataset.viewLabel='Actividades en curso';
+      if(n.matches('.timer-list'))n.dataset.viewLabel=key==='time'?'Control del Timer':'Actividades en curso';
       if(n.matches('.delegation-history'))n.dataset.viewLabel='Historial de delegaciones';
       if(n.matches('.inline-delegation'))n.dataset.viewLabel='Asignar backup temporal';
     });
@@ -79,7 +79,7 @@ window.PulseLayout=(()=>{
     const lists=all(selectors,root).reverse();
     if(root.matches(selectors))lists.push(root);
     lists.forEach((list,li)=>{
-      if(list.matches('.account-body')||list._viewport||!list.getClientRects().length)return;
+      if(list.matches('.account-body,.timeline-list')||list._viewport||!list.getClientRects().length)return;
       if(list.matches('.rule-segments')&&root.getBoundingClientRect().height<=budget)return;
       const children=[...list.children].filter(n=>!n.classList.contains('viewport-pagination'));
       if(children.length<2)return;

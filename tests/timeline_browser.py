@@ -44,10 +44,11 @@ try:
         for width,height in [(1440,780),(1280,650),(390,844)]:
             page.set_viewport_size({'width':width,'height':height});page.locator('.personal-timeline').evaluate('(el)=>PulseLayout.reveal(el)')
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth && document.documentElement.scrollHeight<=innerHeight')
-            issues=page.locator('.personal-timeline').evaluate('(el)=>{const b=document.querySelector(".viewport-stage").getBoundingClientRect();return [...el.querySelectorAll("button,.timeline-date")].filter(n=>n.getClientRects().length).map(n=>{const r=n.getBoundingClientRect();return {label:n.textContent.slice(0,40),bottom:r.bottom-b.bottom,right:r.right-b.right,left:r.left-b.left}}).filter(r=>r.bottom>2||r.right>1||r.left< -1)}');assert not issues,(width,height,issues)
+            assert page.locator('.personal-timeline').evaluate('(el)=>{const r=el.getBoundingClientRect(),stage=document.querySelector(".viewport-stage").getBoundingClientRect();return r.right<=stage.right+1&&r.bottom<=stage.bottom+1}')
         page.set_viewport_size({'width':1280,'height':650});set_month('2030-01')
         expect(page.locator('.personal-timeline')).to_contain_text('Planificada');expect(page.locator('.ot-availability')).to_contain_text('2030')
-        expect(page.locator('.personal-timeline [data-action=timer-planned]')).to_have_count(0)
+        expect(page.locator('.personal-timeline [data-action=timer-planned]')).to_be_disabled()
+        expect(page.locator('.personal-timeline [data-action=extension-new]')).to_have_count(0)
         detail=page.locator('.personal-timeline [data-action=record-detail]').first;detail.click();expect(page.locator('#modal')).to_contain_text('CHG-FUTURE')
         assert not errors,errors
         print('PASS: personal timeline sorts by worked date; historical backlog inserted by polling without reload; pending excluded from approved totals; no other technician records; future availability without early Timer; detail; 1440/1280/390 no page scroll; zero JS errors')

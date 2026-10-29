@@ -1,6 +1,28 @@
-# Operational Pulse · 1.0.2
+# Operational Pulse · 1.0.3
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Versión vigente · v1.0.3 · cronología de OT y Guardias
+
+**Mi tiempo reúne OT y Guardias en una sola línea de tiempo.** Las Guardias se muestran por día con los intervalos de la regla guardada en la solicitud, incluidos periodos múltiples, cobertura de 24 horas, cruces de medianoche y continuación al mes siguiente. Se conservan estado y acceso a Ver solicitud; la cobertura mostrada no sustituye la Guardia neta aprobada de los totales. Las capturas históricas de OT siguen insertándose por fecha real de actividad. Se elimina la sección separada que repetía las Guardias.
+
+Las tarjetas separan identidad/estado, horario/disponibilidad y acciones. Detalle permanece visible. La cronología se recorre dentro del área central, sin paginar una actividad por clic ni desbordar la página.
+
+### Timer y extensiones
+
+Una OT programada sin iniciar muestra un botón **Timer deshabilitado** con su disponibilidad. Se habilita como Iniciar Timer al llegar la fecha/hora y contar con aprobación, dentro de la ventana autorizada. No permite un inicio anticipado. Si se perdió la ventana sin iniciar, se edita y reenvía para solicitar un horario nuevo.
+
+**Solicitar extensión está en el control del Timer**, activo o pausado, nunca en una OT que aún no inicia. La API también rechaza solicitudes de extensión sin Timer iniciado. Al vencer el horario, el Timer se pausa; conserva lo trabajado y no suma la espera. Desde el Timer pausado se solicita extensión, se reanuda después de aprobarla o se finaliza el tiempo trabajado. No se reanuda automáticamente.
+
+### Horas por día más claras
+
+La vista diaria muestra fecha completa, total de horas escrito y desglose con nombres y valores de OT emergente/programada/histórica y Guardia neta. La barra representa el total del día; se muestran sólo días con horas aprobadas de los resultados filtrados, sin huecos de fechas ni una escala ambigua. Se conserva la comparación mensual y los mismos cálculos de analítica, Excel, Claim y ADP.
+
+### Validación
+
+**75 pruebas API** pasaron. Chromium verificó cronología mixta, mes con sólo Guardias, intervalos múltiples, cruce de mes, snapshots, pendientes excluidos de totales, Detalle, botón Timer deshabilitado y habilitación por reloj tras aprobar, extensión desde Timer activo/pausado y nueva gráfica con fechas/totales/desglose exactos. Se comprobaron límites a 1440×780, 1280×650 y 390×844. Sintaxis JavaScript y compilación Python verificadas. No se probó en Mac físico ni Safari.
+
+Para conservar tus usuarios y registros al actualizar, respalda y conserva tu SQLite de trabajo y su archivo de clave. El ZIP conserva los ejemplos; el arranque no sobrescribe una base existente. Las notas siguientes son historial de versiones anteriores.
 
 ## Versión vigente · v1.0.2 · un solo movimiento
 

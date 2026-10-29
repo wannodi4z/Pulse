@@ -1,4 +1,16 @@
-# Operational Pulse 1.0.2 · especificación de la implementación nueva
+# Operational Pulse 1.0.3 · especificación de la implementación nueva
+
+## Presentación vigente · v1.0.3
+
+La cronología personal concatena OT del mes y días de cobertura de Guardias propias y ordena por fecha/hora efectiva. /api/state agrega timeline_days sólo a Guardias del usuario propietario con rol USER. guard_timeline_days es una proyección de sólo lectura: usa rule_snapshot, TZ operativa, unión de intervalos de una misma solicitud, división por medianoche y recorte coverage_end_at. No consulta la regla actual ni modifica registros. Las solicitudes sin intervalos conservan representación de solicitud. La lista identifica OT y Guardia, no duplica la antigua sección de Guardias y mantiene el total neto calculado por accounting.
+
+La tarjeta OT conserva Detalle, muestra estado junto al encabezado y pone disponibilidad y acciones en áreas separadas. El botón Timer usa disabled real mientras falta aprobación, no llega el inicio o terminó la ventana. El reloj de frontend reevalúa la disponibilidad; el backend sigue validando el inicio. Las OT pausadas fuera del mes siguen accesibles en Control del Timer, sin insertarse artificialmente en la cronología de otro mes.
+
+Solicitar extensión sólo aparece en el control del Timer propio activo/pausado; la API exige PLANNED, APPROVED, RUNNING/PAUSED y start_at. Las pruebas anteriores que permitían pedir extensión antes de iniciar se actualizaron a la regla explícita nueva. Se conserva pausa exacta al final de ventana, aprobación/rechazo, reanudación manual, finalización y exclusión de espera. El modal de Timer permite Detener junto al reloj y las acciones del Timer pausado; al vencer el reloj se actualiza a su estado pausado.
+
+analyticsDailyChart sustituye las barras verticales con escala implícita por filas con fecha completa, total numérico, meter proporcional y desglose por tipo. Sólo dibuja días con total aprobado positivo devueltos por el mismo reporte filtrado, sin reagrupar fechas de meses diferentes por número de día. Los cálculos del reporte y la comparativa mensual permanecen. La presentación no confunde cobertura de Guardia con Guardia neta ni suma pendientes.
+
+Pruebas: suite completa de 75 API en 55.874 s; tests/test_guard_timeline.py (intervalos, medianoche/mes, snapshot, cierre, 24 h, privacidad), tests/test_extensions.py, tests/timeline_browser.py y tests/unified_timeline_browser.py. El recorrido nuevo comprueba también habilitación real por reloj tras aprobación, extensiones dentro del Timer activo/pausado y gráfico con fechas y valores exactos a 1440×780, 1280×650 y 390×844. Sin errores JavaScript; sin pruebas en Mac físico/Safari.
 
 ## Movimiento vigente · v1.0.2
 
@@ -261,3 +273,5 @@ Mi equipo presenta exclusivamente Grupos propios y Técnicos vigentes en columna
 ## Resultado de validación · v1.0.2
 
 Suite completa: 71 pruebas API pasaron en 54.553 s. manager_administration_browser.py y unified_move_browser.py pasaron sin errores JavaScript; este último comprueba filtrado y solicitud entre Cuentas con aceptación del receptor. enterprise_finish_browser.py también pasó, conservando columnas uniformes, fichas, alta contextual, sidebar directo, nota de Aprobaciones y preferencia de movimiento reducido. Sintaxis de app.js/layout.js y compilación Python verificadas. No se ejecutó en un Mac físico ni Safari.
+
+Validación adicional v1.0.3: analytics_browser.py pasó búsqueda global, totales que excluyen pendientes, comparación de tres meses, Excel coincidente, consulta de registros sin botones de aprobación y filtros de Aprobaciones a 1440×780, 1280×650 y 390×844. El recorrido unified_timeline_browser.py dejó abierto el modal del Timer durante un vencimiento real: pasó a Timer pausado sin recarga manual ni bucle de consultas.

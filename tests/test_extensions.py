@@ -73,9 +73,12 @@ class ExtensionTests(unittest.TestCase):
         own=self.fx.ot(lc,(current+timedelta(days=1)).isoformat(),(current+timedelta(days=1,hours=1)).isoformat())
         self.fx.approve(self.mc,'ot',own)
         ot,_=self.paused()
+        with self.server.connection(True) as c:
+            c.execute("UPDATE overtime SET scheduled_start='2026-01-06T05:00:00+00:00',scheduled_end='2026-01-06T06:00:00+00:00',start_at='2026-01-06T05:00:00+00:00',execution='RUNNING' WHERE id=?",(own,))
+            c.execute('INSERT INTO timers VALUES(?,?,?,?,NULL)',(self.server.uid(),lead['id'],own,'2026-01-06T05:00:00+00:00'))
         with patch.object(self.server,'now',return_value='2026-01-06T06:30:00+00:00'):
             delegation=self.fx.post('/api/delegations',{'lead_id':lead['id']},self.mc)['id']
-            own_ext=self.fx.post(f'/api/overtime/{own}/extensions',{'requested_end':(current+timedelta(days=1,hours=2)).isoformat(),'reason':'Más trabajo'},lc)['id']
+            own_ext=self.fx.post(f'/api/overtime/{own}/extensions',{'requested_end':'2026-01-06T08:00:00+00:00','reason':'Más trabajo'},lc)['id']
             self.assertEqual(lc.post(f'/api/extensions/{own_ext}/decision',json={'decision':'APPROVED'}).status_code,403)
             ext=self.fx.post(f'/api/overtime/{ot}/extensions',{'requested_end':'2026-01-06T08:00:00+00:00','reason':'Más trabajo'},self.tc)['id']
             self.fx.post(f'/api/extensions/{ext}/decision',{'decision':'APPROVED'},lc)
@@ -99,15 +102,16 @@ class ExtensionTests(unittest.TestCase):
         self.fx.approve(self.mc,'ot',ot)
         self.assertEqual(self.tc.get('/api/accounting?month=2026-01').json()['ot_minutes'],180)
 
-    def test_offboarding_cancels_pending_extension_for_unstarted_plan(self):
+    def test_unstarted_plan_cannot_extend_and_offboarding_cancels_schedule(self):
         current=datetime.now(timezone.utc)
         ot=self.fx.ot(self.tc,(current+timedelta(days=1)).isoformat(),(current+timedelta(days=1,hours=1)).isoformat())
         self.fx.approve(self.mc,'ot',ot)
-        ext=self.fx.post('/api/overtime/'+ot+'/extensions',{'requested_end':(current+timedelta(days=1,hours=2)).isoformat(),'reason':'Trabajo adicional'},self.tc)['id']
+        blocked=self.tc.post('/api/overtime/'+ot+'/extensions',json={'requested_end':(current+timedelta(days=1,hours=2)).isoformat(),'reason':'Trabajo adicional'})
+        self.assertEqual(blocked.status_code,422)
+        self.assertEqual(self.tc.get('/api/state').json()['extensions'],[])
         impact=self.fx.client.get('/api/admin/people/'+self.user['id']+'/impact').json()
         self.fx.post('/api/admin/people/'+self.user['id']+'/offboard',{'reason':'Baja de pruebas','confirm':True,'expected':impact['expected'],'transfers':{}})
         state=self.mc.get('/api/state').json()
-        self.assertEqual(next(e for e in state['extensions'] if e['id']==ext)['status'],'CANCELLED')
         self.assertEqual(next(o for o in state['overtime'] if o['id']==ot)['status'],'CANCELLED')
 
     def test_rejection_permissions_and_manual_finish(self):
