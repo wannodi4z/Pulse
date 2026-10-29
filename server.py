@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.7'
+VERSION = '1.0.8'
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('PULSE_DB_PATH', ROOT / 'operational_pulse.db'))
 RECOVERY_KEY = Path(os.environ.get('PULSE_RECOVERY_KEY_PATH', DB.with_suffix('.key')))
@@ -129,6 +129,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS manager_transfers(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),source_manager_id TEXT NOT NULL REFERENCES users(id),target_manager_id TEXT NOT NULL REFERENCES users(id),source_group_id TEXT NOT NULL REFERENCES groups(id),reason TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,decided_at TEXT,decision_reason TEXT NOT NULL DEFAULT '',destination_group_id TEXT REFERENCES groups(id));
         CREATE TABLE IF NOT EXISTS ot_group_activities(source_id TEXT PRIMARY KEY REFERENCES overtime(id), window_id TEXT UNIQUE NOT NULL REFERENCES windows(id), authorized_by TEXT REFERENCES users(id), snapshot TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS ot_time_corrections(overtime_id TEXT PRIMARY KEY REFERENCES overtime(id), segments TEXT NOT NULL, reason TEXT NOT NULL, updated_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS time_recovery_drafts(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),items TEXT NOT NULL,fingerprint TEXT NOT NULL,expires_at TEXT NOT NULL,result TEXT);
+        CREATE TABLE IF NOT EXISTS time_recovery_items(user_id TEXT NOT NULL REFERENCES users(id),source_key TEXT NOT NULL,record_id TEXT NOT NULL,batch_id TEXT NOT NULL,metadata TEXT NOT NULL,PRIMARY KEY(user_id,source_key));
         CREATE TABLE IF NOT EXISTS record_origins(record_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
@@ -507,6 +509,8 @@ def state(user=Depends(current_user)):
             o['actual_segments']=effective_ot_segments(c,o) if o['execution']=='COMPLETED' else []
             o['time_corrected']=bool(c.execute('SELECT 1 FROM ot_time_corrections WHERE overtime_id=?',(o['id'],)).fetchone())
             o['worked_seconds']=sum((parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds() for t in o['actual_segments']) if o['execution']=='COMPLETED' else sum(max(0,(parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds()) for t in result['timer_segments'] if t['overtime_id']==o['id'] and t['end_at'])
+        recovered={r['record_id']:json.loads(r['metadata']) for r in rows(c,'time_recovery_items')}
+        for record in result['overtime']+result['guards']:record['recovery_info']=recovered.get(record['id'])
         actor_ids={event['actor_id'] for event in result['audit']}
         result['audit_people']=[{key:person[key] for key in ('id','first','last','employee_id','role')} for person in people if person['id'] in actor_ids]
         for g in result['guards']:
@@ -664,11 +668,7 @@ def offboard_person(identity: str, data: dict=Body(...), actor=Depends(current_u
             audit(c,actor,'CANCEL_SCHEDULE_ON_OFFBOARD',o['id'],{'previous_status':o['status'],'reason':reason})
         for guard in impact['guards']:
             snapshot=json.loads(guard['rule_snapshot'])
-            day,last=date.fromisoformat(guard['start_date']),date.fromisoformat(guard['end_date'])
-            began=False
-            while day<=last and not began:
-                began=any(int(segment['day'])==day.weekday() and datetime.combine(day,time.fromisoformat(segment['start']),TZ)<parse_at(stamp) for segment in snapshot['segments'])
-                day+=timedelta(days=1)
+            began=any(a<parse_at(stamp) for a,b in guard_coverage(guard))
             if not began:
                 c.execute("UPDATE guards SET status='CANCELLED' WHERE id=?",(guard['id'],))
             else:
@@ -1333,6 +1333,7 @@ def guard_revision_token(record):
 
 def guard_rule_changed(c,guard):
     snapshot=guard['rule_snapshot']
+    if snapshot.get('recovery_fixed'):return False
     current=c.execute('SELECT * FROM rules WHERE id=?',(snapshot.get('id'),)).fetchone()
     if not current:return True
     def content(rule):
@@ -1708,19 +1709,26 @@ def decide(kind: str, identity: str, data: dict = Body(...), actor=Depends(curre
 
 
 # All accounting/export/capture views share this implementation, including cross-midnight splits.
-def guard_timeline_days(guard):
-    """Read-only daily coverage from the immutable request snapshot; never net/billable totals."""
-    snapshot=guard['rule_snapshot'];intervals=[]
-    day,last=date.fromisoformat(guard['start_date']),date.fromisoformat(guard['end_date'])
+def guard_coverage(guard):
+    snapshot=guard['rule_snapshot'];snapshot=json.loads(snapshot) if isinstance(snapshot,str) else snapshot
+    if snapshot.get('recovered_intervals'):
+        cutoff=parse_at(snapshot['coverage_end_at']) if snapshot.get('coverage_end_at') else None
+        return [(parse_at(p['start_at']).astimezone(TZ),min(parse_at(p['end_at']),cutoff).astimezone(TZ) if cutoff else parse_at(p['end_at']).astimezone(TZ)) for p in snapshot['recovered_intervals'] if not cutoff or parse_at(p['start_at'])<cutoff]
+    intervals=[];day,last=date.fromisoformat(guard['start_date']),date.fromisoformat(guard['end_date'])
     while day<=last:
         for segment in snapshot.get('segments',[]):
             if int(segment['day'])!=day.weekday():continue
-            start=datetime.combine(day,time.fromisoformat(segment['start']),TZ)
-            end=datetime.combine(day,time.fromisoformat(segment['end']),TZ)
+            start=datetime.combine(day,time.fromisoformat(segment['start']),TZ);end=datetime.combine(day,time.fromisoformat(segment['end']),TZ)
             if end<=start:end+=timedelta(days=1)
             if snapshot.get('coverage_end_at'):end=min(end,parse_at(snapshot['coverage_end_at']).astimezone(TZ))
             if end>start:intervals.append((start,end))
         day+=timedelta(days=1)
+    return intervals
+
+
+def guard_timeline_days(guard):
+    """Daily coverage from immutable rules or exact recovered intervals."""
+    intervals=guard_coverage(guard)
     days={}
     for start,end in union_intervals(intervals):
         while start<end:
@@ -1807,21 +1815,7 @@ def accounting(c, visible, month=None, record_ids=None):
     for g in rows(c, 'guards'):
         if g['user_id'] not in visible or g['status'] != 'APPROVED' or record_ids is not None and g['id'] not in record_ids:
             continue
-        rule = json.loads(g['rule_snapshot'])
-        day, last = date.fromisoformat(g['start_date']), date.fromisoformat(g['end_date'])
-        while day <= last:
-            for s in rule['segments']:
-                if int(s['day']) != day.weekday():
-                    continue
-                a = datetime.combine(day, time.fromisoformat(s['start']), TZ)
-                b = datetime.combine(day, time.fromisoformat(s['end']), TZ)
-                if b <= a:
-                    b += timedelta(days=1)
-                if rule.get('coverage_end_at'):
-                    b=min(b,parse_at(rule['coverage_end_at']).astimezone(TZ))
-                if b>a:
-                    guard_intervals.setdefault(g['user_id'], []).append((a, b))
-            day += timedelta(days=1)
+        guard_intervals.setdefault(g['user_id'], []).extend(guard_coverage(g))
     for user_id, intervals in guard_intervals.items():
         for a, b in union_intervals(intervals):
             for pa, pb in subtract_intervals(a, b, ots.get(user_id, [])):
@@ -1918,15 +1912,7 @@ def analytics_records(c, visible, selected_months, query='', status='', record_t
                 reference=r['reference'];description=r['description']
             else:
                 snapshot=json.loads(r['rule_snapshot']);reference=snapshot['name'];description='Guardia'
-                day=date.fromisoformat(r['start_date']);last=date.fromisoformat(r['end_date']);intervals=[]
-                while day<=last:
-                    for segment in snapshot['segments']:
-                        if int(segment['day'])!=day.weekday():continue
-                        a=datetime.combine(day,time.fromisoformat(segment['start']),TZ);b=datetime.combine(day,time.fromisoformat(segment['end']),TZ)
-                        if b<=a:b+=timedelta(days=1)
-                        if snapshot.get('coverage_end_at'):b=min(b,parse_at(snapshot['coverage_end_at']).astimezone(TZ))
-                        if b>a:intervals.append((a,b))
-                    day+=timedelta(days=1)
+                intervals=guard_coverage(r)
                 start=min(a for a,b in intervals).isoformat() if intervals else r['start_date']+'T00:00:00'
                 end=max(b for a,b in intervals).isoformat() if intervals else (date.fromisoformat(r['end_date'])+timedelta(days=1)).isoformat()+'T00:00:00'
             a,b=parse_at(start),parse_at(end)
@@ -2178,10 +2164,18 @@ def export_excel(month: str, user_id: str | None = None, group_id: str | None = 
         summary.append(['Unidad Claim','Horas decimales; 90 minutos = 1.5 horas; captura diaria a 2 decimales.'])
         summary.append(['OT del mes seleccionado',claim['month_ot_minutes']/60])
         summary.append(['Stand By del mes seleccionado',claim['month_guard_minutes']/60])
+    if not claim:
+        with connection() as c:
+            append_monthly_capture(wb,c,result)
+            if actor['role']=='USER' and visible=={actor['id']} and not kind:append_native_backup(wb,c,actor,month)
     stream = io.BytesIO()
     wb.save(stream)
     stream.seek(0)
     return StreamingResponse(stream, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment; filename="Operational_Pulse_{month}.xlsx"'})
+
+
+from time_recovery import install_recovery
+install_recovery(app, globals())
 
 
 app.mount('/static', StaticFiles(directory=ROOT / 'static'), name='static')

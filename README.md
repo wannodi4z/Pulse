@@ -1,8 +1,16 @@
-# Operational Pulse · 1.0.7
+# Operational Pulse · 1.0.8
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Versión vigente · v1.0.7 · Reglas visuales y Analítica operativa
+## Versión vigente · v1.0.8 · Resultado mensual y recuperación Excel
+
+**Excel mensual:** Captura es la primera pestaña del Excel de horas aprobadas, con las 29 columnas del formato de referencia: ADP HH:MM, decimales SAP, fechas, tickets, empleado, correo del Manager y documentación existente. Category y aprobación DIL quedan vacías; no se confunden con la aprobación de Pulse. La semana se cuenta dentro del mes empezando en sábado; fin a medianoche usa la fecha real siguiente. Claim mantiene su matriz semanal como primera pestaña.
+
+**Mi tiempo → Respaldo / Recuperar:** descarga el resultado mensual y un respaldo personal. Respaldo Pulse guarda los tramos completos de las OT finalizadas y las Guardias que intersectan el mes, incluida documentación y registros pendientes/por documentar; puede incluir extremos fuera del mes. No incluye OT programada sin ejecutar ni Timers activos. No contiene contraseñas. La hoja Captura sólo muestra horas aprobadas del mes. Al actualizar conserva la base de datos y su archivo .key: el Excel es un respaldo de horas, no de toda la aplicación.
+
+Para recuperar, selecciona un .xlsx de Pulse de hasta 6 MB/2000 registros, revisa la vista previa y confirma. Sólo se admiten horas del Employee ID de la sesión, con Manager activo. Los duplicados y conflictos se omiten, sin sobrescribir registros. Una vista previa vence a los 30 minutos y se invalida si cambian las horas o asignaciones. La confirmación es transaccional e idempotente. Toda recuperación vuelve a revisión; si falta documentación de OT, queda Por documentar hasta completarla y enviarla al Manager. Sólo tras aprobar suma a Claim, ADP y Analítica.
+
+El Excel anterior de Tiempo aprobado también sirve: sus tramos netos se recuperan fielmente. Las Guardias se agrupan por semana de sábado a viernes como cobertura fija; no se inventa su regla bruta original. No se pueden reconstruir documentación, pausas ni aprobaciones que ese archivo no incluía. El aviso de origen y la trazabilidad permiten reconocer los registros recuperados. Respaldo Pulse conserva tramos exactos, incluidas pausas, sin volver a aplicar una regla actual distinta.
 
 **Analítica muestra el dashboard y el historial en la misma página.** Las tarjetas principales tienen la misma altura. El botón Ampliar abre cada gráfica (distribución, comparación, franjas horarias o fechas) con el periodo y filtros actuales, tanto en consulta personal como en el equipo autorizado. Búsqueda, estado, tipo, Grupo, Técnico y hasta 24 meses se aplican a todos los indicadores, gráficas y Excel. Un Grupo abre sus Técnicos; una persona lleva a sus registros. La comparación muestra horas y variación absoluta/porcentual frente al mes anterior seleccionado. Meses en curso son parciales; se indica la fecha de corte. Los Grupos representan la asignación actual; el origen sigue disponible en Detalle.
 

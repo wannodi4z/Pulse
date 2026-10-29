@@ -1,4 +1,14 @@
-# Operational Pulse 1.0.7 · especificación de la implementación nueva
+# Operational Pulse 1.0.8 · especificación de la implementación nueva
+
+## Resultado mensual y recuperación · v1.0.8
+
+Captura replica las 29 columnas de la referencia con valores calculados, sin fórmulas externas. La aprobación DIL y Category no se infieren. Los Excel personales completos añaden Respaldo Pulse (formato PULSE-TIME-1), con JSON fragmentado en celdas para evitar el límite de Excel. El export de Claim conserva su matriz y no cambia cálculos.
+
+El módulo time_recovery.py registra GET /api/time-backup.xlsx y POST /api/time-recovery/preview, /api/time-recovery/{id}/confirm. El formato anterior Tiempo aprobado también se valida. Límites: 6 MB, ZIP descomprimido 25 MB, hasta 2000 registros, sin fórmulas. Employee ID exacto; Manager activo requerido para importar, permiso operativo para descargar. No se aceptan aprobaciones del archivo. OT futura no permitida; Guardia futura sí. La OT incompleta usa DOCUMENTATION, el resto SUBMITTED.
+
+Tablas time_recovery_drafts (propietario, payload normalizado, fingerprint, vencimiento, resultado) y time_recovery_items (clave única por usuario/origen, registro, lote, metadatos). Vista previa sin escritura de horas; fingerprint y transacción protegen la confirmación; reintentos no duplican. Conflictos parciales y coberturas ya existentes se señalan. Se conservan auditoría y origen actual de la asignación.
+
+Guardias recuperadas tienen snapshot recovery_fixed/recovered_intervals, sin vincular una regla inventada. guard_coverage centraliza los intervalos originales o recuperados y respeta coverage_end_at en calendario, contabilidad, búsqueda, exportación y baja. Las pausas OT se conservan en ot_time_corrections; el Timer original no se recrea ni inicia. Ninguna recuperación modifica fuentes existentes ni reinicia sesiones ajenas.
 
 ## Analítica y reglas · v1.0.7
 

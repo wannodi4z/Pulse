@@ -28,7 +28,7 @@ class ClaimCaptureTests(unittest.TestCase):
   matrix=list(wb['Claim semanal'].values);self.assertEqual(matrix[0][3:],('Sábado','Domingo','Lunes','Martes','Miércoles','Jueves','Viernes'))
   standby=next(r for r in matrix if r[0]=='2026-01-03' and r[1]=='Stand By');ot=next(r for r in matrix if r[0]=='2026-01-03' and r[1]=='OT')
   self.assertEqual(standby[2],54.5);self.assertEqual(standby[3],6.5);self.assertEqual(ot[3],1.5)
-  wb=load_workbook(io.BytesIO(self.uc.get('/api/export.xlsx?month=2026-01').content));self.assertEqual(wb.sheetnames,['Tiempo aprobado','Resumen'])
+  wb=load_workbook(io.BytesIO(self.uc.get('/api/export.xlsx?month=2026-01').content));self.assertEqual(wb.sheetnames,['Captura','Tiempo aprobado','Resumen','Respaldo Pulse'])
  def test_scope_and_invalid_view(self):
   other,client,_=self.f.person('USER','CLAIM-PRIVATE',group=self.g)
   self.assertEqual(self.uc.get('/api/accounting?month=2026-01&view=claim&user_id='+other['id']).status_code,403)
