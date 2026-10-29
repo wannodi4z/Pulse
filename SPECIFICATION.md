@@ -1,4 +1,14 @@
-# Operational Pulse 1.0.0 · especificación de la implementación nueva
+# Operational Pulse 1.0.1 · especificación de la implementación nueva
+
+## Presentación vigente · v1.0.1
+
+Las columnas del Manager tienen altura uniforme por viewport (300–380 px en escritorio) y filas de tarjetas de 98 px; listas interiores con desplazamiento propio. La tarjeta expone identidad, estado, actividad y Ver ficha; los controles Editar, activación, traslado entre Managers y movimiento accesible se muestran en un único diálogo nativo, con datos del Técnico del propio Manager. El arrastre entre Grupos sigue usando la comprobación de origen y confirmación vigentes. No se agregan escrituras al abrir fichas.
+
+Cuando personModal se abre para un alta con un Grupo de contexto propio, group_id se envía como input oculto y se muestra una etiqueta de destino; las altas globales y la edición conservan selector. El backend sigue validando propiedad del Grupo. La navegación coloca Reglas de guardia y Recuperación directamente en el sidebar; se elimina el estado/controlador de su antiguo desplegable. La nota de Aprobaciones abarca todas las columnas y se ajusta naturalmente en pantallas estrechas.
+
+Acabados enterprise mediante CSS: superficies azul/turquesa, bordes y sombras discretas, transiciones de interacción y animación de entrada de diálogos; prefers-reduced-motion reduce animaciones/transiciones. No se modifica lógica operativa ni persistencia; el cambio de backend en esta entrega es sólo VERSION=1.0.1. La base de roles y traslados descrita debajo permanece vigente.
+
+Pruebas: suite de 69 API, manager_administration_browser.py, admin_workspace_browser.py y enterprise_finish_browser.py en Chromium, comprobaciones de tamaños/bounds a 1440×780, 1280×650 y 390×844, alta contextual efectiva, controles de ficha, navegación directa, texto continuo y preferencia de movimiento reducido. Sin pruebas en Mac físico/Safari.
 
 ## Estado vigente · v1.0.0
 

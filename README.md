@@ -1,6 +1,19 @@
-# Operational Pulse · 1.0.0
+# Operational Pulse · 1.0.1
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
+
+## Versión vigente · v1.0.1 · tablero compacto y acabado enterprise
+
+- Columnas del kanban de igual tamaño, con altura adaptada al espacio disponible. El contenido de cada columna se recorre sin deformar los Grupos vacíos o con más personas.
+- Tarjetas de Técnicos de 98 px, con nombre, Employee ID, estado e indicador de actividad/traslado. **Ver ficha** abre correo, Grupo, Cuenta y estado, además de edición, activación y traslado a otro Manager. Los botones de gestión dejan de ocupar cada tarjeta.
+- El movimiento entre Grupos propios sigue por arrastre y confirmación. La ficha conserva Mover de Grupo como alternativa para teclado o dispositivos sin arrastre.
+- Agregar Técnico desde una columna fija ese Grupo sin pedir seleccionarlo otra vez. Agregar Técnico desde el encabezado mantiene la selección entre Grupos propios.
+- Reglas de guardia y Recuperación de acceso aparecen como opciones normales del sidebar, sin desplegable Configuración. Aprobaciones muestra la explicación al ancho del panel, en una línea cuando el espacio permite.
+- Fondo azul/turquesa suave, superficies con profundidad, estados de foco y selección claros, transiciones discretas en botones, tarjetas y destinos de arrastre, y entrada breve de diálogos. Se respeta prefers-reduced-motion.
+
+Validación: **69 pruebas de API** pasaron. En Chromium se repitieron los recorridos del Manager y Admin y se agregó uno para verificar tamaños iguales, ficha, alta contextual con Grupo fijo guardada correctamente, alta global, sidebar, texto de Aprobaciones y reducción de movimiento. Se comprobaron límites de pantalla a 1440×780, 1280×650 y 390×844. Sintaxis JavaScript y compilación Python verificadas. No se probó en Mac físico ni Safari. Los usuarios de prueba y los flujos operativos se conservan.
+
+Las notas siguientes documentan la base v1.0.0 y las iteraciones previas; prevalece esta sección para la presentación actual.
 
 ## Versión vigente · v1.0.0 · administración por rol
 
