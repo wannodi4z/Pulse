@@ -261,3 +261,11 @@ Tablero del Manager reorganizado: lectura ejecutiva, concentración de OT por Gr
 - Se eliminan tablas, listados y rankings de texto de la portada analítica. Los datos tabulares permanecen en los modales de detalle. Acceso a Consulta conserva periodo y filtros del análisis.
 - Ocho visualizaciones del equipo: líneas, barras, pastel, cascada, mapa de calor horario, área acumulada, Pareto de OT y dispersión OT/SB. Cinco visualizaciones personales, sin comparativas entre personas ajenas.
 - Cada nueva gráfica explica su base, unidades, límites y datos subyacentes. Sin metas, previsiones ni evaluaciones de desempeño inventadas. Cálculos financieros y permisos sin modificaciones.
+
+## v1.0.15 — Dashboard compacto, datos emergentes y captura oportuna
+
+- Composición BI basada en las referencias del usuario: indicadores superiores con variación, paneles compactos y alineados, tendencia amplia, distribución en columnas y anillo de composición. Menús y consulta permanecen separados.
+- Indicadores del mes más reciente seleccionado, comparados con el anterior seleccionado. Las gráficas integran el conjunto de meses; se explica esta diferencia y los periodos parciales.
+- Datos emergentes en marcas de gráficas, medidores y mapa de calor: cursor, foco de teclado y toque en móvil. Dentro de modales, sin perder detalle tabular. Colores y tooltip compatibles con la política de seguridad de contenido existente.
+- Regla de uso: programar antes de ejecutar, usar Timer para la actividad y comenzar Timer ante emergencias; la captura histórica es excepcional y se justifica para revisión. No se introduce un plazo arbitrario ni un bloqueo retroactivo.
+- Seguimiento de registros históricos y demora media desde fin de actividad hasta creación. Excluye cancelados y recuperaciones de respaldo; no cambia horas, aprobaciones, Claim ni ADP. Se muestra contexto en consulta y revisión del registro.

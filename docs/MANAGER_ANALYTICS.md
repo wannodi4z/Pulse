@@ -64,3 +64,15 @@ Las tablas de respaldo se abren al hacer clic en una gráfica. El Manager y Lead
 | Dispersión | Un punto por persona: Stand By neto en X, OT en Y. Escalas etiquetadas y valores completos en el detalle; puntos coincidentes pueden superponerse. |
 
 Los datos personales y del equipo continúan usando los mismos endpoints y controles del servidor. Revocar delegación retira acceso a Analítica del equipo y Consulta del equipo.
+
+## Dashboard y registro oportuno v1.0.15
+
+Los indicadores superiores muestran **el último mes seleccionado** y su variación frente al anterior seleccionado, con el mismo alcance. La proporción programada usa puntos porcentuales (pp); las demás variaciones usan horas. Con un solo mes no se inventa una base previa. Un mes en curso se señala como parcial. Las gráficas abarcan todos los meses seleccionados y conservan sus unidades y detalles.
+
+Las marcas muestran sus valores al pasar el cursor o recibir foco por teclado. En móvil, los datos del detalle se pueden tocar. Escape, cambio de foco o salir de la marca oculta la ayuda. Los colores del mapa de calor y de los indicadores respetan la política de seguridad de contenido, sin habilitar estilos arbitrarios.
+
+**Regla de uso:** la OT prevista se programa antes de ejecutarse y se realiza con Timer; una emergencia se registra con Timer al atenderla. La captura histórica es excepcional y requiere explicar en la justificación por qué se registra después y por qué no se utilizó Timer. La justificación y la aprobación siguen usando el flujo existente. No se bloquean casos legítimos ni se añade una fecha límite sin una política definida.
+
+El indicador de captura oportuna distingue los registros históricos manuales de las recuperaciones desde respaldo. Muestra cantidad/proporción de históricos sobre OT no recuperada y demora media en horas desde el fin registrado hasta crear el registro. Usa registros dentro de los periodos de actividad y filtros consultados, en cualquier estado excepto cancelado; no es un indicador de horas aprobadas ni prueba de incumplimiento. Las recuperaciones se excluyen para no confundir restauración con backlog. No se modifican cálculos financieros ni decisiones de aprobación.
+
+[Vista previa del dashboard v1.0.15](previews/Analytics_v1.0.15.png). Imagen generada con datos de prueba aislados; no corresponde a registros productivos.

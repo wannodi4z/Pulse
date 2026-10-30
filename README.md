@@ -1,6 +1,6 @@
-# Entrega v1.0.14 · Analítica y Consulta separadas
+# Entrega v1.0.15 · dashboard compacto e interactivo
 
-Se conserva el diseño general de Pulse. **Analítica** reúne indicadores y ocho tipos de gráfica para el equipo, sin tablas en la página. **Consulta de registros** reúne búsqueda, historial, tablas y trazabilidad. El Técnico dispone de Mi analítica (cinco gráficas personales) y Mis registros. Las tablas de cada gráfica se abren en su modal de detalle. Se mantienen cálculos, permisos y periodos rápidos. [Guía de analítica del Manager](docs/MANAGER_ANALYTICS.md).
+Se conserva el diseño general de Pulse, con una composición de analítica más compacta basada en las referencias del usuario: indicadores comparativos, ocho gráficas del equipo y cinco personales, y datos emergentes por cursor, teclado o toque. **Consulta de registros** continúa separada. La captura histórica se trata como excepción y se da seguimiento a la demora de captura, excluyendo recuperaciones de respaldo. No cambian cálculos, permisos ni aprobaciones. [Guía de analítica del Manager](docs/MANAGER_ANALYTICS.md).
 
 
 - `start.command`: arranque habitual (sin cambios).

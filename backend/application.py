@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.14'
+VERSION = '1.0.15'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent
@@ -1897,6 +1897,7 @@ def analytics_records(c, visible, selected_months, query='', status='', record_t
     extensions={}
     for e in rows(c,'ot_extensions'):
         extensions.setdefault(e['overtime_id'],[]).append(e['reason']+' '+e['decision_reason']+' extensión')
+    recovered={item['record_id'] for item in rows(c,'time_recovery_items')}
     result=[]
     for kind,table in [('ot','overtime'),('guard','guards')]:
         for r in rows(c,table):
@@ -1923,7 +1924,7 @@ def analytics_records(c, visible, selected_months, query='', status='', record_t
             text=' '.join(str(v or '') for v in [r['id'],reference,description,r.get('justification'),p['first'],p['last'],p['employee_id'],g.get('name'),g.get('code'),g.get('display_code'),start,end,aliases[category],*extensions.get(r['id'],[])])
             haystack=normalized(text)
             if not all(token in haystack for token in tokens):continue
-            result.append({'id':r['id'],'kind':kind,'capture_type':category,'user_id':p['id'],'name':p['first']+' '+p['last'],'employee_id':p['employee_id'],'group_id':p['group_id'],'group_name':g.get('name','Lead del Manager' if p['is_lead'] else ''),'reference':reference,'description':description,'from_at':start,'to_at':end,'status':r['status'],'display_status':effective_status,'execution':r.get('execution'),'created_at':r['created_at']})
+            result.append({'id':r['id'],'kind':kind,'capture_type':category,'user_id':p['id'],'name':p['first']+' '+p['last'],'employee_id':p['employee_id'],'group_id':p['group_id'],'group_name':g.get('name','Lead del Manager' if p['is_lead'] else ''),'reference':reference,'description':description,'from_at':start,'to_at':end,'status':r['status'],'display_status':effective_status,'execution':r.get('execution'),'created_at':r['created_at'],'recovered':r['id'] in recovered,'capture_delay_hours':round(max(0,(parse_at(r['created_at'])-b).total_seconds()/3600),2) if category=='HISTORICAL' and r['id'] not in recovered else None})
     return sorted(result,key=lambda r:(r['created_at'],r['id']),reverse=True)
 
 
@@ -2031,8 +2032,11 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
     for item in hourly:item['minutes']=rounded(item['minutes'])
     counts={}
     for record in matched:counts[record['display_status']]=counts.get(record['display_status'],0)+1
+    manual_ot=[r for r in matched if r['kind']=='ot' and not r['recovered'] and r['status']!='CANCELLED']
+    historical=[r for r in manual_ot if r['capture_type']=='HISTORICAL']
+    timeliness={'manual_ot_records':len(manual_ot),'historical_records':len(historical),'historical_share':round(len(historical)/len(manual_ot)*100,1) if manual_ot else None,'average_delay_hours':round(sum(r['capture_delay_hours'] for r in historical)/len(historical),2) if historical else None,'recovered_ot_records':sum(r['kind']=='ot' and r['recovered'] and r['status']!='CANCELLED' for r in matched)}
     return {'month': month, 'months':selected_months,'comparison':comparisons,'records':matched,'record_counts':counts,'record_count':len(matched),'timezone': str(TZ), 'basis': 'APPROVED_ACTUAL', 'filters': {'user_id': user_id, 'group_id': group_id,'q':query,'status':status,'record_type':record_type,'period':period},
-            'mode': 'PERSONAL' if personal else 'TEAM', 'summary': rounded(summary), 'hourly':hourly, 'as_of':datetime.now(TZ).isoformat(),
+            'mode': 'PERSONAL' if personal else 'TEAM', 'timeliness':timeliness, 'summary': rounded(summary), 'hourly':hourly, 'as_of':datetime.now(TZ).isoformat(),
             'groups': sorted(by_group.values(), key=lambda g: (-g['minutes']['total_minutes'], g['name'])),
             'users': sorted(by_user.values(), key=lambda u: (-u['minutes']['total_minutes'], u['name'])),
             'days': [{'date': day, 'minutes': rounded(values)} for day, values in sorted(by_day.items())], 'rows': detail}

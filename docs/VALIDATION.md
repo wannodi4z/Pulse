@@ -276,3 +276,11 @@ Verificación de periodos rápidos, selección por clic entre años, conservaci�
 - Búsqueda por referencia, historial, filtros, pendientes excluidos de las horas, comparación de tres meses y Excel coincidente. Consulta de sólo lectura con revisión en Aprobaciones.
 - Participantes reales, Timer sin iniciar, búsqueda de persona sin horas, periodos rápidos entre años y cascada 10 + 3 − 2 + 1 = 12 h.
 - Ocho pruebas API de búsqueda/comparación/exportación, cálculo y autorización/participantes aprobadas.
+
+### v1.0.15
+
+- Dos pruebas nuevas de captura oportuna: demora exacta de 48 horas, recuperaciones excluidas, alcance personal, búsquedas sin base y total aprobado sin cambios.
+- Ocho pruebas existentes de analítica, exportación y participación aprobadas.
+- Ocho gráficas de equipo/cinco personales: tooltip visible y con valor exacto por cursor y teclado, límites de pantalla, toque en mapa de calor móvil y cierre al cambiar foco. Verificación de colores del mapa bajo CSP, +25 pp correctos y demora de 48 h sin una segunda conversión.
+- Aviso de captura histórica excepcional y ayuda en justificación; consulta de sólo lectura y exportación verificadas.
+- 92 comprobaciones de rol/página/resolución aprobadas y separación Analítica/Consulta conservada.
