@@ -1,3 +1,7 @@
+### Distribución compacta · misma v1.0.20
+
+- Las gráficas aprovechan los huecos debajo de tarjetas más pequeñas. La distribución densa usa el orden guardado como prioridad de colocación, sin modificar los tamaños ni el orden del DOM.
+
 ### Ajuste de la misma v1.0.20
 
 - La geometría de las gráficas SVG se adapta al ancho y altura reales durante el cambio de tamaño. Etiquetas y puntos conservan proporciones legibles; el anillo conserva su forma circular. Barras, ranking y mapa de calor aprovechan la altura disponible.

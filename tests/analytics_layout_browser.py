@@ -24,6 +24,17 @@ try:
   login('M001');month_january();expect(page.locator('.chart-tile')).to_have_count(9)
   expect(tile('trend').locator('h3')).to_have_text('Tendencia mensual')
   original=page.evaluate('JSON.stringify({summary:analyticsReport.summary,filters,comparisonMonths})')
+  # A tall two-thirds chart and a short third leave room for another third below it.
+  edit();page.locator('[data-chart-width=trend]').select_option('8');page.locator('[data-chart-height=trend]').select_option('600');page.locator('[data-chart-height=monthlybars]').select_option('300')
+  page.wait_for_timeout(80)
+  tall=tile('trend').bounding_box();short=tile('monthlybars').bounding_box();packed=tile('groups').bounding_box()
+  assert abs(short['x']-packed['x'])<2 and abs(packed['y']-(short['y']+short['height']+12))<2,(tall,short,packed)
+  assert packed['y']<tall['y']+tall['height']
+  def no_overlaps():return page.locator('.chart-tile').evaluate_all("es=>{const boxes=es.map(e=>e.getBoundingClientRect());return boxes.every((a,i)=>boxes.slice(i+1).every(b=>a.right<=b.left+1||b.right<=a.left+1||a.bottom<=b.top+1||b.bottom<=a.top+1))}")
+  assert no_overlaps()
+  page.reload();page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy');month_january();assert tile('groups').bounding_box()['y']<tile('trend').bounding_box()['y']+600
+  edit();page.locator('[data-action=chart-layout-reset]').click();edit()
+
   edit()
   def order():return page.locator('.chart-tile').evaluate_all("es=>es.map(e=>e.dataset.chartKind)")
   before=order();source=tile('trend').locator('[data-chart-move]');target=tile('groups')
@@ -54,7 +65,7 @@ try:
   expect(tile('trend')).to_have_attribute('data-width','8');expect(tile('trend')).to_have_attribute('data-height','480')
   for width,height in [(1440,1000),(1024,700),(390,844)]:
    page.set_viewport_size({'width':width,'height':height});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-   expect(tile('trend')).to_have_attribute('data-width','8')
+   expect(tile('trend')).to_have_attribute('data-width','8');assert no_overlaps()
   tile('trend').locator('[data-chart-move]').focus();page.keyboard.press('ArrowRight');assert order()[1]=='trend'
   tile('trend').locator('[data-chart-move]').focus();page.keyboard.press('ArrowLeft');assert order()[0]=='trend'
   # Details and local legend remain available on a resized chart.

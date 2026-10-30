@@ -87,3 +87,11 @@ form[aria-busy=true] button[type=submit]{cursor:progress}
 .chart-tile-controls>.chart-move-handle{flex:none;width:28px;padding:0;font-size:23px;cursor:grab;touch-action:none;color:#487ba8;background:#e7f0fa;border:1px solid #ceddec;border-radius:5px}.chart-move-handle:active{cursor:grabbing}.chart-move-handle:focus-visible{outline:3px solid #db9c3b;outline-offset:2px}.chart-tile.is-moving{opacity:.55}.chart-tile.chart-drop-target{outline:3px dashed #287bd0;outline-offset:-4px;box-shadow:0 0 0 3px #d8eaff}
 /* The data canvas grows with the tile, not only its outer frame. */
 .chart-tile-plot>.decision-group-bars,.chart-tile-plot>.decision-people-ranking{flex:1 0 auto;display:grid;grid-auto-rows:minmax(min-content,1fr);align-content:stretch}.chart-tile-plot>.decision-group-bars>div,.chart-tile-plot>.decision-people-ranking>div{display:flex;flex-direction:column;justify-content:center}.chart-tile-plot>.decision-heatmap{flex:1 0 190px;grid-auto-rows:minmax(36px,1fr)}.chart-tile-plot>.decision-footnote{flex:none}.analytics-dashboard .chart-tile .chart-tile-plot>.decision-svg{flex:1 0 130px;align-self:stretch}
+/* Compact packing: a short card no longer reserves the height of its taller neighbour.
+   One-pixel tracks preserve the chosen exact height; each span includes a 12px gutter.
+   Dense placement fills available spaces in saved chart priority, without changing DOM order. */
+.analytics-dashboard .personalized-charts .chart-layout-grid{grid-auto-flow:row dense;grid-auto-rows:1px;row-gap:0;column-gap:12px;align-content:start}
+.chart-layout-grid .chart-tile{grid-row-end:span 392}
+.chart-layout-grid .chart-tile[data-height="300"]{grid-row-end:span 312}
+.chart-layout-grid .chart-tile[data-height="480"]{grid-row-end:span 492}
+.chart-layout-grid .chart-tile[data-height="600"]{grid-row-end:span 612}

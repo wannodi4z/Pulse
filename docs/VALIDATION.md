@@ -1,3 +1,7 @@
+### Distribución compacta
+
+Se comprueba el caso de una gráfica de dos tercios/600px junto a una de un tercio/300px: la siguiente ocupa el hueco inferior, con 12px de separación. Verificación de persistencia y ausencia de superposiciones en escritorio, tablet y móvil.
+
 ### Redimensionamiento interior · v1.0.20
 
 Prueba de tamaño del SVG durante el arrastre antes de soltar, correspondencia del viewBox con el viewport real y texto sin deformación; expansión de barras, ranking, mapa de calor y anillo.
