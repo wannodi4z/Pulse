@@ -290,3 +290,10 @@ Verificación de periodos rápidos, selección por clic entre años, conservaci�
 - Tres pruebas del cargador: Timer de actividad preaprobada que inicia, se detiene y vuelve a revisión; todos los Managers/personas, protección de una OT original de Samuel en octubre, datos de usuarios intactos, idempotencia, respaldo, tramos cerrados, integridad SQLite y claves foráneas, ninguna Guardia de Lead y ventana/actividad vinculadas.
 - Consulta/analítica/exportación de cada Manager y alcance personal de Samuel; recuperación de octubre no necesaria porque no se modifica. El generador aborta si existe un Timer activo.
 - Tres pruebas del paquete: instalación nueva con ejemplos, reinicio conservando contraseña y datos propios, y base explícita independiente sin sustitución automática.
+
+### v1.0.17
+
+- Datos acumulados comprobados por tipo: SB 150 min, programada 60, histórica 15 y emergente 45; total 270 min, con fechas de entrada desordenadas. Tabla en horas: 2.5 + 1 + 0.25 + 0.75 = 4.5.
+- Ranking comprobado con dos personas con horas y una con cero: orden, nombres, horas y participaciones 66.7%, 33.3%, 0.0%; sin línea de porcentaje acumulado.
+- Panel mensual con dos mitades del mismo ancho; líneas y barras abren detalles independientes. Modales, tooltips largos, foco, toque y tablas verificados en escritorio/móvil y Manager/Técnico/Lead delegado.
+- 92 comprobaciones de rol/página/resolución y prueba de separación Analítica/Consulta, participantes reales y búsquedas sin datos aprobadas.

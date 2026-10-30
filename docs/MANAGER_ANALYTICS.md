@@ -76,3 +76,13 @@ Las marcas muestran sus valores al pasar el cursor o recibir foco por teclado. E
 El indicador de captura oportuna distingue los registros históricos manuales de las recuperaciones desde respaldo. Muestra cantidad/proporción de históricos sobre OT no recuperada y demora media en horas desde el fin registrado hasta crear el registro. Usa registros dentro de los periodos de actividad y filtros consultados, en cualquier estado excepto cancelado; no es un indicador de horas aprobadas ni prueba de incumplimiento. Las recuperaciones se excluyen para no confundir restauración con backlog. No se modifican cálculos financieros ni decisiones de aprobación.
 
 [Vista previa del dashboard v1.0.15](previews/Analytics_v1.0.15.png). Imagen generada con datos de prueba aislados; no corresponde a registros productivos.
+
+## Lectura directa v1.0.17
+
+El primer panel muestra **Tendencia mensual** (líneas de OT y Stand By) junto a **Horas mensuales por tipo** (barras apiladas de los cuatro conceptos). Cada mitad abre su propio detalle. Se apilan verticalmente en móvil y cada panel usa su altura necesaria.
+
+**Acumulado por tipo de hora** utiliza franjas apiladas para Stand By neto, OT programada, histórica y emergente. La altura total es la suma acumulada. La ayuda por fecha incluye acumulado por tipo y aporte del día; la leyenda muestra los cuatro totales y la tabla desglosa cada acumulado. Aumento del acumulado significa incorporación de horas aprobadas a lo largo de las fechas, no variación respecto de otro mes. Las fechas omitidas no se convierten en horas cero.
+
+**OT aprobada por Técnico** muestra nombre y horas en cada barra, con la participación porcentual sobre toda la OT del alcance. Se ordena de mayor a menor; la portada muestra hasta ocho personas y el detalle incluye todas. Se incluyen personas con cero horas. Se ha reemplazado el anterior Pareto con doble eje para facilitar la lectura; no mide desempeño.
+
+[Vista previa v1.0.17](previews/Analytics_v1.0.17.png), con datos aislados de prueba.

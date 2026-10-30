@@ -275,3 +275,10 @@ Tablero del Manager reorganizado: lectura ejecutiva, concentración de OT por Gr
 807 OT, 142 Guardias y 570 tramos cerrados para 12 Técnicos y cuatro Leads, cuatro Managers y dos Cuentas. Historial mayo–octubre y programaciones futuras de noviembre; octubre de Samuel Díaz (951357) excluido y conservado. Actividades compartidas, aprobaciones simuladas, pendientes, rechazo, documentación y capturas históricas excepcionales.
 
 Nueva base sintética para instalaciones sin base existente. Cargador aditivo con respaldo, identificadores estables, transacción y protección de octubre para quien conserva su base; no reemplaza personas ni registros. Sin Timers activos automáticos ni delegaciones nuevas. [Uso de los datos](DATOS_DEMO.md).
+
+## v1.0.17 — Acumulación por tipo y lectura directa
+
+- El panel mensual combina dos gráficas lado a lado: tendencia de líneas OT/SB y barras mensuales apiladas por Stand By, OT programada, histórica y emergente. En móvil se apilan; se elimina la altura sobrante.
+- Acumulación con áreas apiladas por los cuatro tipos, totales por color, datos emergentes diarios/acumulados y tabla de acumulados por tipo. No se confunde acumulación con variación mensual.
+- La concentración de OT se simplifica a un ranking horizontal con nombre, horas y porcentaje directamente visibles. Se retiran la línea de porcentaje acumulado, doble eje y números que obligaban a buscar nombres en otra leyenda.
+- Sin cambios en datos, cálculos, permisos ni ejemplos; se conserva la protección de octubre de Samuel.

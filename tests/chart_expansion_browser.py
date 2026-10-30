@@ -27,7 +27,12 @@ try:
     assert page.locator('.bi-kpi>strong').first.evaluate("e=>getComputedStyle(e).color==='rgb(40, 118, 200)'")
     assert page.evaluate("()=>{const r=structuredClone(analyticsReport);r.timeliness.average_delay_hours=48;r.comparison=[{month:'2026-01',minutes:{ot_minutes:240,PLANNED:60,GUARD:0,EMERGENCY:0}},{month:'2026-02',minutes:{ot_minutes:240,PLANNED:120,GUARD:0,EMERGENCY:0}}];const html=managerCommandDashboard(r);return html.includes('+25 pp')&&html.includes('48 h')}")
     page.locator('#main').evaluate('e=>e.scrollTop=0');page.screenshot(path='/tmp/pulse115-bi.png')
-   for kind in (['trend','groups','mix','waterfall','heatmap','area','pareto','scatter'] if view=='analytics' else ['trend','mix','waterfall','area','heatmap']):
+   # The monthly panel contains two equally sized complementary charts.
+   expect(page.locator('.decision-dual-pane')).to_have_count(2)
+   assert page.locator('.decision-dual-pane').evaluate_all('xs=>Math.abs(xs[0].getBoundingClientRect().width-xs[1].getBoundingClientRect().width)<2')
+   assert page.evaluate("""()=>{const r={days:[{date:'2026-01-02',minutes:{GUARD:30,PLANNED:0,HISTORICAL:15,EMERGENCY:45,total_minutes:90}},{date:'2026-01-01',minutes:{GUARD:120,PLANNED:60,HISTORICAL:0,EMERGENCY:0,total_minutes:180}}]};const rows=accumulationSeries(r),d=extraVisualData('area',r);return JSON.stringify(rows[1].accumulated)===JSON.stringify({GUARD:150,PLANNED:60,HISTORICAL:15,EMERGENCY:45})&&rows[1].total===270&&JSON.stringify(d.rows[1].slice(1))===JSON.stringify(['2.5','1','0.25','0.75','4.5'])&&!extraDecisionChart('area',r).includes('NaN')}""")
+   assert page.evaluate("""()=>{const r={users:[{name:'Cero',minutes:{ot_minutes:0}},{name:'Beto',minutes:{ot_minutes:60}},{name:'Ana',minutes:{ot_minutes:120}}],summary:{ot_minutes:180}};const d=extraVisualData('pareto',r),h=extraDecisionChart('pareto',r);return JSON.stringify(d.rows)===JSON.stringify([['Ana','2','66.7%'],['Beto','1','33.3%'],['Cero','0','0.0%']])&&!h.includes('polyline')&&h.includes('Ana')}""")
+   for kind in (['trend','monthlybars','groups','mix','waterfall','heatmap','area','pareto','scatter'] if view=='analytics' else ['trend','monthlybars','mix','waterfall','area','heatmap']):
     for width,height in [(1440,780),(390,844)]:
      page.set_viewport_size({'width':width,'height':height})
      page.locator('[data-action=decision-detail][data-id='+kind+']').click();expect(page.locator('#modal.expanded-chart-dialog')).to_be_visible()
@@ -35,13 +40,19 @@ try:
      expect(page.locator('#modal')).to_contain_text('enero de 2026')
      expect(page.locator('#modal')).to_contain_text('Lectura del periodo')
      assert page.locator('#modal tbody tr').count()>0
+     if kind=='area':
+      expect(page.locator('#modal .area-type-totals>span')).to_have_count(4)
+      expect(page.locator('#modal thead')).to_contain_text('SB acumulado h')
+     if kind=='pareto':
+      expect(page.locator('#modal .decision-people-ranking')).to_be_visible()
+      expect(page.locator('#modal')).not_to_contain_text('% acumulado')
      if kind=='heatmap':
       assert page.locator('#modal [data-heat-value]').evaluate_all("xs=>new Set(xs.map(e=>getComputedStyle(e).backgroundColor)).size>1")
      point=page.locator('#modal [data-chart-tip]').last
      expect(point).to_have_count(1)
      point.hover();expect(page.locator('#pulse-chart-tooltip:popover-open')).to_be_visible()
      expect(page.locator('#pulse-chart-tooltip')).to_have_text(point.get_attribute('data-chart-tip'))
-     assert page.locator('#pulse-chart-tooltip').evaluate('e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<=innerHeight+1}')
+     assert page.locator('#pulse-chart-tooltip').evaluate('e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<=innerHeight+1}'),(view,kind,width)
      if kind=='heatmap' and width==390:
       point.tap();expect(page.locator('#pulse-chart-tooltip:popover-open')).to_be_visible()
      point.focus();expect(page.locator('#pulse-chart-tooltip:popover-open')).to_be_visible()

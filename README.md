@@ -1,4 +1,6 @@
-# Entrega v1.0.16 · datos de demostración para todo el equipo
+# Entrega v1.0.17 · gráficas por tipo y lectura directa
+
+El panel mensual reúne líneas y barras por tipo en el mismo espacio. El acumulado separa Stand By, OT programada, histórica y emergente; el ranking muestra nombres, horas y porcentajes directamente. [Vista previa](docs/previews/Analytics_v1.0.17.png).
 
 **Incluye 949 registros sintéticos para los 12 Técnicos y cuatro Leads de los cuatro Managers. Octubre de 2026 de Samuel Díaz (951357) queda excluido.** Una instalación nueva los carga automáticamente; si conservas tu base, ejecuta `Cargar_datos_demo.command` después de cerrar Pulse. Se genera un respaldo y se agregan sólo los ejemplos faltantes. [Guía de datos de demostración](docs/DATOS_DEMO.md).
 
