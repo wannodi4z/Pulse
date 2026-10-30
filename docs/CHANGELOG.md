@@ -289,3 +289,11 @@ Nueva base sintética para instalaciones sin base existente. Cargador aditivo co
 - Se ajustan escala, resumen, valores emergentes y tabla a la serie elegida; las categorías sin horas tienen estado vacío explícito.
 - La selección se limita al modal y no cambia el reporte ni filtros del dashboard. Consultar registros lleva el tipo seleccionado a la pantalla de consulta, conservando su periodo y alcance autorizado.
 - Botones con foco, estado accesible y uso por teclado/toque. Se conservan cálculos, datos de demostración y octubre de Samuel.
+
+## v1.0.19 — Tablero personalizable del Manager
+
+- Personalizar tablero permite mostrar/ocultar cada una de las nueve gráficas y asignar ancho/altura. Tendencia y barras mensuales tienen tamaño y visibilidad independientes.
+- Cuatro anchos (tercio, mitad, dos tercios, completa) y cuatro alturas; esquina para redimensionar con ratón o flechas. Escape cancela el arrastre y el refresco silencioso no interrumpe el ajuste.
+- Preferencias guardadas automáticamente por usuario en este navegador, separadas de los datos y filtros. Restaurar diseño recupera todas las gráficas y tamaños predeterminados. Un tablero sin gráficas conserva una vía clara para recuperarlas.
+- En móvil el ancho se adapta sin sobrescribir las preferencias del escritorio; selectores de tamaño siguen disponibles. El Lead delegado personaliza su propio tablero de equipo; la vista personal conserva su diseño.
+- Se mantienen ampliación en modal, selección de series en la leyenda, datos emergentes, consultas, cálculos y registros. Foco de leyendas ajustado para evitar que una actualización asíncrona interrumpa la navegación por teclado.

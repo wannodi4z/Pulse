@@ -304,3 +304,10 @@ Verificación de periodos rápidos, selección por clic entre años, conservaci�
 - Acumulado histórico con una sola franja/tabla correspondiente; retorno por repetición y Ver todos; teclado y móvil; tipo sin datos con estado vacío y sin NaN.
 - Reporte, filtros y meses del dashboard comprobados sin mutaciones durante la selección. Reapertura restablece todos; navegación a Mis registros conserva el tipo histórico elegido.
 - Modales, datos emergentes, pantalla pequeña y alcance personal/delegado del flujo de gráficas conservados.
+
+### v1.0.19
+
+- Prueba de personalización: ocultar/mostrar, todos ocultos, recuperación y restauración; tamaños por selectores, arrastre real y teclado, cancelación con Escape y refresco silencioso durante el arrastre.
+- Persistencia tras recarga, separación entre dos Managers, datos de navegador inválidos y almacenamiento denegado con mensaje sin romper la interfaz.
+- Anchos adaptados en 1440/1024/390 px sin desbordamiento ni pérdida del ancho guardado. Reporte, totales y filtros comprobados sin mutaciones.
+- Modal de una gráfica redimensionada mantiene la leyenda interactiva. Flujo completo de gráficas, consultas, alcance delegado y 92 verificaciones de rol/página/resolución aprobados.

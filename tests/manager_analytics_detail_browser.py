@@ -27,7 +27,7 @@ try:
   page.goto(base);page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy');page.locator('#month').fill(month);page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
   expect(page.locator('#main table')).to_have_count(0)
   expect(page.locator('#analytics-search')).to_have_count(0)
-  expect(page.locator('.decision-card')).to_have_count(8)
+  expect(page.locator('.decision-card')).to_have_count(9)
   page.locator('[data-action=analytics-months]').first.click()
   expect(page.locator('#comparison-month-grid button')).to_have_count(12)
   page.locator('[data-action=comparison-preset][data-id="6"]').click()

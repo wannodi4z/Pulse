@@ -12,6 +12,8 @@ Ejecutar `start.command` desde la raíz, o `.venv/bin/python -m uvicorn server:a
 | backend/application.py | Sesiones, roles, cuentas, equipos, OT, Timer, Guardias, reglas, autorizaciones, calendario, analítica y cálculos Claim/ADP |
 | backend/time_recovery.py | Lectura validada, vista previa, duplicados, recuperación transaccional y respaldos personales |
 | frontend/index.html | Entrada HTML y orden de carga de recursos |
+| frontend/static/analytics-visuals.js | Gráficas, resúmenes, leyendas interactivas y datos emergentes sobre el reporte autorizado |
+| frontend/static/analytics-layout.js | Tamaños y visibilidad del tablero del equipo; preferencias locales por usuario, sin cambios en datos ni autorización |
 | frontend/static/app.js | Estado, vistas, formularios e interacción con API |
 | frontend/static/layout.js | Organización del contenido y paginación |
 | frontend/static/app.css, design.css, interface.css | Estilos base, componentes y acabado responsive, en ese orden |

@@ -94,3 +94,18 @@ Abre el detalle de **Acumulado por tipo**, **Horas mensuales por tipo**, **Compo
 Las leyendas indican el total de cada categoría dentro del alcance original del dashboard; los botones restantes permanecen disponibles para cambiar de categoría. En el anillo, la única categoría visible representa 100% de esa selección; Ver todos restaura sus proporciones originales. Si no existen horas del tipo seleccionado, se indica sin inventar datos.
 
 Esta selección no modifica los filtros del dashboard ni recalcula Stand By bruto: conserva el Stand By neto ya calculado. Al cerrar y volver a abrir una gráfica se muestran todos los tipos. **Consultar registros** desde el detalle traslada el tipo elegido a la consulta para revisar sus registros. La autorización personal/de equipo continúa aplicándose en el servidor.
+
+## Personalizar el tablero · v1.0.19
+
+1. En Analítica del equipo, pulsa **Personalizar tablero**.
+2. Usa las opciones de Gráficas visibles para mostrar u ocultar cada gráfica. También puedes pulsar **Ocultar** en una tarjeta.
+3. Elige **Ancho** y **Altura** en cada tarjeta. En escritorio puedes arrastrar su esquina inferior derecha para ajustar ambas dimensiones; las flechas del teclado también funcionan al enfocar la esquina. Escape cancela el arrastre.
+4. Pulsa **Listo** para salir de la edición. Los cambios se guardan automáticamente, sin modificar los filtros ni los datos.
+
+**Restaurar diseño** recupera las nueve gráficas con tamaño predeterminado. Si ocultas todas, permanece disponible **Elegir gráficas**. Tendencia mensual y barras mensuales se personalizan de forma independiente.
+
+Los tamaños se ajustan a una cuadrícula para evitar solapamientos: ancho de un tercio, mitad, dos tercios o completo; alturas compacta, normal, alta o muy alta. Las tarjetas con más contenido permiten desplazarse en su interior y mantienen visible el acceso al detalle. En pantallas pequeñas las tarjetas ocupan el ancho disponible sin cambiar el tamaño guardado para escritorio.
+
+El diseño se almacena **por usuario en el almacenamiento de este navegador**, separado para cada Manager o Lead delegado. No se sincroniza entre dispositivos ni forma parte del respaldo de horas; limpiar los datos del navegador elimina esa preferencia. Si el navegador impide guardarla, la interfaz informa y mantiene los cambios durante la sesión. La selección de leyendas sigue siendo local al modal; ampliar una gráfica no cambia su tamaño guardado.
+
+[Vista previa de personalización v1.0.19](previews/Analytics_v1.0.19.png), con datos aislados de prueba.

@@ -1,4 +1,6 @@
-# Entrega v1.0.18 · leyendas interactivas
+# Entrega v1.0.19 · tablero personalizable
+
+**Personalizar tablero** permite mostrar/ocultar gráficas y ajustar su ancho y altura con controles o arrastrando una esquina. Se guarda por usuario en este navegador; **Restaurar diseño** recupera la distribución predeterminada. Ampliación y leyendas interactivas se conservan. [Guía de uso](docs/MANAGER_ANALYTICS.md) · [Vista previa](docs/previews/Analytics_v1.0.19.png).
 
 En el detalle de una gráfica, pulsa una categoría de la leyenda para mostrarla sola. Escala, resumen, valores y tabla acompañan la selección. Usa **Ver todos** o repite la pulsación para restablecer; los filtros del dashboard permanecen intactos.
 
