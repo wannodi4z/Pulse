@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.12'
+VERSION = '1.0.13'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent

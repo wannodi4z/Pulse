@@ -247,3 +247,10 @@ La versión se actualiza en backend, interfaz y referencias de recursos para evi
 ## v1.0.12 — Analítica de gestión
 
 Tablero del Manager reorganizado: lectura ejecutiva, concentración de OT por Grupo, mezcla de captura, pendientes, comparación con OT y Stand By separados y desgloses progresivos. Conserva cálculos, alcance, historial y diseño general. Sin metas ni evaluaciones de desempeño inferidas.
+
+## v1.0.13 — Analítica visual y comparación directa
+
+- Comparación por periodos rápidos: 2, 3, 6, 12 meses, año hasta el mes principal o mismo mes del año anterior. Cuadrícula de meses seleccionables y navegación entre años; conserva el principal y el límite de 24 meses.
+- Cuatro gráficas con detalle al clic: tendencia de líneas OT/SB, barras independientes por Grupo, pastel por tipo y cascada de variación de OT.
+- Cada gráfica abre una lectura del periodo, datos tabulares y contexto de filtros. La cascada compara primer/último mes y separa variación programada, histórica y emergente; no atribuye causas.
+- Disponible para Manager, Lead delegado y analítica personal del Técnico según su alcance autorizado. Sin cambios en cálculo financiero ni permisos.

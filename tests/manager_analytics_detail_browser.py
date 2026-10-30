@@ -35,6 +35,37 @@ try:
    page.set_viewport_size({'width':width,'height':900})
    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'), 'Dashboard overflow'
   page.set_viewport_size({'width':1440,'height':900})
+  # Period presets, click selection, all four visual details and responsive bounds.
+  expect(page.locator('.decision-grid .decision-card')).to_have_count(4)
+  page.locator('[data-action=analytics-months]').first.click()
+  expect(page.locator('#comparison-month-grid button')).to_have_count(12)
+  page.locator('[data-action=comparison-preset][data-id="6"]').click()
+  expect(page.locator('#comparison-draft>span')).to_have_count(6)
+  page.locator('[data-action=comparison-year][data-id="-1"]').click()
+  page.locator('#comparison-month-grid button').first.click()
+  expect(page.locator('#comparison-draft>span')).to_have_count(7)
+  page.locator('[data-action=comparison-preset][data-id="annual"]').click()
+  expect(page.locator('#comparison-draft>span')).to_have_count(2)
+  page.locator('#modal button[type=submit]').click();page.wait_for_function('()=>!busy')
+  expect(page.locator('.decision-grid .decision-card')).to_have_count(4)
+  expect(page.locator('.decision-card [data-action=decision-detail][data-id=trend] svg.decision-svg')).to_have_count(1)
+  for kind in ['trend','groups','mix','waterfall']:
+   page.locator('[data-action=decision-detail][data-id="'+kind+'"]').click()
+   expect(page.locator('#modal')).to_contain_text('Lectura del periodo')
+   assert page.locator('#modal tbody tr').count()>0
+   assert 'NaN' not in page.locator('#modal').inner_text()
+   for w,h in [(1440,900),(1024,600),(390,844)]:
+    page.set_viewport_size({'width':w,'height':h})
+    assert page.locator('#modal').evaluate('e=>{let r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1}')
+    assert page.locator('#modal .dialog-footer').evaluate('e=>e.getBoundingClientRect().bottom<=innerHeight+1')
+   page.locator('#modal .dialog-footer [data-action=close]').click();page.set_viewport_size({'width':1440,'height':900})
+  # Exact waterfall bridge, including a reduction; no division by zero or invented hours.
+  assert page.evaluate("""()=>{const r=structuredClone(analyticsReport);r.comparison=[{month:'2026-01',minutes:{ot_minutes:600,PLANNED:300,HISTORICAL:180,EMERGENCY:120}},{month:'2026-03',minutes:{ot_minutes:720,PLANNED:480,HISTORICAL:60,EMERGENCY:180}}];const d=decisionVisualData('waterfall',r);return JSON.stringify(d.rows.map(x=>x[1]))===JSON.stringify(['10','3','-2','1','12'])&&!decisionChart('waterfall',r).includes('NaN')}""")
+  for width in [390,768,1440]:
+   page.set_viewport_size({'width':width,'height':900});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+  page.set_viewport_size({'width':1440,'height':900})
+  page.locator('.decision-section').screenshot(path='/tmp/pulse113-visual-dashboard.png')
+  page.locator('[data-action=analytics-reset]').first.click();page.wait_for_function('()=>!busy')
   before=page.locator('[name=filter-period]').input_value();page.locator('#analytics-search').fill('CHG-GROUP-NORMAL');page.wait_for_timeout(550);page.wait_for_function('()=>!busy');expect(page.locator('[name=filter-period]')).to_have_value(before)
   expect(page.locator('#analytics-records tbody tr')).to_have_count(2)
   page.locator('[data-action=record-detail][data-id="ot:'+x.ot+'"]').first.click();page.locator('#modal [data-action=analytics-participants]').click();expect(page.locator('.activity-participants tbody tr')).to_have_count(2);expect(page.locator('#modal')).to_contain_text('Sin iniciar');expect(page.locator('#modal')).to_contain_text('1 tramo iniciado')

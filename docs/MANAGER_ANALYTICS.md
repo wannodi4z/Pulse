@@ -34,3 +34,18 @@ El ZIP estable no incluye las interfaces experimentales rechazadas. Conserva sta
 La portada resume OT, Stand By neto, proporción de OT programada y personas con horas aprobadas. La lectura ejecutiva identifica la concentración de OT, proporción emergente y diferencia de OT entre los últimos dos meses seleccionados. No se infieren objetivos, productividad ni desempeño.
 
 El mapa ordena Grupos por OT y muestra SB por separado; cada Grupo permite filtrar la consulta. El panel de seguimiento cuenta pendientes, documentación y personas sin horas aprobadas con los filtros vigentes. La comparación usa barras independientes de OT y SB con una escala común. Las cifras por Grupo y persona se consultan en desgloses desplegables. Los totales financieros y permisos mantienen su cálculo anterior.
+
+## Exploración visual v1.0.13
+
+**Comparar periodos:** elige un acceso rápido o marca meses en la cuadrícula. Los accesos rápidos terminan en el mes principal; “Mismo mes · año anterior” selecciona ese mes y su equivalente anterior. Navega entre años sin perder la selección; aplica una vez al terminar. El principal siempre queda incluido, hasta 24 meses. No se agrega automáticamente historial ni cambia la búsqueda.
+
+Las cuatro gráficas abren un modal con resumen, tabla y alcance de la consulta:
+
+| Gráfica | Pregunta de gestión | Base |
+| --- | --- | --- |
+| Líneas | ¿Cómo evolucionan OT y SB? | Horas mensuales aprobadas, misma escala; fechas separadas según distancia real entre meses. Los meses omitidos no son ceros. |
+| Barras | ¿Qué Grupos concentran OT y SB? | Dos barras por Grupo; portada muestra hasta 6 Grupos por OT, tabla completa al abrir. |
+| Pastel | ¿Qué proporción corresponde a cada concepto? | Programada, histórica, emergente y Guardia neta sobre horas aprobadas. No muestra proporciones sin base. |
+| Cascada | ¿Qué tipo de OT explica la diferencia? | OT del primer mes + cambios por tipo = OT del último mes. Los meses intermedios se consultan en líneas. |
+
+Azul en cascada: total inicial/final; naranja: incremento; verde: reducción. Los colores indican dirección, no una valoración de desempeño. Una diferencia por tipo de captura no demuestra una causa de negocio. Histórica no equivale a imprevista. Los periodos en curso son parciales. La analítica personal utiliza únicamente el reporte personal autorizado; el Lead requiere delegación vigente para el tablero del equipo.

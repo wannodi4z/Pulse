@@ -16,33 +16,28 @@ try:
   assert ctx.request.post(base+'/api/login',data={'identity':'M001','password':'Password2026!'}).ok
   page.goto(base);page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy')
   page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
-  page.locator('[data-action=analytics-months]').click();page.locator('[name=compare_month]').fill('2026-02');page.locator('[data-action=comparison-add]').click();page.locator('#modal [type=submit]').click();page.wait_for_function('()=>!busy')
-  assert page.locator('.chart-card').evaluate_all('xs=>Math.abs(xs[0].getBoundingClientRect().height-xs[1].getBoundingClientRect().height)<2')
   for identity,view in [('M001','analytics'),('T001','myAnalytics')]:
    ctx.clear_cookies();assert ctx.request.post(base+'/api/login',data={'identity':identity,'password':'Password2026!'}).ok
    page.goto(base);page.locator('.sidebar [data-page='+view+']').click();page.wait_for_function('()=>!busy');page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
-   for kind in ['distribution','comparison','hourly','daily']:
+   page.locator('[data-action=analytics-months]').first.click();page.locator('[data-action=comparison-toggle][data-id="2026-02"]').click();page.locator('#modal [type=submit]').click();page.wait_for_function('()=>!busy')
+   expect(page.locator('.decision-card')).to_have_count(4)
+   for kind in ['trend','groups','mix','waterfall']:
     for width,height in [(1440,780),(390,844)]:
      page.set_viewport_size({'width':width,'height':height})
-     if kind=='daily':page.locator('.analytics-days summary').click()
-     page.locator('[data-action=chart-expand][data-id='+kind+']').click();expect(page.locator('#modal.expanded-chart-dialog')).to_be_visible()
+     page.locator('[data-action=decision-detail][data-id='+kind+']').click();expect(page.locator('#modal.expanded-chart-dialog')).to_be_visible()
      assert page.locator('#modal').evaluate('el=>{const b=el.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth+1&&b.bottom<=innerHeight+1}')
      expect(page.locator('#modal')).to_contain_text('enero de 2026')
-     if kind=='hourly':expect(page.locator('#modal .hourly-slot')).to_have_count(24)
-     if width==1440 and kind=='hourly':
-      assert page.locator('#modal').evaluate('el=>el.getBoundingClientRect().width>1000')
-      assert page.locator('#modal .hourly-grid').evaluate('el=>el.scrollWidth<=el.clientWidth+1')
-      page.wait_for_timeout(250);page.screenshot(path='/tmp/pulse-expanded-hours.png')
+     expect(page.locator('#modal')).to_contain_text('Lectura del periodo')
+     assert page.locator('#modal tbody tr').count()>0
      page.locator('#modal .dialog-footer [data-action=close]').click()
-     if kind=='daily':page.locator('.analytics-days summary').click()
   # A delegated Lead sees the same tools, using the existing team permission checks.
   lead,lc,_=fixture.f.person('USER','LEADTEST',group=fixture.g,lead=True)
   fixture.f.post('/api/delegations',{'lead_id':lead['id']},fixture.mc)
   ctx.clear_cookies();assert ctx.request.post(base+'/api/login',data={'identity':'LEADTEST','password':'Password2026!'}).ok
   page.goto(base);page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy');page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
-  page.locator('[data-action=chart-expand][data-id=distribution]').click();expect(page.locator('#modal')).to_contain_text('Alcance del equipo autorizado');page.locator('#modal .dialog-footer [data-action=close]').click()
+  page.locator('[data-action=decision-detail][data-id=groups]').click();expect(page.locator('#modal')).to_contain_text('Lectura del periodo');page.locator('#modal .dialog-footer [data-action=close]').click()
   assert not errors,errors
-  b.close();print('PASS: equal chart cards; four expandable charts for Manager and Technician, delegated Lead expansion, correct period, mobile modal containment and zero JS errors')
+  b.close();print('PASS: four visual chart types and data tables for Manager and Technician, delegated Lead expansion, correct period, mobile modal containment and zero JS errors')
 finally:
  if proc:proc.terminate();proc.wait(timeout=10)
  fixture.tearDown()

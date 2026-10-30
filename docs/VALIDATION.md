@@ -264,3 +264,7 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 - Prueba funcional completa `tests/browser_smoke.py` PASS y `tests/layout_smoke.py` PASS en **57 combinaciones** de pantalla/rol/vista; cero errores JavaScript.
 
 - Si la pausa se recibe con un diálogo abierto, se conserva la captura y la vista pendiente se actualiza al cerrarlo; regresión comprobada mediante la interfaz.
+
+### v1.0.13
+
+Verificación de periodos rápidos, selección por clic entre años, conservación del principal y aplicación. Cuatro gráficas y tablas en Manager y Técnico; apertura en Lead delegado. Modales y footer dentro de pantalla en escritorio y móvil, sin errores JavaScript. Cascada comprobada con puente 10 + 3 − 2 + 1 = 12 horas. Pruebas API de búsqueda, comparación/exportación, cálculos, alcance y participantes conservadas.
