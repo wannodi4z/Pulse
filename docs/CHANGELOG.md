@@ -1,3 +1,7 @@
+### Ajuste de la misma v1.0.20
+
+- La geometría de las gráficas SVG se adapta al ancho y altura reales durante el cambio de tamaño. Etiquetas y puntos conservan proporciones legibles; el anillo conserva su forma circular. Barras, ranking y mapa de calor aprovechan la altura disponible.
+
 ## v1.0.20
 
 - Reordenar gráficas desde Personalizar tablero mediante asa de arrastre o flechas del teclado. Destino resaltado, Escape cancela, orden persistente por usuario/navegador.

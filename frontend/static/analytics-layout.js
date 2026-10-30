@@ -111,3 +111,29 @@ document.addEventListener('keydown',event=>{
  const handle=event.target.closest?.('[data-chart-move]');if(!handle||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)||analyticsReport?.mode!=='TEAM')return;
  event.preventDefault();event.stopPropagation();const kind=handle.dataset.chartMove,visible=orderedChartKinds().filter(k=>readChartLayout()[k].visible),index=visible.indexOf(kind),step=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1,target=visible[index+step];if(target)moveChartTo(kind,target);
 });
+
+// Adapt plot geometry to its actual viewport; labels and markers keep readable proportions.
+(function installChartViewportSizing(){
+ const ns='http://www.w3.org/2000/svg',observed=new Set();
+ function fit(plot){
+  const svg=plot.querySelector(':scope > .decision-svg');if(!svg)return;
+  const box=svg.getBoundingClientRect(),width=box.width,height=box.height;if(width<1||height<1)return;
+  // An annular chart must remain circular, rather than stretching into an ellipse.
+  if(plot.closest('[data-chart-kind="mix"]'))return;
+  let geometry=svg.querySelector(':scope > [data-responsive-geometry]');
+  if(!geometry){geometry=document.createElementNS(ns,'g');geometry.dataset.responsiveGeometry='';while(svg.firstChild)geometry.append(svg.firstChild);svg.append(geometry);}
+  const sx=width/640,sy=height/300,fontScale=Math.max(.85,Math.min(1.25,width/640));
+  svg.setAttribute('viewBox',`0 0 ${width} ${height}`);geometry.setAttribute('transform',`scale(${sx} ${sy})`);
+  geometry.querySelectorAll('text,circle').forEach(node=>{
+   const circle=node.tagName==='circle',x=Number(node.getAttribute(circle?'cx':'x')||0),y=Number(node.getAttribute(circle?'cy':'y')||0),scale=circle?Math.min(1.2,fontScale):fontScale;
+   node.setAttribute('transform',`translate(${x} ${y}) scale(${scale/sx} ${scale/sy}) translate(${-x} ${-y})`);
+  });
+  geometry.querySelectorAll('path,polyline,polygon,rect').forEach(node=>node.setAttribute('vector-effect','non-scaling-stroke'));
+ }
+ const observer=new ResizeObserver(entries=>entries.forEach(entry=>fit(entry.target)));
+ function discover(){
+  observed.forEach(plot=>{if(!plot.isConnected){observer.unobserve(plot);observed.delete(plot);}});
+  document.querySelectorAll('.chart-tile-plot').forEach(plot=>{if(!observed.has(plot)){observed.add(plot);observer.observe(plot);fit(plot);}});
+ }
+ new MutationObserver(discover).observe(document.documentElement,{childList:true,subtree:true});discover();
+})();

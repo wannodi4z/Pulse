@@ -1,3 +1,7 @@
+### Redimensionamiento interior · v1.0.20
+
+Prueba de tamaño del SVG durante el arrastre antes de soltar, correspondencia del viewBox con el viewport real y texto sin deformación; expansión de barras, ranking, mapa de calor y anillo.
+
 ## v1.0.20
 
 Verificación en Chromium de arrastre real, guardado del orden al recargar, reordenamiento por teclado y cancelación con Escape, aislamiento por usuario, restauración, tamaños y visibilidad; ampliación de gráficas y leyendas interactivas conservadas.

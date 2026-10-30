@@ -41,7 +41,12 @@ try:
   edit();page.reload();page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy');month_january()
   expect(page.locator('.chart-tile')).to_have_count(8);expect(tile('trend')).to_have_attribute('data-width','8');expect(tile('trend')).to_have_attribute('data-height','480')
   edit();tile('trend').evaluate("e=>e.scrollIntoView({block:'start'})")
-  handle=tile('trend').locator('[data-chart-resize]');box=handle.bounding_box();page.mouse.move(box['x']+15,box['y']+12);page.mouse.down();page.mouse.move(box['x']+340,box['y']+110,steps=8);page.evaluate('()=>refresh(true)');assert page.evaluate('chartResizeActive()');page.mouse.up()
+  canvas_before=tile('trend').locator('svg.decision-svg').bounding_box()
+  handle=tile('trend').locator('[data-chart-resize]');box=handle.bounding_box();page.mouse.move(box['x']+15,box['y']+12);page.mouse.down();page.mouse.move(box['x']+340,box['y']+110,steps=8);page.evaluate('()=>refresh(true)');assert page.evaluate('chartResizeActive()')
+  page.wait_for_timeout(100);canvas_live=tile('trend').locator('svg.decision-svg').bounding_box();assert canvas_live['width']>canvas_before['width'] and canvas_live['height']>canvas_before['height']
+  assert tile('trend').locator('svg.decision-svg').evaluate('e=>Math.abs(e.viewBox.baseVal.width-e.getBoundingClientRect().width)<2')
+  assert tile('trend').locator('svg.decision-svg text').first.evaluate('e=>{const m=e.getScreenCTM();return Math.abs(m.a-m.d)<.01}')
+  page.mouse.up()
   expect(tile('trend')).to_have_attribute('data-width','12');expect(tile('trend')).to_have_attribute('data-height','600')
   handle.focus();page.keyboard.press('ArrowLeft');page.keyboard.press('ArrowUp')
   expect(tile('trend')).to_have_attribute('data-width','8');expect(tile('trend')).to_have_attribute('data-height','480')
@@ -56,6 +61,10 @@ try:
   tile('area').locator('[data-action=decision-detail]').click();page.locator('#modal [data-action=chart-series][data-id="area:HISTORICAL"]').click()
   expect(page.locator('#modal [data-area-series]')).to_have_count(1);expect(page.locator('#modal .chart-series-status')).to_contain_text('Mostrando sólo OT histórica')
   page.locator('#modal .dialog-footer [data-action=close]').click()
+  page.set_viewport_size({'width':1440,'height':1000})
+  for kind,selector in [('groups','.decision-group-bars'),('pareto','.decision-people-ranking'),('mix','svg.decision-svg')]:
+   canvas=tile(kind).locator(selector);small=canvas.bounding_box()['height'];page.locator('[data-chart-height='+kind+']').select_option('600');page.wait_for_timeout(80);assert canvas.bounding_box()['height']>small
+  page.locator('.chart-visibility-panel [data-id=heatmap]').click();cells=tile('heatmap').locator('.decision-heatmap>span');small=cells.first.bounding_box()['height'];page.locator('[data-chart-height=heatmap]').select_option('600');page.wait_for_timeout(80);assert cells.first.bounding_box()['height']>small
   assert page.evaluate('JSON.stringify({summary:analyticsReport.summary,filters,comparisonMonths})')==original
   for kind in page.evaluate('chartLayoutKinds'):
    choice=page.locator('.chart-visibility-panel [data-id='+kind+']')

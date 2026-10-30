@@ -1,6 +1,6 @@
 # Entrega v1.0.20 · tablero personalizable y reordenable
 
-**Personalizar tablero** permite reordenar gráficas arrastrando el asa ⠿ (o con las flechas del teclado), mostrar/ocultar gráficas y ajustar su ancho y altura con controles o arrastrando una esquina. Se guarda por usuario en este navegador; **Restaurar diseño** recupera la distribución predeterminada. Ampliación y leyendas interactivas se conservan. [Guía de uso](docs/MANAGER_ANALYTICS.md) · [Vista previa](docs/previews/Analytics_v1.0.20.png).
+**Personalizar tablero** permite reordenar gráficas arrastrando el asa ⠿ (o con las flechas del teclado), mostrar/ocultar gráficas y ajustar su ancho y altura con controles o arrastrando una esquina. La gráfica interior se adapta al ancho y altura durante el redimensionamiento, conservando etiquetas legibles. Se guarda por usuario en este navegador; **Restaurar diseño** recupera la distribución predeterminada. Ampliación y leyendas interactivas se conservan. [Guía de uso](docs/MANAGER_ANALYTICS.md) · [Vista previa](docs/previews/Analytics_v1.0.20.png).
 
 En el detalle de una gráfica, pulsa una categoría de la leyenda para mostrarla sola. Escala, resumen, valores y tabla acompañan la selección. Usa **Ver todos** o repite la pulsación para restablecer; los filtros del dashboard permanecen intactos.
 
