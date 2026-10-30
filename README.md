@@ -1,6 +1,6 @@
-# Entrega v1.0.13 · analítica visual
+# Entrega v1.0.14 · Analítica y Consulta separadas
 
-Se conserva el diseño general original de Pulse. La analítica incorpora selección directa de meses y periodos rápidos, gráficas de líneas, barras, pastel y cascada, con resumen y tablas al hacer clic. Mantiene el tablero de gestión, desgloses y permisos existentes. Esta entrega perfecciona búsqueda por CHG/INC, Técnico y Grupo, OT/SB por Grupo, desglose por persona, rankings de más/menos horas y participación real en actividades programadas. [Guía de analítica del Manager](docs/MANAGER_ANALYTICS.md).
+Se conserva el diseño general de Pulse. **Analítica** reúne indicadores y ocho tipos de gráfica para el equipo, sin tablas en la página. **Consulta de registros** reúne búsqueda, historial, tablas y trazabilidad. El Técnico dispone de Mi analítica (cinco gráficas personales) y Mis registros. Las tablas de cada gráfica se abren en su modal de detalle. Se mantienen cálculos, permisos y periodos rápidos. [Guía de analítica del Manager](docs/MANAGER_ANALYTICS.md).
 
 
 - `start.command`: arranque habitual (sin cambios).

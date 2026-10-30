@@ -254,3 +254,10 @@ Tablero del Manager reorganizado: lectura ejecutiva, concentración de OT por Gr
 - Cuatro gráficas con detalle al clic: tendencia de líneas OT/SB, barras independientes por Grupo, pastel por tipo y cascada de variación de OT.
 - Cada gráfica abre una lectura del periodo, datos tabulares y contexto de filtros. La cascada compara primer/último mes y separa variación programada, histórica y emergente; no atribuye causas.
 - Disponible para Manager, Lead delegado y analítica personal del Técnico según su alcance autorizado. Sin cambios en cálculo financiero ni permisos.
+
+## v1.0.14 — Analítica visual separada de consulta
+
+- Dos destinos independientes: Analítica (sin tablas en la página) y Consulta de registros (buscador CHG/INC, persona, Grupo, estados e historial). Técnico: Mi analítica y Mis registros; Lead delegado conserva alcance de equipo.
+- Se eliminan tablas, listados y rankings de texto de la portada analítica. Los datos tabulares permanecen en los modales de detalle. Acceso a Consulta conserva periodo y filtros del análisis.
+- Ocho visualizaciones del equipo: líneas, barras, pastel, cascada, mapa de calor horario, área acumulada, Pareto de OT y dispersión OT/SB. Cinco visualizaciones personales, sin comparativas entre personas ajenas.
+- Cada nueva gráfica explica su base, unidades, límites y datos subyacentes. Sin metas, previsiones ni evaluaciones de desempeño inventadas. Cálculos financieros y permisos sin modificaciones.

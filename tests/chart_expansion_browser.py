@@ -20,8 +20,9 @@ try:
    ctx.clear_cookies();assert ctx.request.post(base+'/api/login',data={'identity':identity,'password':'Password2026!'}).ok
    page.goto(base);page.locator('.sidebar [data-page='+view+']').click();page.wait_for_function('()=>!busy');page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
    page.locator('[data-action=analytics-months]').first.click();page.locator('[data-action=comparison-toggle][data-id="2026-02"]').click();page.locator('#modal [type=submit]').click();page.wait_for_function('()=>!busy')
-   expect(page.locator('.decision-card')).to_have_count(4)
-   for kind in ['trend','groups','mix','waterfall']:
+   expect(page.locator('.decision-card')).to_have_count(8 if view=='analytics' else 5)
+   expect(page.locator('#main table')).to_have_count(0)
+   for kind in (['trend','groups','mix','waterfall','heatmap','area','pareto','scatter'] if view=='analytics' else ['trend','mix','waterfall','area','heatmap']):
     for width,height in [(1440,780),(390,844)]:
      page.set_viewport_size({'width':width,'height':height})
      page.locator('[data-action=decision-detail][data-id='+kind+']').click();expect(page.locator('#modal.expanded-chart-dialog')).to_be_visible()
@@ -29,6 +30,9 @@ try:
      expect(page.locator('#modal')).to_contain_text('enero de 2026')
      expect(page.locator('#modal')).to_contain_text('Lectura del periodo')
      assert page.locator('#modal tbody tr').count()>0
+     if view=='myAnalytics':
+      expect(page.locator('#modal')).not_to_contain_text('SECOND')
+      expect(page.locator('#modal')).not_to_contain_text('INC-BETA')
      page.locator('#modal .dialog-footer [data-action=close]').click()
   # A delegated Lead sees the same tools, using the existing team permission checks.
   lead,lc,_=fixture.f.person('USER','LEADTEST',group=fixture.g,lead=True)
@@ -37,7 +41,7 @@ try:
   page.goto(base);page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy');page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
   page.locator('[data-action=decision-detail][data-id=groups]').click();expect(page.locator('#modal')).to_contain_text('Lectura del periodo');page.locator('#modal .dialog-footer [data-action=close]').click()
   assert not errors,errors
-  b.close();print('PASS: four visual chart types and data tables for Manager and Technician, delegated Lead expansion, correct period, mobile modal containment and zero JS errors')
+  b.close();print('PASS: eight team and five personal visual chart types with separate search for Manager and Technician, delegated Lead expansion, correct period, mobile modal containment and zero JS errors')
 finally:
  if proc:proc.terminate();proc.wait(timeout=10)
  fixture.tearDown()

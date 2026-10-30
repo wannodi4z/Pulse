@@ -13,7 +13,7 @@ with tempfile.TemporaryDirectory() as d:
    except Exception:time.sleep(.1)
   with sync_playwright() as p:
    browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);checks=0;errors=[]
-   roles=[('admin1','admin12026',['dashboard','organization','admins','recoveries']),('MGR0001','manager12026',['dashboard','team','teamTime','analytics','timeRules','recoveries']),('SL0001','lead120261',['dashboard','time','myAnalytics','claim','adp']),('951357','tecnico12026',['dashboard','time','myAnalytics','claim','adp'])]
+   roles=[('admin1','admin12026',['dashboard','organization','admins','recoveries']),('MGR0001','manager12026',['dashboard','team','teamTime','analytics','records','timeRules','recoveries']),('SL0001','lead120261',['dashboard','time','myAnalytics','myRecords','claim','adp']),('951357','tecnico12026',['dashboard','time','myAnalytics','myRecords','claim','adp'])]
    for identity,password,pages in roles:
     context=browser.new_context();page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)));assert context.request.post(base+'/api/login',data={'identity':identity,'password':password}).ok;page.goto(base);page.locator('.sidebar').wait_for()
     for width,height in [(1440,900),(1024,600),(800,540),(390,844)]:

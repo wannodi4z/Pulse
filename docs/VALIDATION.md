@@ -268,3 +268,11 @@ La suite general de navegador volvió a recorrer activaciones, navegación, regl
 ### v1.0.13
 
 Verificación de periodos rápidos, selección por clic entre años, conservación del principal y aplicación. Cuatro gráficas y tablas en Manager y Técnico; apertura en Lead delegado. Modales y footer dentro de pantalla en escritorio y móvil, sin errores JavaScript. Cascada comprobada con puente 10 + 3 − 2 + 1 = 12 horas. Pruebas API de búsqueda, comparación/exportación, cálculos, alcance y participantes conservadas.
+
+### v1.0.14
+
+- 92 verificaciones de rol/página/resolución: nuevas pantallas Consulta de registros y Mis registros incluidas; navegación móvil visible, calendario y teclado conservados.
+- Ocho gráficas de equipo y cinco personales: modales con resumen/tabla, footer visible en móvil, sin errores JavaScript. Analítica sin tablas ni búsqueda; Consulta sin gráficas.
+- Búsqueda por referencia, historial, filtros, pendientes excluidos de las horas, comparación de tres meses y Excel coincidente. Consulta de sólo lectura con revisión en Aprobaciones.
+- Participantes reales, Timer sin iniciar, búsqueda de persona sin horas, periodos rápidos entre años y cascada 10 + 3 − 2 + 1 = 12 h.
+- Ocho pruebas API de búsqueda/comparación/exportación, cálculo y autorización/participantes aprobadas.
