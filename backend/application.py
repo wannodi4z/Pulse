@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.10'
+VERSION = '1.0.11'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent
@@ -1997,6 +1997,13 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
     summary = empty_totals()
     by_group = {g['id']: {'id': g['id'], 'code': g.get('display_code',g['code']), 'name': g['name'], 'user_count': sum(p['group_id'] == g['id'] for p in people), 'minutes': empty_totals()} for g in shown_groups}
     by_user = {p['id']: {'id': p['id'], 'name': f"{p['first']} {p['last']}", 'employee_id': p['employee_id'], 'group_id': p['group_id'], 'group_name': group_names.get(p['group_id'], 'Lead del Manager' if p['is_lead'] else ''), 'minutes': empty_totals()} for p in people}
+    for item in [*by_group.values(), *by_user.values()]:
+        item['approved_counts'] = dict.fromkeys(ANALYTICS_TYPES, 0)
+    for record in matched:
+        if record['status']!='APPROVED' or record['kind']=='ot' and record['execution']!='COMPLETED':continue
+        category=record['capture_type']
+        if record['user_id'] in by_user:by_user[record['user_id']]['approved_counts'][category]+=1
+        if record['group_id'] in by_group:by_group[record['group_id']]['approved_counts'][category]+=1
     by_day = {}
     for record in detail:
         record['group_name'] = group_names.get(record['group_id'], 'Lead del Manager')
@@ -2030,6 +2037,39 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
             'users': sorted(by_user.values(), key=lambda u: (-u['minutes']['total_minutes'], u['name'])),
             'days': [{'date': day, 'minutes': rounded(values)} for day, values in sorted(by_day.items())], 'rows': detail}
 
+
+
+@app.get('/api/analytics/overtime/{identity}/participants')
+def analytics_participants(identity: str, actor=Depends(current_user)):
+    with connection() as c:
+        allowed=scope(c,actor)
+        if actor['role']!='MANAGER' and not (actor['role']=='USER' and allowed):
+            fail('La participación del equipo requiere un Manager o un Lead con delegación vigente.',403)
+        visible=visible_users(c,actor)
+        selected=c.execute('SELECT * FROM overtime WHERE id=?',(identity,)).fetchone()
+        if not selected or selected['user_id'] not in visible:fail('Registro fuera de tu alcance.',404)
+        selected=dict(selected)
+        link=c.execute('SELECT * FROM ot_group_activities WHERE window_id=?',(selected['window_id'],)).fetchone() if selected['capture_type']=='PLANNED' and selected['window_id'] else None
+        peers=[dict(x) for x in c.execute('SELECT * FROM overtime WHERE window_id=?',(selected['window_id'],)) if x['user_id'] in visible] if link else [selected]
+        approved=accounting(c,{x['user_id'] for x in peers},record_ids={x['id'] for x in peers})
+        approved_minutes={}
+        for row in approved:approved_minutes[row['id']]=approved_minutes.get(row['id'],0)+row['minutes']
+        participants=[]
+        for record in peers:
+            person=get(c,'users',record['user_id']);group=c.execute('SELECT name FROM groups WHERE id=?',(person['group_id'],)).fetchone()
+            timers=[dict(t) for t in c.execute('SELECT start_at,end_at FROM timers WHERE overtime_id=? ORDER BY start_at',(record['id'],))]
+            parts=effective_ot_segments(c,record) if record['execution']=='COMPLETED' else [t for t in timers if t['end_at']]
+            closed=sum(max(0,(parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds()) for t in parts)
+            active=next((t for t in timers if not t['end_at']),None)
+            participants.append({'record_id':record['id'],'user_id':person['id'],'name':person['first']+' '+person['last'],'employee_id':person['employee_id'],
+                'group_name':group['name'] if group else 'Lead del Manager' if person['is_lead'] else 'Sin Grupo','is_source':bool(link and record['id']==link['source_id']),
+                'executed_timer':bool(timers),'timer_count':len(timers),'execution':record['execution'],'status':record['status'],
+                'closed_seconds':round(closed,4),'approved_minutes':round(approved_minutes.get(record['id'],0),4),'active_start':active['start_at'] if active else None,
+                'segments':parts})
+        participants.sort(key=lambda x:(not x['is_source'],x['name'].casefold(),x['user_id']))
+        return {'shared_activity':bool(link),'reference':selected['reference'],'scheduled_start':selected['scheduled_start'],'scheduled_end':selected['scheduled_end'],
+            'participant_count':len(participants),'executed_count':sum(x['executed_timer'] for x in participants),'participants':participants,
+            'scope_note':'Sólo personas dentro de tu alcance actual. Una inscripción sin Timer no equivale a trabajo realizado. Horas de toda la actividad, no sólo del mes filtrado.'}
 
 @app.get('/api/analytics')
 def analytics(month: str, user_id: str | None = None, group_id: str | None = None, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', actor=Depends(current_user)):

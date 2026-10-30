@@ -3,3 +3,8 @@
 *.jpg binary
 *.png binary
 *.sqlite3 binary
+# Rejected UI experiments stay in Git history, outside stable project releases.
+/alternatives/ export-ignore
+/docs/experiences/ export-ignore
+/scripts/build_alternatives.py export-ignore
+/tests/reinvented_interface_browser.py export-ignore

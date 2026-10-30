@@ -1,6 +1,7 @@
-# Entrega v1.0.10 · estructura y respaldos separados
+# Entrega v1.0.11 · analítica del Manager
 
-También están disponibles [Orbit y Prisma](alternatives/README.md): dos interfaces alternativas con navegación, composición de pantallas y componentes reconstruidos. La interfaz estable de esta carpeta se conserva.
+Se conserva el diseño original de v1.0.10. Esta entrega perfecciona búsqueda por CHG/INC, Técnico y Grupo, OT/SB por Grupo, desglose por persona, rankings de más/menos horas y participación real en actividades programadas. [Guía de analítica del Manager](docs/MANAGER_ANALYTICS.md).
+
 
 - `start.command`: arranque habitual (sin cambios).
 - `server.py`: entrada compatible para Uvicorn e integraciones.
@@ -15,11 +16,11 @@ También están disponibles [Orbit y Prisma](alternatives/README.md): dos interf
 Consulta la [guía completa de funcionamiento](docs/GUIA_COMPLETA.md), con PowerPoint y PDF de 71 diapositivas, y [la arquitectura](docs/ARCHITECTURE.md) y [el uso de respaldos](docs/BACKUPS.md).
 Las secciones históricas que siguen describen versiones anteriores; la estructura vigente es la indicada arriba.
 
-# Operational Pulse · 1.0.10
+# Operational Pulse · 1.0.11
 
 Aplicación nueva, creada desde cero. La numeración parte de **v1.0.0** como base del proyecto; esta versión conserva los datos existentes y amplía SQLite con metadatos compatibles. El ZIP v1.4.5 sirvió únicamente como referencia funcional; esta versión no carga sus archivos ni sus parches. Preparada para probar **localmente en macOS con VS Code**, con frontend HTML/CSS/JavaScript, FastAPI y SQLite. No requiere servicios externos, Docker, Node ni una cuenta de nube.
 
-## Versión vigente · v1.0.10 · Revisión de interfaz
+## Base visual conservada · v1.0.10 · Revisión de interfaz
 
 El login incorpora un panel azul profundo, acentos naranjas, una tarjeta blanca con transparencia suave y una identidad compacta en móvil. La cabecera usa un efecto translúcido discreto con fondo opaco de respaldo; los colores de aprobación, pendiente y rechazo conservan su significado. La autenticación, activación y recuperación no cambian. Las entradas suaves del login y los títulos duran 180–420 ms, con respuesta discreta en botones y tarjetas; no se repiten al actualizar datos y respetan Reducir movimiento.
 
@@ -357,7 +358,7 @@ python -m py_compile server.py
 ## Estructura
 
 ```text
-Operational_Pulse_v1.0.10/
+Operational_Pulse_v1.0.11/
   start.command
   iniciar_pruebas.command
   configurar_banorte.command

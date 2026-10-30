@@ -1,3 +1,10 @@
+# v1.0.11 · Analítica del Manager
+
+- 103 pruebas API existentes y cuatro nuevas aprobadas: actividad vinculada, Timers reales frente a inscripción, horas cerradas/aprobadas, aislamiento por Manager, delegación y revocación, referencia histórica independiente y desglose/conteos/ceros.
+- Navegador: 80 combinaciones de cuatro roles y cuatro resoluciones con el diseño original.
+- Flujo de analítica: búsqueda respeta el mes, tabla por Grupo, ranking por OT/SB/total, desglose de ceros, participantes, modal con pie accesible en móvil y pantalla baja, sin errores JavaScript.
+- Cuatro gráficas ampliables para Manager/Técnico y Lead delegado verificadas.
+
 # Validación de estructura v1.0.10
 
 - Backend: 103 pruebas aprobadas, incluidos cálculos, permisos, recuperación y arranque de paquete.

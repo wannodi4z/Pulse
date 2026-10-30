@@ -1,3 +1,11 @@
+# v1.0.11 · Analítica del Manager
+
+- Tabla visible de OT/SB por Grupo, OT total y conteos por tipo, con desglose por Técnico.
+- Ranking de más/menos horas por total aprobado, OT o SB, con ceros y filtros compartidos.
+- Participación por vínculo real de actividad: inscripción, Timer, tiempos y detalle individual; alcance y delegación verificados en el servidor.
+- Comparativa mensual con desglose por tipo de OT. La búsqueda respeta el periodo elegido.
+- Diseño original v1.0.10 conservado; experimentos visuales excluidos del ZIP estable.
+
 # v1.0.10 · Organización y respaldo propio
 
 - Backend y frontend separados físicamente; entrada server:app, comandos Mac, rutas web y datos existentes compatibles.
