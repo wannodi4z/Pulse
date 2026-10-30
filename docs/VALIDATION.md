@@ -297,3 +297,10 @@ Verificación de periodos rápidos, selección por clic entre años, conservaci�
 - Ranking comprobado con dos personas con horas y una con cero: orden, nombres, horas y participaciones 66.7%, 33.3%, 0.0%; sin línea de porcentaje acumulado.
 - Panel mensual con dos mitades del mismo ancho; líneas y barras abren detalles independientes. Modales, tooltips largos, foco, toque y tablas verificados en escritorio/móvil y Manager/Técnico/Lead delegado.
 - 92 comprobaciones de rol/página/resolución y prueba de separación Analítica/Consulta, participantes reales y búsquedas sin datos aprobadas.
+
+### v1.0.18
+
+- Aislamiento de histórica y Stand By en acumulado, barras mensuales y anillo; selector de OT/SB en tendencia con una sola línea y tabla de dos columnas.
+- Acumulado histórico con una sola franja/tabla correspondiente; retorno por repetición y Ver todos; teclado y móvil; tipo sin datos con estado vacío y sin NaN.
+- Reporte, filtros y meses del dashboard comprobados sin mutaciones durante la selección. Reapertura restablece todos; navegación a Mis registros conserva el tipo histórico elegido.
+- Modales, datos emergentes, pantalla pequeña y alcance personal/delegado del flujo de gráficas conservados.

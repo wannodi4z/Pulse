@@ -41,7 +41,7 @@ try:
      expect(page.locator('#modal')).to_contain_text('Lectura del periodo')
      assert page.locator('#modal tbody tr').count()>0
      if kind=='area':
-      expect(page.locator('#modal .area-type-totals>span')).to_have_count(4)
+      expect(page.locator('#modal .series-option')).to_have_count(4)
       expect(page.locator('#modal thead')).to_contain_text('SB acumulado h')
      if kind=='pareto':
       expect(page.locator('#modal .decision-people-ranking')).to_be_visible()
@@ -62,6 +62,40 @@ try:
       expect(page.locator('#modal')).not_to_contain_text('SECOND')
       expect(page.locator('#modal')).not_to_contain_text('INC-BETA')
      page.locator('#modal .dialog-footer [data-action=close]').click()
+  # Series isolation is local: chart, summary and table change, report and dashboard do not.
+  page.set_viewport_size({'width':390,'height':844})
+  for kind in ['area','monthlybars','mix']:
+   original=page.evaluate('JSON.stringify({report:analyticsReport,filters,comparisonMonths})')
+   page.locator('[data-action=decision-detail][data-id='+kind+']').click()
+   historical=page.locator('#modal [data-action=chart-series][data-id="'+kind+':HISTORICAL"]')
+   historical.click();expect(historical).to_have_attribute('aria-pressed','true')
+   expect(page.locator('#modal .chart-series-status')).to_contain_text('Mostrando sólo OT histórica')
+   if kind=='area':
+    expect(page.locator('#modal [data-area-series]')).to_have_count(1)
+    expect(page.locator('#modal [data-area-series]')).to_have_attribute('data-area-series','HISTORICAL')
+   expect(page.locator('#modal thead th')).to_have_count(3 if kind=='mix' else 2)
+   assert page.evaluate('JSON.stringify({report:analyticsReport,filters,comparisonMonths})')==original
+   historical.click();expect(page.locator('#modal .chart-series-status')).to_contain_text('Mostrando todos')
+   page.locator('#modal [data-action=chart-series][data-id="'+kind+':GUARD"]').focus();page.keyboard.press('Enter')
+   expect(page.locator('#modal .chart-series-status')).to_contain_text('Mostrando sólo Stand By')
+   page.locator('#modal [data-action=chart-series][data-id="'+kind+':ALL"]').click()
+   expect(page.locator('#modal .chart-series-status')).to_contain_text('Mostrando todos')
+   if kind=='area':
+    page.locator('#modal [data-action=chart-series][data-id="area:PLANNED"]').click()
+    expect(page.locator('#modal')).to_contain_text('Sin datos para esta selección')
+    assert 'NaN' not in page.locator('#modal').inner_text()
+   page.locator('#modal .dialog-footer [data-action=close]').click()
+  page.locator('[data-action=decision-detail][data-id=trend]').click()
+  page.locator('#modal [data-action=chart-series][data-id="trend:GUARD"]').click()
+  expect(page.locator('#modal svg polyline')).to_have_count(1)
+  expect(page.locator('#modal thead th')).to_have_count(2)
+  page.locator('#modal .dialog-footer [data-action=close]').click()
+  page.locator('[data-action=decision-detail][data-id=area]').click()
+  expect(page.locator('#modal .chart-series-status')).to_contain_text('Mostrando todos')
+  page.locator('#modal [data-action=chart-series][data-id="area:HISTORICAL"]').click()
+  page.locator('#modal [data-action=open-records]').click();page.wait_for_function('()=>!busy')
+  expect(page.locator('.sidebar [data-page=myRecords]')).to_have_attribute('aria-current','page')
+  expect(page.locator('[name=filter-kind]')).to_have_value('HISTORICAL')
   page.locator('.sidebar [data-page=time]').click();page.wait_for_function('()=>!busy')
   page.locator('[data-action=ot-new]').click();page.locator('#modal [name=scheduled_start]').fill('2026-01-01T10:00');page.locator('#modal [name=scheduled_end]').fill('2026-01-01T11:00')
   expect(page.locator('#ot-type-preview')).to_contain_text('Captura histórica excepcional')

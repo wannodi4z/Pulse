@@ -1,4 +1,6 @@
-# Entrega v1.0.17 · gráficas por tipo y lectura directa
+# Entrega v1.0.18 · leyendas interactivas
+
+En el detalle de una gráfica, pulsa una categoría de la leyenda para mostrarla sola. Escala, resumen, valores y tabla acompañan la selección. Usa **Ver todos** o repite la pulsación para restablecer; los filtros del dashboard permanecen intactos.
 
 El panel mensual reúne líneas y barras por tipo en el mismo espacio. El acumulado separa Stand By, OT programada, histórica y emergente; el ranking muestra nombres, horas y porcentajes directamente. [Vista previa](docs/previews/Analytics_v1.0.17.png).
 

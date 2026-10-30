@@ -86,3 +86,11 @@ El primer panel muestra **Tendencia mensual** (líneas de OT y Stand By) junto a
 **OT aprobada por Técnico** muestra nombre y horas en cada barra, con la participación porcentual sobre toda la OT del alcance. Se ordena de mayor a menor; la portada muestra hasta ocho personas y el detalle incluye todas. Se incluyen personas con cero horas. Se ha reemplazado el anterior Pareto con doble eje para facilitar la lectura; no mide desempeño.
 
 [Vista previa v1.0.17](previews/Analytics_v1.0.17.png), con datos aislados de prueba.
+
+## Aislar una categoría desde la leyenda · v1.0.18
+
+Abre el detalle de **Acumulado por tipo**, **Horas mensuales por tipo**, **Composición** o **Tendencia**. Pulsa la categoría en su leyenda para mostrarla sola; por ejemplo, OT histórica. La gráfica cambia de escala y el resumen, los valores emergentes y la tabla muestran esa selección. Para recuperar la vista completa, vuelve a pulsar la misma categoría o usa **Ver todos**.
+
+Las leyendas indican el total de cada categoría dentro del alcance original del dashboard; los botones restantes permanecen disponibles para cambiar de categoría. En el anillo, la única categoría visible representa 100% de esa selección; Ver todos restaura sus proporciones originales. Si no existen horas del tipo seleccionado, se indica sin inventar datos.
+
+Esta selección no modifica los filtros del dashboard ni recalcula Stand By bruto: conserva el Stand By neto ya calculado. Al cerrar y volver a abrir una gráfica se muestran todos los tipos. **Consultar registros** desde el detalle traslada el tipo elegido a la consulta para revisar sus registros. La autorización personal/de equipo continúa aplicándose en el servidor.

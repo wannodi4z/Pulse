@@ -282,3 +282,10 @@ Nueva base sintética para instalaciones sin base existente. Cargador aditivo co
 - Acumulación con áreas apiladas por los cuatro tipos, totales por color, datos emergentes diarios/acumulados y tabla de acumulados por tipo. No se confunde acumulación con variación mensual.
 - La concentración de OT se simplifica a un ranking horizontal con nombre, horas y porcentaje directamente visibles. Se retiran la línea de porcentaje acumulado, doble eje y números que obligaban a buscar nombres en otra leyenda.
 - Sin cambios en datos, cálculos, permisos ni ejemplos; se conserva la protección de octubre de Samuel.
+
+## v1.0.18 — Leyendas interactivas
+
+- En los modales de acumulado, barras mensuales, anillo y tendencia, pulsar una categoría la muestra sola. Repetir la pulsación o elegir Ver todos restablece la vista completa.
+- Se ajustan escala, resumen, valores emergentes y tabla a la serie elegida; las categorías sin horas tienen estado vacío explícito.
+- La selección se limita al modal y no cambia el reporte ni filtros del dashboard. Consultar registros lleva el tipo seleccionado a la pantalla de consulta, conservando su periodo y alcance autorizado.
+- Botones con foco, estado accesible y uso por teclado/toque. Se conservan cálculos, datos de demostración y octubre de Samuel.
