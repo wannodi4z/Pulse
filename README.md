@@ -1,6 +1,6 @@
-# Entrega v1.0.11 · analítica del Manager
+# Entrega v1.0.12 · tablero de gestión
 
-Se conserva el diseño original de v1.0.10. Esta entrega perfecciona búsqueda por CHG/INC, Técnico y Grupo, OT/SB por Grupo, desglose por persona, rankings de más/menos horas y participación real en actividades programadas. [Guía de analítica del Manager](docs/MANAGER_ANALYTICS.md).
+Se conserva el diseño general original de Pulse. La analítica del equipo presenta una nueva jerarquía ejecutiva, concentración de OT, mezcla de captura, seguimiento operativo, comparación de OT y SB por separado y tablas desplegables. Esta entrega perfecciona búsqueda por CHG/INC, Técnico y Grupo, OT/SB por Grupo, desglose por persona, rankings de más/menos horas y participación real en actividades programadas. [Guía de analítica del Manager](docs/MANAGER_ANALYTICS.md).
 
 
 - `start.command`: arranque habitual (sin cambios).

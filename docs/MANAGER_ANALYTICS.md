@@ -27,3 +27,10 @@ Comparar meses permite agregar hasta 24 meses. La tabla amplía el desglose mens
 ## Entrega
 
 El ZIP estable no incluye las interfaces experimentales rechazadas. Conserva start.command, backend, frontend, fixtures, pruebas y documentación. No incluye bases personales, claves ni entornos.
+
+
+## Tablero de gestión v1.0.12
+
+La portada resume OT, Stand By neto, proporción de OT programada y personas con horas aprobadas. La lectura ejecutiva identifica la concentración de OT, proporción emergente y diferencia de OT entre los últimos dos meses seleccionados. No se infieren objetivos, productividad ni desempeño.
+
+El mapa ordena Grupos por OT y muestra SB por separado; cada Grupo permite filtrar la consulta. El panel de seguimiento cuenta pendientes, documentación y personas sin horas aprobadas con los filtros vigentes. La comparación usa barras independientes de OT y SB con una escala común. Las cifras por Grupo y persona se consultan en desgloses desplegables. Los totales financieros y permisos mantienen su cálculo anterior.

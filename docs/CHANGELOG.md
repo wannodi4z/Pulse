@@ -242,3 +242,8 @@ Por solicitud de Samuel, el contador vuelve a v1.0.0. Este reinicio identifica l
 - Ajustes posteriores a una entrega: por ejemplo, `v1.2.1` después de `v1.2.0`.
 
 La versión se actualiza en backend, interfaz y referencias de recursos para evitar inconsistencias de caché. Las versiones no reinician ni borran la base local.
+
+
+## v1.0.12 — Analítica de gestión
+
+Tablero del Manager reorganizado: lectura ejecutiva, concentración de OT por Grupo, mezcla de captura, pendientes, comparación con OT y Stand By separados y desgloses progresivos. Conserva cálculos, alcance, historial y diseño general. Sin metas ni evaluaciones de desempeño inferidas.

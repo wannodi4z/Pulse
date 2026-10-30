@@ -26,6 +26,15 @@ try:
   assert ctx.request.post(base+'/api/login',data={'identity':'M001','password':'Password2026!'}).ok
   page.goto(base);page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy');page.locator('#month').fill(month);page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
   expect(page.locator('#analytics-rankings')).to_contain_text('ZERO-HOURS');expect(page.locator('#main')).to_contain_text('OT y Stand By por Grupo')
+  expect(page.locator('.command-hero')).to_contain_text('La operación, en perspectiva.')
+  expect(page.locator('.command-kpis .command-kpi')).to_have_count(4)
+  expect(page.locator('.command-attention')).to_contain_text('Solicitudes pendientes')
+  expect(page.locator('.command-group-map')).to_contain_text('SB')
+  page.screenshot(path='/tmp/pulse-premium-desktop.png',full_page=True)
+  for width in [390,768,1440]:
+   page.set_viewport_size({'width':width,'height':900})
+   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'), 'Dashboard overflow'
+  page.set_viewport_size({'width':1440,'height':900})
   before=page.locator('[name=filter-period]').input_value();page.locator('#analytics-search').fill('CHG-GROUP-NORMAL');page.wait_for_timeout(550);page.wait_for_function('()=>!busy');expect(page.locator('[name=filter-period]')).to_have_value(before)
   expect(page.locator('#analytics-records tbody tr')).to_have_count(2)
   page.locator('[data-action=record-detail][data-id="ot:'+x.ot+'"]').first.click();page.locator('#modal [data-action=analytics-participants]').click();expect(page.locator('.activity-participants tbody tr')).to_have_count(2);expect(page.locator('#modal')).to_contain_text('Sin iniciar');expect(page.locator('#modal')).to_contain_text('1 tramo iniciado')
