@@ -1,6 +1,6 @@
 # Entrega v1.0.10 · estructura y respaldos separados
 
-También están disponibles [Atlas y Studio](alternatives/README.md): dos propuestas alternativas completas de interfaz. La interfaz estable de esta carpeta se conserva.
+También están disponibles [Orbit y Prisma](alternatives/README.md): dos interfaces alternativas con navegación, composición de pantallas y componentes reconstruidos. La interfaz estable de esta carpeta se conserva.
 
 - `start.command`: arranque habitual (sin cambios).
 - `server.py`: entrada compatible para Uvicorn e integraciones.

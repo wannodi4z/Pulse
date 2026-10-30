@@ -1,32 +1,40 @@
-# Dos alternativas de interfaz · base v1.0.10
+# Orbit y Prisma · interfaces reconstruidas sobre v1.0.10
 
-La versión estable conserva su interfaz. Cada propuesta se aplica como última hoja CSS en un proyecto completo e independiente. Backend, app.js y layout.js se mantienen idénticos: no se alteran funciones, permisos, datos, cálculos ni eventos de arrastre.
+Son proyectos completos con nueva composición de pantallas. La versión estable de la raíz no cambia su interfaz.
 
-## Atlas
+## Orbit: escritorio operativo
 
-Consola operativa: navegación lateral azul noche, acentos cobalto, jerarquía marcada y superficies de datos claras. Login oscuro con tarjeta blanca de acceso. Estilo geométrico y compacto.
+- Sin menú lateral: cabecera de producto y navegación horizontal.
+- Dashboard en tres áreas: columna de indicadores, gráfica central y prioridades.
+- Kanban horizontal con desplazamiento; los Grupos conservan el mismo tamaño.
+- Formularios amplios como paneles de edición laterales; confirmaciones compactas centradas.
+- Calendario, Timers, acciones y totales en un mismo recorrido vertical, sin selector de contenido.
+- Nuevo login con formulario a la izquierda y presentación a la derecha.
 
-## Studio
+## Prisma: espacio de cristal
 
-Espacio editorial: navegación superior en escritorio, lienzo cálido, verde bosque y tipografía serif en títulos. Formularios y datos mantienen tipografía de lectura rápida. Login luminoso y composición más tranquila.
+- Cabecera flotante con menú hamburguesa; no hay sidebar permanente.
+- Lanzador de navegación en tarjetas, con foco de teclado, Escape y acceso Ctrl/Cmd+K.
+- Dock inferior con accesos adecuados al rol.
+- Dashboard asimétrico: indicadores en cuadrícula, gráfica amplia y prioridades.
+- Grupos en filas, con Técnicos desplazables horizontalmente dentro de cada Grupo; se conserva el arrastre entre Grupos.
+- Superficies translúcidas, fondo con profundidad y modales centrados de cristal.
+- Login centrado, nueva jerarquía visual y accesos de activación/recuperación conservados.
 
-## Alcance
+## Funciones preservadas
 
-Ambas cubren los cuatro roles, login, activación y recuperación, paneles, organización, Kanban, calendario, formularios y modales, Timer, Guardias, aprobaciones, analítica, Claim, ADP y respaldo. Colores de estado y de los tipos de registro conservan su significado. Interacción por teclado, vistas móviles y preferencias de movimiento reducido se conservan.
+El backend, `server.py`, `frontend/static/app.js` y `frontend/static/layout.js` conservan sus bytes originales. El módulo de presentación redefine la estructura visual del shell y login; reutiliza las vistas, formularios, atributos de acción y API existentes. No sustituye permisos ni cálculos.
 
-## Generar los ZIP completos
+La navegación se deriva del mismo menú autorizado por rol. Se mantienen altas/edición/bajas, activación, movimientos, delegación, reglas, OT/Guardias, Timer y documentación, aprobaciones, analítica, Claim, ADP, Excel y respaldo .pulse. El cambio visual despliega las secciones en un lienzo desplazable; las filas filtradas o condicionalmente ocultas siguen ocultas.
 
-Desde el repositorio: `python3 scripts/build_alternatives.py --output /tmp/pulse-alternatives`.
-Se empaquetan archivos versionados; no se incluyen .venv, bases personales ni claves. Cada carpeta contiene LEEME_ALTERNATIVA.md y el arranque habitual start.command.
+## Validación
 
-Para comparar, ejecuta una alternativa a la vez (puerto local 5510) y usa primero los datos de demostración. No sustituir la carpeta estable. Las dos propuestas son alternativas visuales de v1.0.10, no versiones con funcionalidades diferentes.
+103 pruebas API aprobadas. En cada alternativa se realizaron 80 comprobaciones mediante navegación real para cuatro roles y cuatro resoluciones, junto con alta/activación/edición de un Técnico, arrastre y movimiento confirmado, OT histórica, aprobación, selección de Guardia arrastrando fechas, Timer de emergencia y documentación pendiente, formularios con pie visible en móvil y pantalla baja, gráfica ampliada, Claim/ADP, descarga .pulse y protección de duplicados. Sin errores JavaScript.
 
-## Vistas previas y validación
+## Ejecutar
 
-[Comparativa visual PDF](../docs/alternatives/Pulse_Atlas_y_Studio_Comparativa.pdf) · [Vista rápida](../docs/alternatives/Pulse_Dos_Alternativas.jpg).
+Extraer cada ZIP en una carpeta separada, instalar el entorno siguiendo README.md y ejecutar `start.command`. Abrir una alternativa a la vez en el puerto 5510. Los datos de demostración se incluyen; la base personal y su clave no se distribuyen. Conservar la carpeta estable.
 
-Se verificaron 80 combinaciones de rol/página/resolución en cada opción (160 en total), login en cinco resoluciones con movimiento reducido, formularios de una sola vista, calendario con rangos arrastrables, inicio del Timer, alta/edición de Técnicos y traslados mediante arrastre y aceptación del receptor, cuatro gráficas ampliables para Manager/Técnico/Lead delegado y respaldo/recuperación con documentación y duplicados. Las pruebas utilizan bases temporales, nunca datos de trabajo.
+Para generar ambas desde el repositorio: `python3 scripts/build_alternatives.py --output /tmp/pulse-reinvention`.
 
-La navegación superior de Studio se compacta en pantallas de poca altura para mantener accesibles los destinos del Kanban. En móvil ambas opciones conservan navegación horizontal y calendarios de siete columnas.
-
-La comprobación de entrega compara byte por byte backend/application.py, backend/time_recovery.py, server.py, frontend/static/app.js y frontend/static/layout.js con la versión estable. La diferencia funcional no depende de una segunda implementación: sólo se incorpora una hoja visual y su enlace en el HTML.
+La capa de presentación queda en `frontend/static/presentation.js`, `presentation-base.css` y `alternative.css`; el HTML identifica la experiencia. Las capturas y la comparativa están en docs/experiences.
