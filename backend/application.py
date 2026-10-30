@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-VERSION = '1.0.15'
+VERSION = '1.0.16'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent
@@ -176,7 +176,8 @@ def init_db():
 
 def install_example_database():
     """The test distribution initializes only a missing default DB, never an existing one."""
-    example=ROOT/'fixtures'/'banorte_pruebas.sqlite3'
+    demo=ROOT/'fixtures'/'operacion_demo_2026.sqlite3'
+    example=demo if demo.is_file() else ROOT/'fixtures'/'banorte_pruebas.sqlite3'
     if 'PULSE_DB_PATH' in os.environ or DB.exists() or not example.is_file():return
     import shutil
     temporary=DB.with_name('.pulse-example-'+uuid.uuid4().hex+'.sqlite3')

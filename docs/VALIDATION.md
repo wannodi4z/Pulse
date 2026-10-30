@@ -284,3 +284,9 @@ Verificación de periodos rápidos, selección por clic entre años, conservaci�
 - Ocho gráficas de equipo/cinco personales: tooltip visible y con valor exacto por cursor y teclado, límites de pantalla, toque en mapa de calor móvil y cierre al cambiar foco. Verificación de colores del mapa bajo CSP, +25 pp correctos y demora de 48 h sin una segunda conversión.
 - Aviso de captura histórica excepcional y ayuda en justificación; consulta de sólo lectura y exportación verificadas.
 - 92 comprobaciones de rol/página/resolución aprobadas y separación Analítica/Consulta conservada.
+
+### v1.0.16
+
+- Tres pruebas del cargador: Timer de actividad preaprobada que inicia, se detiene y vuelve a revisión; todos los Managers/personas, protección de una OT original de Samuel en octubre, datos de usuarios intactos, idempotencia, respaldo, tramos cerrados, integridad SQLite y claves foráneas, ninguna Guardia de Lead y ventana/actividad vinculadas.
+- Consulta/analítica/exportación de cada Manager y alcance personal de Samuel; recuperación de octubre no necesaria porque no se modifica. El generador aborta si existe un Timer activo.
+- Tres pruebas del paquete: instalación nueva con ejemplos, reinicio conservando contraseña y datos propios, y base explícita independiente sin sustitución automática.

@@ -269,3 +269,9 @@ Tablero del Manager reorganizado: lectura ejecutiva, concentración de OT por Gr
 - Datos emergentes en marcas de gráficas, medidores y mapa de calor: cursor, foco de teclado y toque en móvil. Dentro de modales, sin perder detalle tabular. Colores y tooltip compatibles con la política de seguridad de contenido existente.
 - Regla de uso: programar antes de ejecutar, usar Timer para la actividad y comenzar Timer ante emergencias; la captura histórica es excepcional y se justifica para revisión. No se introduce un plazo arbitrario ni un bloqueo retroactivo.
 - Seguimiento de registros históricos y demora media desde fin de actividad hasta creación. Excluye cancelados y recuperaciones de respaldo; no cambia horas, aprobaciones, Claim ni ADP. Se muestra contexto en consulta y revisión del registro.
+
+## v1.0.16 — Datos completos de demostración
+
+807 OT, 142 Guardias y 570 tramos cerrados para 12 Técnicos y cuatro Leads, cuatro Managers y dos Cuentas. Historial mayo–octubre y programaciones futuras de noviembre; octubre de Samuel Díaz (951357) excluido y conservado. Actividades compartidas, aprobaciones simuladas, pendientes, rechazo, documentación y capturas históricas excepcionales.
+
+Nueva base sintética para instalaciones sin base existente. Cargador aditivo con respaldo, identificadores estables, transacción y protección de octubre para quien conserva su base; no reemplaza personas ni registros. Sin Timers activos automáticos ni delegaciones nuevas. [Uso de los datos](DATOS_DEMO.md).

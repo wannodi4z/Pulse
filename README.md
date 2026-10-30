@@ -1,4 +1,6 @@
-# Entrega v1.0.15 · dashboard compacto e interactivo
+# Entrega v1.0.16 · datos de demostración para todo el equipo
+
+**Incluye 949 registros sintéticos para los 12 Técnicos y cuatro Leads de los cuatro Managers. Octubre de 2026 de Samuel Díaz (951357) queda excluido.** Una instalación nueva los carga automáticamente; si conservas tu base, ejecuta `Cargar_datos_demo.command` después de cerrar Pulse. Se genera un respaldo y se agregan sólo los ejemplos faltantes. [Guía de datos de demostración](docs/DATOS_DEMO.md).
 
 Se conserva el diseño general de Pulse, con una composición de analítica más compacta basada en las referencias del usuario: indicadores comparativos, ocho gráficas del equipo y cinco personales, y datos emergentes por cursor, teclado o toque. **Consulta de registros** continúa separada. La captura histórica se trata como excepción y se da seguimiento a la demora de captura, excluyendo recuperaciones de respaldo. No cambian cálculos, permisos ni aprobaciones. [Guía de analítica del Manager](docs/MANAGER_ANALYTICS.md).
 
@@ -229,7 +231,7 @@ Para preparar los accesos de ejemplo en la **base principal**, instala dependenc
 bash configurar_banorte.command
 ```
 
-Se reutiliza Banorte/MX-BNTE, con MGR0001 (`manager12026`), Lead directo SL0001 (`lead120261`) y Técnico 951357 (`tecnico12026`), activos, además de seis Grupos de prueba. No se crea delegación automática ni registros operativos. **Conserva tu `operational_pulse.db` y su `.key` al actualizar**; el ZIP no los sustituye. Los inicios normales siguen creando únicamente admin1/admin2 en una base vacía. El configurador explícito establece las contraseñas solicitadas para esos tres accesos; los demás datos y usuarios se conservan.
+Se reutiliza Banorte/MX-BNTE, con MGR0001 (`manager12026`), Lead directo SL0001 (`lead120261`) y Técnico 951357 (`tecnico12026`), activos, además de seis Grupos de prueba. No se crea delegación automática ni registros operativos. **Conserva tu `operational_pulse.db` y su `.key` al actualizar**; el ZIP no los sustituye. En v1.0.16 el inicio sin base instala los ejemplos sintéticos; una base explícita independiente sigue inicializándose sólo con admin1/admin2. El configurador explícito establece las contraseñas solicitadas para esos tres accesos; los demás datos y usuarios se conservan.
 
 Las descripciones de ciclos anteriores más abajo son históricas; esta sección y la especificación actual definen el comportamiento vigente del Lead.
 
@@ -581,7 +583,7 @@ Primero crea o reutiliza Banorte (clave BNTE, país MX). Dentro de esa Cuenta cr
 
 Este comando **explícito** establece las contraseñas solicitadas, activa esos tres accesos y conserva a los demás usuarios. Si detecta un rol, baja o equipo incompatible, cancela toda la configuración sin transferir personas automáticamente. No crea OT, Guardias, reglas, Timers ni delegación. Ejecutarlo otra vez no duplica los Grupos ni reinicia los datos operativos. Para los inicios siguientes basta `bash start.command`.
 
-El ZIP contiene código y este configurador, **no tu base ni sesiones**. Para actualizar tu Mac, conserva `operational_pulse.db` junto a `server.py` (y su archivo de clave si ya existe). El inicio normal sigue creando sólo admin1/admin2 en una base vacía. El antiguo `iniciar_pruebas.command` continúa disponible como opción aislada de desarrollo; no es el configurador de Banorte.
+El ZIP contiene código y este configurador, **no tu base ni sesiones**. Para actualizar tu Mac, conserva `operational_pulse.db` junto a `server.py` (y su archivo de clave si ya existe). En v1.0.16 el inicio sin base instala los ejemplos sintéticos; no sustituye una base existente. El antiguo `iniciar_pruebas.command` continúa disponible como opción aislada de desarrollo; no es el configurador de Banorte.
 
 ## Cuentas y especialidades internacionales
 

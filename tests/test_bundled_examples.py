@@ -29,7 +29,11 @@ with server.connection() as db:
  for aid, in db.execute('SELECT id FROM accounts'):
   assert db.execute("SELECT count(*) FROM users WHERE role='MANAGER' AND account_id=?",(aid,)).fetchone()[0]==2
  assert db.execute("SELECT count(*) FROM users WHERE is_lead=1 AND group_id IS NULL").fetchone()[0]==4
- for t in ['overtime','guards','timers','recoveries','delegations']:assert db.execute('SELECT count(*) FROM '+t).fetchone()[0]==0
+ assert db.execute('SELECT count(*) FROM overtime').fetchone()[0]>0
+ assert db.execute('SELECT count(*) FROM guards').fetchone()[0]>0
+ assert db.execute('SELECT count(*) FROM timers WHERE end_at IS NULL').fetchone()[0]==0
+ assert db.execute("SELECT count(*) FROM overtime o JOIN users u ON u.id=o.user_id WHERE u.employee_id='951357' AND coalesce(o.start_at,o.scheduled_start)<'2026-11-01' AND coalesce(o.end_at,o.scheduled_end)>'2026-10-01'").fetchone()[0]==0
+ for t in ['recoveries','delegations']:assert db.execute('SELECT count(*) FROM '+t).fetchone()[0]==0
 ''')
     def test_restart_keeps_changed_password_and_manual_data(self):
         self.run_code('''import server
