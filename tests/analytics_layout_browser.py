@@ -24,7 +24,16 @@ try:
   login('M001');month_january();expect(page.locator('.chart-tile')).to_have_count(9)
   expect(tile('trend').locator('h3')).to_have_text('Tendencia mensual')
   original=page.evaluate('JSON.stringify({summary:analyticsReport.summary,filters,comparisonMonths})')
-  edit();page.locator('[data-action=chart-layout-hide][data-id=heatmap]').click();expect(page.locator('.chart-tile')).to_have_count(8)
+  edit()
+  def order():return page.locator('.chart-tile').evaluate_all("es=>es.map(e=>e.dataset.chartKind)")
+  before=order();source=tile('trend').locator('[data-chart-move]');target=tile('groups')
+  source.scroll_into_view_if_needed();a=source.bounding_box();b=target.bounding_box();page.mouse.move(a['x']+12,a['y']+12);page.mouse.down();page.mouse.move(b['x']+b['width']/2,b['y']+100,steps=8);page.evaluate('()=>refresh(true)');assert page.evaluate('chartResizeActive()');page.mouse.up()
+  assert order()[:3]==['monthlybars','groups','trend'],order()
+  tile('trend').locator('[data-chart-move]').focus();page.keyboard.press('ArrowLeft');assert order()[:3]==['monthlybars','trend','groups']
+  page.reload();page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy');month_january();assert order()[:3]==['monthlybars','trend','groups']
+  edit();source=tile('trend').locator('[data-chart-move]');source.scroll_into_view_if_needed();a=source.bounding_box();b=tile('groups').bounding_box();page.mouse.move(a['x']+12,a['y']+12);page.mouse.down();page.mouse.move(b['x']+20,b['y']+100);page.keyboard.press('Escape');page.mouse.up();assert order()[:3]==['monthlybars','trend','groups']
+  page.locator('[data-action=chart-layout-reset]').click();assert order()==before
+  page.locator('[data-action=chart-layout-hide][data-id=heatmap]').click();expect(page.locator('.chart-tile')).to_have_count(8)
   page.locator('[data-chart-width=trend]').select_option('8');page.locator('[data-chart-height=trend]').select_option('480')
   expect(tile('trend')).to_have_attribute('data-width','8');expect(tile('trend')).to_have_attribute('data-height','480')
   assert tile('trend').evaluate('e=>Math.abs(e.getBoundingClientRect().height-480)<2')
@@ -41,6 +50,8 @@ try:
   for width,height in [(1440,1000),(1024,700),(390,844)]:
    page.set_viewport_size({'width':width,'height':height});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
    expect(tile('trend')).to_have_attribute('data-width','8')
+  tile('trend').locator('[data-chart-move]').focus();page.keyboard.press('ArrowRight');assert order()[1]=='trend'
+  tile('trend').locator('[data-chart-move]').focus();page.keyboard.press('ArrowLeft');assert order()[0]=='trend'
   # Details and local legend remain available on a resized chart.
   tile('area').locator('[data-action=decision-detail]').click();page.locator('#modal [data-action=chart-series][data-id="area:HISTORICAL"]').click()
   expect(page.locator('#modal [data-area-series]')).to_have_count(1);expect(page.locator('#modal .chart-series-status')).to_contain_text('Mostrando sólo OT histórica')

@@ -1,3 +1,8 @@
+## v1.0.20
+
+- Reordenar gráficas desde Personalizar tablero mediante asa de arrastre o flechas del teclado. Destino resaltado, Escape cancela, orden persistente por usuario/navegador.
+- Conserva tamaños y visibilidad anteriores, modales ampliados y selección de leyendas. Restaurar diseño recupera también el orden original.
+
 # v1.0.11 · Analítica del Manager
 
 - Tabla visible de OT/SB por Grupo, OT total y conteos por tipo, con desglose por Técnico.

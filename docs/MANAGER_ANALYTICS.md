@@ -1,3 +1,7 @@
+## Reordenar el tablero · v1.0.20
+
+En Personalizar tablero, arrastra el asa ⠿ hacia otra gráfica; el borde punteado señala el destino. También puedes enfocar el asa y usar las flechas para avanzar o retroceder una posición. Escape cancela el arrastre. El orden, tamaño y visibilidad se conservan por usuario en este navegador, incluso al ocultar y volver a mostrar una gráfica. Restaurar diseño recupera todos los valores originales. No cambia reportes ni permisos.
+
 # Analítica del Manager · v1.0.11
 
 Diseño visual original v1.0.10. El Lead conserva su rol: la analítica del equipo y su participación requieren delegación activa; su analítica personal sigue separada.

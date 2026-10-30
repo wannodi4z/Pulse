@@ -5,15 +5,16 @@ const chartLayoutWidths=[4,6,8,12],chartLayoutHeights=[300,380,480,600];
 const chartWidthNames={4:'Compacta · ⅓',6:'Media · ½',8:'Amplia · ⅔',12:'Completa'};
 const chartHeightNames={300:'Compacta',380:'Normal',480:'Alta',600:'Muy alta'};
 const chartLayoutCache=new Map(),chartLayoutEditing=new Set();
-let chartResize=null;
-function chartResizeActive(){return Boolean(chartResize);}
+let chartResize=null,chartMove=null;
+function chartResizeActive(){return Boolean(chartResize||chartMove);}
 function chartLayoutKey(){return 'pulse.analytics.layout.v1:'+me().id+':TEAM';}
-function defaultChartLayout(){return Object.fromEntries(chartLayoutKinds.map(kind=>[kind,{visible:true,width:4,height:380}]));}
+function defaultChartLayout(){return Object.fromEntries(chartLayoutKinds.map(kind=>[kind,{visible:true,width:4,height:380,order:chartLayoutKinds.indexOf(kind)}]));}
 function readChartLayout(){
  const key=chartLayoutKey();if(chartLayoutCache.has(key))return chartLayoutCache.get(key);
  const result=defaultChartLayout();let stored;
  try{stored=JSON.parse(localStorage.getItem(key)||'null');}catch{}
  if(stored?.version===1&&stored.charts&&typeof stored.charts==='object')for(const kind of chartLayoutKinds){const c=stored.charts[kind];if(!c||typeof c!=='object')continue;result[kind]={visible:typeof c.visible==='boolean'?c.visible:true,width:chartLayoutWidths.includes(c.width)?c.width:4,height:chartLayoutHeights.includes(c.height)?c.height:380};}
+ if(stored?.version===1)for(const kind of chartLayoutKinds){const order=stored.charts?.[kind]?.order;result[kind].order=Number.isInteger(order)&&order>=0&&order<chartLayoutKinds.length?order:chartLayoutKinds.indexOf(kind);}
  chartLayoutCache.set(key,result);return result;
 }
 function saveChartLayout(){
@@ -27,15 +28,15 @@ function chartTile(kind,report,pref,editing){
  heading.append(button.firstElementChild);heading.append(button.firstElementChild);
  while(button.firstChild&&button.firstChild!==footer)plot.append(button.firstChild);
  button.prepend(heading,plot);button.classList.add('chart-tile-open');
- const controls=editing?`<div class="chart-tile-controls"><label><span>Ancho</span><select data-chart-width="${kind}" aria-label="Ancho de ${visualTitles[kind]}">${chartLayoutWidths.map(width=>`<option value="${width}" ${pref.width===width?'selected':''}>${chartWidthNames[width]}</option>`).join('')}</select></label><label><span>Altura</span><select data-chart-height="${kind}" aria-label="Altura de ${visualTitles[kind]}">${chartLayoutHeights.map(height=>`<option value="${height}" ${pref.height===height?'selected':''}>${chartHeightNames[height]}</option>`).join('')}</select></label>${btn('Ocultar','chart-layout-hide',kind,'link small')}</div>`:'';
+ const controls=editing?`<div class="chart-tile-controls"><button type="button" class="chart-move-handle" data-chart-move="${kind}" aria-label="Mover ${visualTitles[kind]}. Arrastra o usa las flechas del teclado." title="Arrastra para mover; flechas para cambiar de posición">⠿</button><label><span>Ancho</span><select data-chart-width="${kind}" aria-label="Ancho de ${visualTitles[kind]}">${chartLayoutWidths.map(width=>`<option value="${width}" ${pref.width===width?'selected':''}>${chartWidthNames[width]}</option>`).join('')}</select></label><label><span>Altura</span><select data-chart-height="${kind}" aria-label="Altura de ${visualTitles[kind]}">${chartLayoutHeights.map(height=>`<option value="${height}" ${pref.height===height?'selected':''}>${chartHeightNames[height]}</option>`).join('')}</select></label>${btn('Ocultar','chart-layout-hide',kind,'link small')}</div>`:'';
  return `<article class="panel decision-card chart-tile" data-chart-kind="${kind}" data-width="${pref.width}" data-height="${pref.height}">${controls}${button.outerHTML}${editing?`<button type="button" class="chart-resize-handle" data-chart-resize="${kind}" aria-label="Redimensionar ${visualTitles[kind]}. Arrastra o usa las flechas del teclado." title="Arrastra para ajustar ancho y altura; también puedes usar las flechas">◢</button>`:''}</article>`;
 }
 function configurableAnalyticsDeck(report){
- const prefs=readChartLayout(),editing=chartLayoutEditing.has(chartLayoutKey()),visible=chartLayoutKinds.filter(kind=>prefs[kind].visible);
- return `<section class="decision-section personalized-charts ${editing?'chart-editing':''}"><header class="section-heading chart-layout-header"><div><h2>Tu operación, en gráficas</h2><p id="chart-layout-status" role="status">${editing?'Elige tamaño o arrastra la esquina. Se guarda para tu usuario en este navegador.':'Tu vista personal · '+visible.length+' de '+chartLayoutKinds.length+' gráficas visibles'}</p></div><div>${btn(editing?'Listo':'Personalizar tablero','chart-layout-edit','','secondary small',`aria-pressed="${editing}"`)}${btn('Restaurar diseño','chart-layout-reset','','link small')}</div></header>${editing?`<section class="chart-visibility-panel" aria-label="Elegir gráficas visibles"><p><strong>Gráficas visibles</strong> · Pulsa para mostrar u ocultar. En pantallas pequeñas se adapta el ancho sin cambiar tus tamaños guardados.</p><div>${chartLayoutKinds.map(kind=>`<button type="button" data-action="chart-layout-visibility" data-id="${kind}" aria-pressed="${prefs[kind].visible}"><span aria-hidden="true">${prefs[kind].visible?'✓':'＋'}</span>${visualTitles[kind]}</button>`).join('')}</div></section>`:''}<div class="decision-grid chart-layout-grid">${visible.map(kind=>chartTile(kind,report,prefs[kind],editing)).join('')}</div>${visible.length?'':`<div class="panel chart-layout-empty"><h3>No hay gráficas visibles</h3><p>Elige las que necesitas para construir tu tablero.</p>${btn('Elegir gráficas','chart-layout-show','','secondary')}</div>`}</section>`;
+ const prefs=readChartLayout(),editing=chartLayoutEditing.has(chartLayoutKey()),visible=orderedChartKinds().filter(kind=>prefs[kind].visible);
+ return `<section class="decision-section personalized-charts ${editing?'chart-editing':''}"><header class="section-heading chart-layout-header"><div><h2>Tu operación, en gráficas</h2><p id="chart-layout-status" role="status">${editing?'Arrastra el asa ⠿ para mover; la esquina para cambiar el tamaño. Se guarda para tu usuario en este navegador.':'Tu vista personal · '+visible.length+' de '+chartLayoutKinds.length+' gráficas visibles'}</p></div><div>${btn(editing?'Listo':'Personalizar tablero','chart-layout-edit','','secondary small',`aria-pressed="${editing}"`)}${btn('Restaurar diseño','chart-layout-reset','','link small')}</div></header>${editing?`<section class="chart-visibility-panel" aria-label="Elegir gráficas visibles"><p><strong>Gráficas visibles</strong> · Pulsa para mostrar u ocultar. En pantallas pequeñas se adapta el ancho sin cambiar tus tamaños guardados.</p><div>${chartLayoutKinds.map(kind=>`<button type="button" data-action="chart-layout-visibility" data-id="${kind}" aria-pressed="${prefs[kind].visible}"><span aria-hidden="true">${prefs[kind].visible?'✓':'＋'}</span>${visualTitles[kind]}</button>`).join('')}</div></section>`:''}<div class="decision-grid chart-layout-grid">${visible.map(kind=>chartTile(kind,report,prefs[kind],editing)).join('')}</div>${visible.length?'':`<div class="panel chart-layout-empty"><h3>No hay gráficas visibles</h3><p>Elige las que necesitas para construir tu tablero.</p>${btn('Elegir gráficas','chart-layout-show','','secondary')}</div>`}</section>`;
 }
 function repaintChartLayout(message='',focusAction='',kind=''){
- cancelChartResize();
+ cancelChartResize();cancelChartMove();
  const old=document.querySelector('.personalized-charts');if(!old||!analyticsReport||analyticsReport.mode!=='TEAM')return;
  const main=document.querySelector('#main'),scroll=main?.scrollTop||0,template=document.createElement('template');template.innerHTML=configurableAnalyticsDeck(analyticsReport);old.replaceWith(template.content.firstElementChild);
  if(main)main.scrollTop=scroll;if(message)chartLayoutStatus(message);
@@ -85,4 +86,28 @@ document.addEventListener('keydown',event=>{
  const handle=event.target.closest?.('[data-chart-resize]');if(!handle||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)||analyticsReport?.mode!=='TEAM')return;
  event.preventDefault();event.stopPropagation();const kind=handle.dataset.chartResize,pref=readChartLayout()[kind],horizontal=['ArrowLeft','ArrowRight'].includes(event.key),dimension=horizontal?'width':'height',choices=horizontal?chartLayoutWidths:chartLayoutHeights,step=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1;
  pref[dimension]=choices[Math.max(0,Math.min(choices.length-1,choices.indexOf(pref[dimension])+step))];updateChartTile(handle.closest('.chart-tile'),kind,pref);if(saveChartLayout())chartLayoutStatus('Tamaño guardado: '+visualTitles[kind]+'.');
+});
+
+function orderedChartKinds(){const prefs=readChartLayout();return [...chartLayoutKinds].sort((a,b)=>(prefs[a].order??chartLayoutKinds.indexOf(a))-(prefs[b].order??chartLayoutKinds.indexOf(b)));}
+function moveChartTo(kind,target){
+ const order=orderedChartKinds();if(kind===target)return;const from=order.indexOf(kind),to=order.indexOf(target);order.splice(from,1);order.splice(to,0,kind);
+ order.forEach((k,i)=>readChartLayout()[k].order=i);const saved=saveChartLayout();repaintChartLayout('Posición '+(to+1)+' de '+order.length+': '+visualTitles[kind]+(saved?'. Diseño guardado.':'. Sólo durante esta sesión.'));
+ document.querySelector('[data-chart-move="'+kind+'"]')?.focus({preventScroll:true});
+}
+function cancelChartMove(){if(!chartMove)return;const drag=chartMove;chartMove=null;drag.card.classList.remove('is-moving');document.querySelectorAll('.chart-drop-target').forEach(e=>e.classList.remove('chart-drop-target'));try{drag.handle.releasePointerCapture(drag.pointer);}catch{}}
+document.addEventListener('pointerdown',event=>{
+ const handle=event.target.closest?.('[data-chart-move]');if(!handle||event.button!==0||analyticsReport?.mode!=='TEAM')return;
+ cancelChartResize();cancelChartMove();event.preventDefault();event.stopPropagation();chartMove={handle,card:handle.closest('.chart-tile'),kind:handle.dataset.chartMove,pointer:event.pointerId,target:null};handle.setPointerCapture(event.pointerId);chartMove.card.classList.add('is-moving');
+});
+document.addEventListener('pointermove',event=>{
+ if(!chartMove||chartMove.pointer!==event.pointerId)return;event.preventDefault();
+ const card=document.elementsFromPoint(event.clientX,event.clientY).map(e=>e.closest('.chart-tile')).find(e=>e&&e!==chartMove.card);
+ document.querySelectorAll('.chart-drop-target').forEach(e=>e.classList.remove('chart-drop-target'));chartMove.target=card?.dataset.chartKind||null;card?.classList.add('chart-drop-target');
+},{passive:false});
+document.addEventListener('pointerup',event=>{if(!chartMove||chartMove.pointer!==event.pointerId)return;const {kind,target}=chartMove;cancelChartMove();if(target)moveChartTo(kind,target);});
+document.addEventListener('pointercancel',cancelChartMove);document.addEventListener('lostpointercapture',event=>{if(chartMove?.pointer===event.pointerId)cancelChartMove();});window.addEventListener('blur',cancelChartMove);window.addEventListener('resize',cancelChartMove);
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'&&chartMove){cancelChartMove();chartLayoutStatus('Movimiento cancelado.');return;}
+ const handle=event.target.closest?.('[data-chart-move]');if(!handle||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)||analyticsReport?.mode!=='TEAM')return;
+ event.preventDefault();event.stopPropagation();const kind=handle.dataset.chartMove,visible=orderedChartKinds().filter(k=>readChartLayout()[k].visible),index=visible.indexOf(kind),step=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1,target=visible[index+step];if(target)moveChartTo(kind,target);
 });

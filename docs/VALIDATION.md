@@ -1,3 +1,7 @@
+## v1.0.20
+
+Verificación en Chromium de arrastre real, guardado del orden al recargar, reordenamiento por teclado y cancelación con Escape, aislamiento por usuario, restauración, tamaños y visibilidad; ampliación de gráficas y leyendas interactivas conservadas.
+
 # v1.0.11 · Analítica del Manager
 
 - 103 pruebas API existentes y cuatro nuevas aprobadas: actividad vinculada, Timers reales frente a inscripción, horas cerradas/aprobadas, aislamiento por Manager, delegación y revocación, referencia histórica independiente y desglose/conteos/ceros.
