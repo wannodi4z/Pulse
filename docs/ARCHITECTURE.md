@@ -1,3 +1,9 @@
+La entrega v1.0.21 arranca sin fixtures ni carga de ejemplo. `init_db` sólo crea los dos administradores iniciales si no existen usuarios. Las bases existentes se conservan. El árbol usa el mismo estado autorizado y aplica los mismos filtros de analítica; no crea un alcance alternativo ni cambia cálculos.
+
+## Jerarquía ejecutiva · v1.0.21
+
+`backend/hierarchy.py` migra el CHECK de roles en una transacción con copia de SQLite, preservando índices y referencias. `users.parent_id` relaciona DP→DPE→Manager; `account_id` delimita la Cuenta. `read_scope` y `read_visible_users` calculan acceso de consulta sin ampliar `scope`, `visible_users` ni `authorized_target` de gestión. `current_user` rechaza operaciones ejecutivas de escritura salvo perfil, contraseña, cierre y actividad de su propia sesión. Analítica, estado, participantes y exportación resuelven el alcance en cada solicitud.
+
 # Estructura de Operational Pulse v1.0.10
 
 ## Arranque y compatibilidad

@@ -8,3 +8,10 @@
 /docs/experiences/ export-ignore
 /scripts/build_alternatives.py export-ignore
 /tests/reinvented_interface_browser.py export-ignore
+
+# v1.0.21 is a clean demonstration package, without preloaded test databases.
+/fixtures/ export-ignore
+/Cargar_datos_demo.command export-ignore
+/configurar_banorte.command export-ignore
+/iniciar_pruebas.command export-ignore
+/docs/DATOS_DEMO.md export-ignore

@@ -24,8 +24,9 @@ from fastapi.staticfiles import StaticFiles
 from cryptography.fernet import Fernet, InvalidToken
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
+from backend.hierarchy import migrate_executive_roles
 
-VERSION = '1.0.20'
+VERSION = '1.0.21'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent
@@ -103,12 +104,13 @@ def connection(write=False):
 
 def init_db():
     DB.parent.mkdir(parents=True, exist_ok=True)
+    migrate_executive_roles(DB)
     with connection(True) as c:
         c.executescript('''
         CREATE TABLE IF NOT EXISTS accounts(id TEXT PRIMARY KEY, code TEXT UNIQUE COLLATE NOCASE NOT NULL, name TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS groups(id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id), manager_id TEXT REFERENCES users(id), code TEXT UNIQUE COLLATE NOCASE NOT NULL, name TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS retired_groups(group_id TEXT PRIMARY KEY REFERENCES groups(id), retired_at TEXT NOT NULL, reason TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, role TEXT NOT NULL CHECK(role IN ('ADMIN','MANAGER','USER')), username TEXT UNIQUE COLLATE NOCASE NOT NULL, employee_id TEXT UNIQUE COLLATE NOCASE, first TEXT NOT NULL, last TEXT NOT NULL, email TEXT NOT NULL, account_id TEXT REFERENCES accounts(id), group_id TEXT REFERENCES groups(id), is_lead INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, password_hash TEXT, activation_hash TEXT, created_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, role TEXT NOT NULL CHECK(role IN ('ADMIN','MANAGER','USER','DP','DPE')), username TEXT UNIQUE COLLATE NOCASE NOT NULL, employee_id TEXT UNIQUE COLLATE NOCASE, first TEXT NOT NULL, last TEXT NOT NULL, email TEXT NOT NULL, account_id TEXT REFERENCES accounts(id), group_id TEXT REFERENCES groups(id), is_lead INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, password_hash TEXT, activation_hash TEXT, created_at TEXT NOT NULL);
         CREATE UNIQUE INDEX IF NOT EXISTS one_lead ON users(group_id) WHERE is_lead=1;
         CREATE TABLE IF NOT EXISTS session_activity(token_hash TEXT PRIMARY KEY, last_activity TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), expires_at TEXT NOT NULL);
@@ -137,7 +139,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS login_attempts(identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, locked_until TEXT);
         ''')
         # Add metadata without renaming legacy keys or changing hierarchy/records.
-        for table,columns in {'accounts':{'country_code':"TEXT NOT NULL DEFAULT ''",'base_code':"TEXT NOT NULL DEFAULT ''"},'users':{'manager_id':'TEXT REFERENCES users(id)'},'groups':{'platform_code':"TEXT NOT NULL DEFAULT ''",'service_key':"TEXT NOT NULL DEFAULT ''",'standard_code':"TEXT NOT NULL DEFAULT ''"}}.items():
+        for table,columns in {'accounts':{'country_code':"TEXT NOT NULL DEFAULT ''",'base_code':"TEXT NOT NULL DEFAULT ''"},'users':{'manager_id':'TEXT REFERENCES users(id)','parent_id':'TEXT REFERENCES users(id)'},'groups':{'platform_code':"TEXT NOT NULL DEFAULT ''",'service_key':"TEXT NOT NULL DEFAULT ''",'standard_code':"TEXT NOT NULL DEFAULT ''"}}.items():
             present={row['name'] for row in c.execute('PRAGMA table_info('+table+')')}
             for column,definition in columns.items():
                 if column not in present:c.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+definition)
@@ -174,21 +176,7 @@ def init_db():
                           (uid(), 'ADMIN', f'admin{n}', 'Administrador', surname, f'admin{n}@operationalpulse.local', 'ACTIVE', password_hash(f'admin{n}2026'), now()))
 
 
-def install_example_database():
-    """The test distribution initializes only a missing default DB, never an existing one."""
-    demo=ROOT/'fixtures'/'operacion_demo_2026.sqlite3'
-    example=demo if demo.is_file() else ROOT/'fixtures'/'banorte_pruebas.sqlite3'
-    if 'PULSE_DB_PATH' in os.environ or DB.exists() or not example.is_file():return
-    import shutil
-    temporary=DB.with_name('.pulse-example-'+uuid.uuid4().hex+'.sqlite3')
-    try:
-        shutil.copyfile(example,temporary)
-        try:os.link(temporary,DB)  # Exclusive and atomic: an existing database always wins.
-        except FileExistsError:pass
-    finally:temporary.unlink(missing_ok=True)
-
-
-install_example_database()
+# New installations start empty; existing databases are migrated, never replaced.
 init_db()
 
 
@@ -242,7 +230,10 @@ def current_user(request: Request):
         row = c.execute('SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=? AND s.expires_at>? AND u.status=?', (hashed, now(), 'ACTIVE')).fetchone()
         if row is None:
             fail('Inicia sesión para continuar.', 401)
-        return dict(row)
+        user=dict(row)
+        if user['role'] in ('DP','DPE') and request.method not in ('GET','HEAD') and request.url.path not in ('/api/session/activity','/api/logout','/api/profile','/api/password'):
+            fail('DP y DPE tienen acceso de consulta; no pueden modificar ni autorizar registros.',403)
+        return user
 
 
 @app.post('/api/session/activity')
@@ -270,6 +261,25 @@ def effective_delegations(c):
     for row in c.execute("SELECT d.* FROM delegations d JOIN users m ON m.id=d.manager_id WHERE d.revoked_at IS NULL AND d.start_at<=? AND (d.end_at='' OR d.end_at>?) AND m.status='ACTIVE' ORDER BY d.rowid DESC", (stamp, stamp)):
         selected.setdefault(row['manager_id'], dict(row))
     return list(selected.values())
+
+
+def executive_managers(c, actor):
+    if actor['role'] not in ('DP','DPE'):return set()
+    if actor['role']=='DP':
+        return {p['id'] for p in rows(c,'users') if p['role']=='MANAGER' and p['account_id']==actor['account_id']}
+    return {p['id'] for p in rows(c,'users') if p['role']=='MANAGER' and p.get('parent_id')==actor['id'] and p['account_id']==actor['account_id']}
+
+
+def read_scope(c, actor):
+    if actor['role'] not in ('DP','DPE'):return scope(c,actor)
+    managers=executive_managers(c,actor)
+    return {g['id'] for g in rows(c,'groups') if g['manager_id'] in managers and g['account_id']==actor['account_id']}
+
+
+def read_visible_users(c, actor):
+    if actor['role'] not in ('DP','DPE'):return visible_users(c,actor)
+    managers=executive_managers(c,actor)
+    return {p['id'] for p in rows(c,'users') if p['role']=='USER' and owner_manager(c,p) in managers}
 
 
 def scope(c, user):
@@ -305,6 +315,7 @@ def visible_users(c,actor):
 
 
 def authorized_target(c, actor, target, approval=False):
+    if actor['role'] in ('DP','DPE'):fail('Este acceso es de consulta.',403)
     if actor['role'] == 'ADMIN' and not approval:
         return
     if target['id'] not in visible_users(c,actor) or (approval and target['id'] == actor['id']) or (approval and actor['role']=='ADMIN'):
@@ -466,9 +477,9 @@ def finish_paused(c, actor, o):
 @app.get('/api/state')
 def state(user=Depends(current_user)):
     with connection() as c:
-        group_ids = scope(c, user)
+        group_ids = read_scope(c, user)
         people = rows(c, 'users')
-        visible = visible_users(c,user)
+        visible = read_visible_users(c,user)
         if user['role'] == 'ADMIN':
             visible = {p['id'] for p in people}
         groups = rows(c, 'groups')
@@ -478,8 +489,8 @@ def state(user=Depends(current_user)):
         visible_entities = visible | {r['id'] for table in ('overtime', 'guards', 'timers') for r in rows(c, table) if r['user_id'] in visible}
         result = {'user': public_user(user), 'can_approve': user['role'] == 'MANAGER' or bool(group_ids) and user['role'] == 'USER', 'scope': list(group_ids), 'version': VERSION, 'timezone': str(TZ), 'server_time': now(),
                   'specialties':[r for r in rows(c,'specialties') if user['role']=='ADMIN' or any(g['account_id']==r['account_id'] for g in shown_groups)],'country_codes':sorted(COUNTRY_CODES),'platforms':PLATFORMS,'service_catalog':SERVICE_CATALOG,
-                  'accounts': accounts if user['role'] == 'ADMIN' else [a for a in accounts if user['role']=='MANAGER' and user['account_id']==a['id'] or any(g['account_id'] == a['id'] for g in shown_groups) or user['is_lead'] and get(c,'users',user['manager_id'])['account_id']==a['id']],
-                  'groups': shown_groups, 'people': [public_user(p) for p in people if p['id'] in visible or p['role'] == 'MANAGER' and (any(g['manager_id'] == p['id'] for g in shown_groups) or user['manager_id']==p['id'])],
+                  'accounts': accounts if user['role'] == 'ADMIN' else [a for a in accounts if user['role'] in ('MANAGER','DP','DPE') and user['account_id']==a['id'] or any(g['account_id'] == a['id'] for g in shown_groups) or user['is_lead'] and get(c,'users',user['manager_id'])['account_id']==a['id']],
+                  'groups': shown_groups, 'people': [public_user(p) for p in people if user['role'] in ('DP','DPE') and (p['id']==user['id'] or p['id'] in executive_managers(c,user) or user['role']=='DP' and p['role']=='DPE' and p['account_id']==user['account_id']) or p['id'] in visible or p['role'] == 'MANAGER' and (any(g['manager_id'] == p['id'] for g in shown_groups) or user['manager_id']==p['id'])],
                   'overtime': [r for r in rows(c, 'overtime') if r['user_id'] in visible],
                   'guards': [r for r in rows(c, 'guards') if r['user_id'] in visible],
                   'timers': [r for r in rows(c, 'timers') if r['user_id'] in visible and not r['end_at']],
@@ -586,6 +597,7 @@ def admin_person_impact(c, identity):
 
 def authorize_offboard(c,actor,identity):
     user=get(c,'users',identity)
+    if user['role'] in ('DP','DPE') and c.execute("SELECT 1 FROM users WHERE parent_id=? AND status!='DISABLED'",(identity,)).fetchone():fail('Reasigna primero sus responsables dependientes antes de dar de baja este acceso.')
     if actor['role']=='ADMIN':return
     if actor['role']=='MANAGER' and user['role']=='USER' and not user['is_lead'] and user['group_id'] and get(c,'groups',user['group_id'])['manager_id']==actor['id']:return
     fail('Sólo puedes dar de baja Técnicos de tu equipo.',403)
@@ -901,15 +913,24 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(curren
             # Read editable identity fields under the same write lock; moving never replays a stale profile.
             data={**old,'group_id':text(data,'group_id'),'transfer_reason':text(data,'transfer_reason'),'transfer_request_id':data.get('transfer_request_id')}
         role = old['role'] if old else text(data, 'role')
-        if role not in ('ADMIN', 'MANAGER', 'USER'):
+        if role not in ('ADMIN', 'MANAGER', 'USER','DP','DPE'):
             fail('Rol no válido.')
-        aid = data.get('account_id') if role == 'MANAGER' else None
+        aid = data.get('account_id',old['account_id'] if old else None) if role in ('MANAGER','DP','DPE') else None
         gid = data.get('group_id') if role == 'USER' else None
         lead = bool(data.get('is_lead')) and role == 'USER'
         if aid:
             get(c, 'accounts', aid)
-        elif role == 'MANAGER':
-            fail('El Manager debe pertenecer a una Cuenta.')
+        elif role in ('MANAGER','DP','DPE'):
+            fail('Este rol debe pertenecer a una Cuenta.')
+        parent_id=data.get('parent_id',old.get('parent_id') if old else None) or None
+        if role in ('MANAGER','DPE'):
+            required='DP' if role=='DPE' else 'DPE'
+            if not parent_id and (not old or old.get('parent_id')):fail('Selecciona el '+required+' responsable.')
+            if parent_id:
+                parent=get(c,'users',parent_id)
+                if parent['role']!=required or parent['status']=='DISABLED' or parent['account_id']!=aid:fail('El responsable debe ser '+required+' vigente de la misma Cuenta.')
+        elif parent_id:fail('Este rol no admite responsable superior.')
+        if old and role in ('DP','DPE') and aid!=old['account_id'] and c.execute("SELECT 1 FROM users WHERE parent_id=?",(identity,)).fetchone():fail('Reasigna primero las personas dependientes antes de cambiar la Cuenta.')
         lead_manager=None
         if role=='USER':
             if lead:
@@ -984,6 +1005,7 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(curren
             identity = uid()
             code = 'ACT-' + secrets.token_hex(5).upper()
             c.execute('INSERT INTO users(id,role,username,employee_id,first,last,email,account_id,group_id,is_lead,status,password_hash,activation_hash,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', (identity, role, username, employee_id, text(data, 'first'), text(data, 'last'), text(data, 'email'), aid, gid, int(lead), 'PENDING_ACTIVATION', None, password_hash(code), now()))
+        c.execute('UPDATE users SET parent_id=? WHERE id=?',(parent_id,identity))
         if role=='USER':c.execute('UPDATE users SET manager_id=? WHERE id=?',(lead_manager,identity))
         if role == 'MANAGER':
             c.execute('UPDATE groups SET manager_id=NULL WHERE manager_id=?', (identity,))
@@ -1119,7 +1141,7 @@ def change_password(data: dict = Body(...), actor=Depends(current_user)):
 def recovery_handler_allowed(c, actor, target):
     if actor['id'] == target['id'] or actor['role'] == 'USER':
         return False
-    if target['role'] in ('ADMIN','MANAGER') or target['is_lead']:
+    if target['role'] in ('ADMIN','MANAGER','DP','DPE') or target['is_lead']:
         return actor['role']=='ADMIN'
     manager_id = None
     if target['role'] == 'USER' and target['group_id']:
@@ -1929,7 +1951,7 @@ def analytics_records(c, visible, selected_months, query='', status='', record_t
     return sorted(result,key=lambda r:(r['created_at'],r['id']),reverse=True)
 
 
-def analytics_report(c, actor, month, user_id=None, group_id=None, personal=False, query='', status='', record_type='', months=None, period='MONTH'):
+def analytics_report(c, actor, month, user_id=None, group_id=None, personal=False, query='', status='', record_type='', months=None, period='MONTH', manager_id=None, dpe_id=None):
     """Aggregate accounting rows with separate personal/team authorization."""
     if personal:
         operational(actor)
@@ -1937,12 +1959,24 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
         visible = {actor['id']}
         user_id, group_id = actor['id'], None
     else:
-        allowed_groups = scope(c, actor)
-        if actor['role'] != 'MANAGER' and not (actor['role'] == 'USER' and allowed_groups):
+        allowed_groups = read_scope(c, actor)
+        if actor['role'] not in ('MANAGER','DP','DPE') and not (actor['role'] == 'USER' and allowed_groups):
             fail('La analítica del equipo requiere un Manager o un Lead con delegación vigente.', 403)
         if group_id and group_id not in allowed_groups:
             fail('El Grupo no está en tu alcance.', 403)
-        visible = {p['id'] for p in rows(c,'users') if p['role']=='USER' and p['id'] in visible_users(c,actor)}
+        visible = {p['id'] for p in rows(c,'users') if p['role']=='USER' and p['id'] in read_visible_users(c,actor)}
+        managers=executive_managers(c,actor) if actor['role'] in ('DP','DPE') else {actor['id']} if actor['role']=='MANAGER' else {actor['manager_id']}
+        if dpe_id:
+            dpe=get(c,'users',dpe_id)
+            if actor['role']!='DP' or dpe['role']!='DPE' or dpe['account_id']!=actor['account_id']:fail('DPE fuera de tu alcance.',403)
+            managers={m['id'] for m in rows(c,'users') if m['id'] in managers and m.get('parent_id')==dpe_id}
+        if manager_id:
+            if manager_id not in managers:fail('Manager fuera de tu alcance.',403)
+            managers={manager_id}
+        if dpe_id or manager_id:
+            visible={p['id'] for p in rows(c,'users') if p['id'] in visible and owner_manager(c,p) in managers}
+            allowed_groups={g['id'] for g in rows(c,'groups') if g['id'] in allowed_groups and g['manager_id'] in managers}
+            if group_id and group_id not in allowed_groups:fail('Grupo fuera del filtro de jerarquía.',403)
         if user_id:
             if user_id not in visible:
                 fail('El Técnico no está en tu alcance delegado.', 403)
@@ -2036,7 +2070,17 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
     manual_ot=[r for r in matched if r['kind']=='ot' and not r['recovered'] and r['status']!='CANCELLED']
     historical=[r for r in manual_ot if r['capture_type']=='HISTORICAL']
     timeliness={'manual_ot_records':len(manual_ot),'historical_records':len(historical),'historical_share':round(len(historical)/len(manual_ot)*100,1) if manual_ot else None,'average_delay_hours':round(sum(r['capture_delay_hours'] for r in historical)/len(historical),2) if historical else None,'recovered_ot_records':sum(r['kind']=='ot' and r['recovered'] and r['status']!='CANCELLED' for r in matched)}
-    return {'month': month, 'months':selected_months,'comparison':comparisons,'records':matched,'record_counts':counts,'record_count':len(matched),'timezone': str(TZ), 'basis': 'APPROVED_ACTUAL', 'filters': {'user_id': user_id, 'group_id': group_id,'q':query,'status':status,'record_type':record_type,'period':period},
+    hierarchy=[]
+    if not personal:
+        for m in rows(c,'users'):
+            if m['role']!='MANAGER' or m['id'] not in managers:continue
+            totals=empty_totals()
+            for p in people:
+                if owner_manager(c,p)==m['id']:
+                    for key in totals:totals[key]+=by_user[p['id']]['minutes'][key]
+            parent=c.execute('SELECT first,last FROM users WHERE id=?',(m.get('parent_id'),)).fetchone()
+            hierarchy.append({'id':m['id'],'name':m['first']+' '+m['last'],'parent_id':m.get('parent_id'),'parent_name':parent['first']+' '+parent['last'] if parent else 'Sin DPE asignado','minutes':rounded(totals)})
+    return {'viewer_role':actor['role'],'managers':hierarchy,'month': month, 'months':selected_months,'comparison':comparisons,'records':matched,'record_counts':counts,'record_count':len(matched),'timezone': str(TZ), 'basis': 'APPROVED_ACTUAL', 'filters': {'manager_id':manager_id,'dpe_id':dpe_id,'user_id': user_id, 'group_id': group_id,'q':query,'status':status,'record_type':record_type,'period':period},
             'mode': 'PERSONAL' if personal else 'TEAM', 'timeliness':timeliness, 'summary': rounded(summary), 'hourly':hourly, 'as_of':datetime.now(TZ).isoformat(),
             'groups': sorted(by_group.values(), key=lambda g: (-g['minutes']['total_minutes'], g['name'])),
             'users': sorted(by_user.values(), key=lambda u: (-u['minutes']['total_minutes'], u['name'])),
@@ -2047,10 +2091,10 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
 @app.get('/api/analytics/overtime/{identity}/participants')
 def analytics_participants(identity: str, actor=Depends(current_user)):
     with connection() as c:
-        allowed=scope(c,actor)
-        if actor['role']!='MANAGER' and not (actor['role']=='USER' and allowed):
+        allowed=read_scope(c,actor)
+        if actor['role'] not in ('MANAGER','DP','DPE') and not (actor['role']=='USER' and allowed):
             fail('La participación del equipo requiere un Manager o un Lead con delegación vigente.',403)
-        visible=visible_users(c,actor)
+        visible=read_visible_users(c,actor)
         selected=c.execute('SELECT * FROM overtime WHERE id=?',(identity,)).fetchone()
         if not selected or selected['user_id'] not in visible:fail('Registro fuera de tu alcance.',404)
         selected=dict(selected)
@@ -2077,9 +2121,9 @@ def analytics_participants(identity: str, actor=Depends(current_user)):
             'scope_note':'Sólo personas dentro de tu alcance actual. Una inscripción sin Timer no equivale a trabajo realizado. Horas de toda la actividad, no sólo del mes filtrado.'}
 
 @app.get('/api/analytics')
-def analytics(month: str, user_id: str | None = None, group_id: str | None = None, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', actor=Depends(current_user)):
+def analytics(month: str, user_id: str | None = None, group_id: str | None = None, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', manager_id: str | None=None, dpe_id: str | None=None, actor=Depends(current_user)):
     with connection() as c:
-        return analytics_report(c, actor, month, user_id, group_id, query=q, status=status, record_type=record_type, months=months, period=period)
+        return analytics_report(c, actor, month, user_id, group_id, query=q, status=status, record_type=record_type, months=months, period=period, manager_id=manager_id, dpe_id=dpe_id)
 
 
 def personal_analytics_query(request):
@@ -2095,9 +2139,9 @@ def my_analytics(request: Request, month: str, q: str='', status: str='', record
 
 
 @app.get('/api/analytics.xlsx')
-def analytics_excel(month: str, user_id: str | None = None, group_id: str | None = None, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', actor=Depends(current_user)):
+def analytics_excel(month: str, user_id: str | None = None, group_id: str | None = None, q: str='', status: str='', record_type: str='', months: str | None=None, period: str='MONTH', manager_id: str | None=None, dpe_id: str | None=None, actor=Depends(current_user)):
     with connection() as c:
-        report = analytics_report(c, actor, month, user_id, group_id, query=q, status=status, record_type=record_type, months=months, period=period)
+        report = analytics_report(c, actor, month, user_id, group_id, query=q, status=status, record_type=record_type, months=months, period=period, manager_id=manager_id, dpe_id=dpe_id)
     return analytics_workbook(report)
 
 
@@ -2141,6 +2185,11 @@ def analytics_workbook(report):
         for item in report['comparison']:comparison.append([item['month'],*values(item['minutes'])])
     hourly=wb.create_sheet('Por hora');hourly.append(['Franja horaria',*labels])
     for item in report['hourly']:hourly.append([f"{item['hour']:02}:00–{item['hour']+1:02}:00",*values(item['minutes'])])
+    if report.get('viewer_role') in ('DP','DPE'):
+        managers=wb.create_sheet('Por Manager');managers.append(['Manager','DPE',*labels])
+        for m in report['managers']:managers.append([safe(m['name']),safe(m['parent_name']),*values(m['minutes'])])
+        summary.append(['Manager seleccionado',report['filters'].get('manager_id') or 'Todos en el alcance'])
+        summary.append(['DPE seleccionado',report['filters'].get('dpe_id') or 'Todos en el alcance'])
     for sheet in wb:
         for cell in sheet[1]:
             cell.font = Font(bold=True, color='FFFFFF'); cell.fill = PatternFill('solid', fgColor='1C5185')

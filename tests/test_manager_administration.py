@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 ROOT=Path(__file__).resolve().parents[1]
+@unittest.skipUnless((ROOT/'fixtures/banorte_pruebas.sqlite3').is_file(), 'Las fixtures históricas no se incluyen en la entrega limpia.')
 class ManagerAdministrationTests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();path=Path(self.tmp.name)/'test.db';shutil.copy(ROOT/'fixtures/banorte_pruebas.sqlite3',path)

@@ -1,3 +1,11 @@
+## v1.0.21 · Jerarquía, árbol y entrega limpia
+
+- 115 pruebas de API/cálculo/migración aprobadas en bases temporales. Separación de Cuentas, DPE hermanos, Managers y Técnicos; denegación de escrituras ejecutivas; actualización de alcance sin reiniciar sesión.
+- Chromium: altas DP/DPE y selección de DPE en Manager; navegación por árbol hasta Técnico y sincronización con filtros; búsqueda sin coincidencias; consulta de registros sin aprobar/rechazar; gráficas y leyendas; adaptación móvil sin desbordamiento ni errores JS.
+- 92 comprobaciones previas de interfaz por rol/página/resolución aprobadas. Redimensionar, mover, ocultar y recuperar gráficas se mantienen.
+- Primer arranque: únicamente dos administradores. Sin importación automática, entidades operativas, reglas ni horas. Reinicio conserva contraseña y registros creados por el usuario.
+- La migración de un esquema anterior conserva filas y referencias, valida claves foráneas y genera una copia previa; las fixtures históricas sólo se usan para regresión en el repositorio y se excluyen del ZIP.
+
 ### Distribución compacta
 
 Se comprueba el caso de una gráfica de dos tercios/600px junto a una de un tercio/300px: la siguiente ocupa el hueco inferior, con 12px de separación. Verificación de persistencia y ausencia de superposiciones en escritorio, tablet y móvil.

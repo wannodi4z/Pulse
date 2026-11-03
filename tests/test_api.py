@@ -47,6 +47,16 @@ class PulseTests(unittest.TestCase):
 
     def person(self, role, emp, account=None, group=None, groups=None, lead=False):
         data = {'role': role, 'employee_id': emp, 'username': emp, 'first': 'Persona', 'last': emp, 'email': emp+'@example.test', 'account_id': account, 'group_id': group, 'group_ids': groups or [], 'is_lead': lead}
+        if role=='MANAGER' and account:
+            with self.server.connection() as db:
+                parent=db.execute("SELECT id FROM users WHERE role='DPE' AND account_id=? AND status='ACTIVE'",(account,)).fetchone()
+            if not parent:
+                dp,_,_=self.person('DP','DP-'+account[:12],account=account)
+                dpe_data={**data,'role':'DPE','employee_id':'DPE-'+account[:12],'parent_id':dp['id']}
+                created=self.post('/api/people',dpe_data)
+                self.post('/api/activate',{'identity':dpe_data['employee_id'],'code':created['activation_code'],'password':'Password2026!'})
+                parent=(created['id'],)
+            data['parent_id']=parent[0]
         creator=None
         if role=='USER' and not lead and group:
             with self.server.connection() as db:
@@ -596,7 +606,7 @@ class PulseTests(unittest.TestCase):
 
     def test_offboard_stale_preview_new_manager_activation_and_self_protection(self):
         a,g,m,mc,u,uc=self.organization()
-        replacement=self.post('/api/people',{'role':'MANAGER','employee_id':'M002','first':'Nuevo','last':'Manager','email':'new@test','account_id':a})
+        replacement=self.post('/api/people',{'role':'MANAGER','employee_id':'M002','first':'Nuevo','last':'Manager','email':'new@test','account_id':a,'parent_id':m['parent_id']})
         snapshot=self.preview(m['id']);payload={'expected':snapshot['expected'],'reason':'Reemplazo','confirm':True,'transfers':{g:replacement['id']}}
         path='/api/admin/people/'+m['id']+'/offboard'
         self.assertEqual(self.client.post(path,json=payload).status_code,422)

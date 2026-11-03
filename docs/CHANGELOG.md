@@ -1,3 +1,12 @@
+## v1.0.21
+
+- Roles DP y DPE con historial y analítica de sólo consulta; alcance por Cuenta o Managers asignados, validado en servidor.
+- Admin: altas y edición de DP/DPE, organización anidada y asignación de DPE al Manager.
+- Filtros por DPE/Manager, gráficos de OT/SB por responsable y exportación por Manager.
+- Migración de roles con copia SQLite previa, verificación de referencias y preservación de datos. Managers anteriores pendientes de asignación explícita.
+- Entrega limpia: sin bases de ejemplo ni carga automática. Sólo administradores iniciales. Instalaciones existentes conservadas.
+- Árbol organizacional como búsqueda adicional: selección de DPE, Manager, Grupo o Técnico sincronizada con filtros y exportación.
+
 ### Distribución compacta · misma v1.0.20
 
 - Las gráficas aprovechan los huecos debajo de tarjetas más pequeñas. La distribución densa usa el orden guardado como prioridad de colocación, sin modificar los tamaños ni el orden del DOM.

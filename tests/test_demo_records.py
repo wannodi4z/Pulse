@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from scripts.populate_demo_records import populate,protected_october,TZ,key
 ROOT=Path(__file__).resolve().parents[1]
 
+@unittest.skipUnless((ROOT/'fixtures/banorte_pruebas.sqlite3').is_file(), 'Las fixtures históricas no se incluyen en la entrega limpia.')
 class DemoRecordsTests(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.db=Path(self.temp.name)/'demo.sqlite3';shutil.copy(ROOT/'fixtures/banorte_pruebas.sqlite3',self.db)
