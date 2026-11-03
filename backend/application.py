@@ -480,6 +480,7 @@ def state(user=Depends(current_user)):
         group_ids = read_scope(c, user)
         people = rows(c, 'users')
         visible = read_visible_users(c,user)
+        read_managers=executive_managers(c,user)
         if user['role'] == 'ADMIN':
             visible = {p['id'] for p in people}
         groups = rows(c, 'groups')
@@ -490,7 +491,7 @@ def state(user=Depends(current_user)):
         result = {'user': public_user(user), 'can_approve': user['role'] == 'MANAGER' or bool(group_ids) and user['role'] == 'USER', 'scope': list(group_ids), 'version': VERSION, 'timezone': str(TZ), 'server_time': now(),
                   'specialties':[r for r in rows(c,'specialties') if user['role']=='ADMIN' or any(g['account_id']==r['account_id'] for g in shown_groups)],'country_codes':sorted(COUNTRY_CODES),'platforms':PLATFORMS,'service_catalog':SERVICE_CATALOG,
                   'accounts': accounts if user['role'] == 'ADMIN' else [a for a in accounts if user['role'] in ('MANAGER','DP','DPE') and user['account_id']==a['id'] or any(g['account_id'] == a['id'] for g in shown_groups) or user['is_lead'] and get(c,'users',user['manager_id'])['account_id']==a['id']],
-                  'groups': shown_groups, 'people': [public_user(p) for p in people if user['role'] in ('DP','DPE') and (p['id']==user['id'] or p['id'] in executive_managers(c,user) or user['role']=='DP' and p['role']=='DPE' and p['account_id']==user['account_id']) or p['id'] in visible or p['role'] == 'MANAGER' and (any(g['manager_id'] == p['id'] for g in shown_groups) or user['manager_id']==p['id'])],
+                  'groups': shown_groups, 'people': [public_user(p) for p in people if user['role'] in ('DP','DPE') and (p['id']==user['id'] or p['id'] in read_managers or user['role']=='DP' and p['role']=='DPE' and p['account_id']==user['account_id']) or p['id'] in visible or p['role'] == 'MANAGER' and (any(g['manager_id'] == p['id'] for g in shown_groups) or user['manager_id']==p['id'])],
                   'overtime': [r for r in rows(c, 'overtime') if r['user_id'] in visible],
                   'guards': [r for r in rows(c, 'guards') if r['user_id'] in visible],
                   'timers': [r for r in rows(c, 'timers') if r['user_id'] in visible and not r['end_at']],
@@ -1964,7 +1965,8 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
             fail('La analítica del equipo requiere un Manager o un Lead con delegación vigente.', 403)
         if group_id and group_id not in allowed_groups:
             fail('El Grupo no está en tu alcance.', 403)
-        visible = {p['id'] for p in rows(c,'users') if p['role']=='USER' and p['id'] in read_visible_users(c,actor)}
+        readable_users=read_visible_users(c,actor)
+        visible = {p['id'] for p in rows(c,'users') if p['role']=='USER' and p['id'] in readable_users}
         managers=executive_managers(c,actor) if actor['role'] in ('DP','DPE') else {actor['id']} if actor['role']=='MANAGER' else {actor['manager_id']}
         if dpe_id:
             dpe=get(c,'users',dpe_id)
@@ -2072,12 +2074,13 @@ def analytics_report(c, actor, month, user_id=None, group_id=None, personal=Fals
     timeliness={'manual_ot_records':len(manual_ot),'historical_records':len(historical),'historical_share':round(len(historical)/len(manual_ot)*100,1) if manual_ot else None,'average_delay_hours':round(sum(r['capture_delay_hours'] for r in historical)/len(historical),2) if historical else None,'recovered_ot_records':sum(r['kind']=='ot' and r['recovered'] and r['status']!='CANCELLED' for r in matched)}
     hierarchy=[]
     if not personal:
+        manager_totals={}
+        for p in people:
+            totals=manager_totals.setdefault(owner_manager(c,p),empty_totals())
+            for key in totals:totals[key]+=by_user[p['id']]['minutes'][key]
         for m in rows(c,'users'):
             if m['role']!='MANAGER' or m['id'] not in managers:continue
-            totals=empty_totals()
-            for p in people:
-                if owner_manager(c,p)==m['id']:
-                    for key in totals:totals[key]+=by_user[p['id']]['minutes'][key]
+            totals=manager_totals.get(m['id'],empty_totals())
             parent=c.execute('SELECT first,last FROM users WHERE id=?',(m.get('parent_id'),)).fetchone()
             hierarchy.append({'id':m['id'],'name':m['first']+' '+m['last'],'parent_id':m.get('parent_id'),'parent_name':parent['first']+' '+parent['last'] if parent else 'Sin DPE asignado','minutes':rounded(totals)})
     return {'viewer_role':actor['role'],'managers':hierarchy,'month': month, 'months':selected_months,'comparison':comparisons,'records':matched,'record_counts':counts,'record_count':len(matched),'timezone': str(TZ), 'basis': 'APPROVED_ACTUAL', 'filters': {'manager_id':manager_id,'dpe_id':dpe_id,'user_id': user_id, 'group_id': group_id,'q':query,'status':status,'record_type':record_type,'period':period},
