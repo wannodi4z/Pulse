@@ -1,3 +1,9 @@
+## Configuración y respaldo integral · v1.0.22
+
+`backend/system_admin.py` instala rutas exclusivas de Admin, persiste SMTP en `system_settings` y cifra la contraseña con la clave local existente. No incorpora envío de correo. El respaldo usa SQLite backup sobre una copia temporal, quita sesiones y material de recuperación, cierra Timers activos sólo en la copia y cifra el paquete ZIP con Fernet/Scrypt. `scripts/restore_organization.py` valida y restaura offline a archivos nuevos, con permisos restringidos y rechazo de sobrescrituras. No usa extracción ZIP a rutas suministradas por el archivo.
+
+Los perfiles del tablero y sidebar son preferencias locales por usuario. El modo PERSONAL mantiene un conjunto propio de gráficas y un espacio de preferencias separado de TEAM. El acceso de escritorio es un enlace web; sólo abre controles y deja las operaciones de captura en sus endpoints autenticados existentes.
+
 La entrega v1.0.21 arranca sin fixtures ni carga de ejemplo. `init_db` sólo crea los dos administradores iniciales si no existen usuarios. Las bases existentes se conservan. El árbol usa el mismo estado autorizado y aplica los mismos filtros de analítica; no crea un alcance alternativo ni cambia cálculos.
 
 ## Jerarquía ejecutiva · v1.0.21

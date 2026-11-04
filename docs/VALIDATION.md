@@ -1,3 +1,13 @@
+## v1.0.22 · Revisión de interfaz, configuración y recuperación
+
+- 121 pruebas de API/cálculo/migración aprobadas en bases temporales. Las pruebas específicas de respaldo verifican cifrado, contraseña incorrecta, archivo alterado, rechazo de sobrescritura, jerarquía, OT/Guardias aprobadas, reglas, contraseña SMTP cifrada y cierre de Timer sólo en la copia.
+- 92 comprobaciones de interfaz por rol/página/resolución: sin desbordamiento horizontal, navegación móvil activa y calendarios alcanzables.
+- Chromium: estados vacíos centrados, acciones a la izquierda, secciones y contracción persistente de sidebar, configuración SMTP con campo secreto vacío al guardar y descarga del respaldo integral.
+- Vistas guardadas y diseños rápidos en Manager y Técnico, persistencia, nombres duplicados rechazados, métricas/filtros conservados y contención móvil. Redimensionamiento, reordenamiento, leyendas y ampliación mantienen sus pruebas.
+- DP/DPE: altas y jerarquía, árbol como búsqueda, filtros sincronizados y consultas sin aprobación, sin errores JS.
+- Acceso web al Timer: archivos macOS/Windows válidos, continuación tras login, reutilización del Timer activo, sin captura automática por abrir enlaces y exclusión de Manager.
+- Paquete limpio: sólo administradores iniciales; sin bases precargadas, claves ni respaldos privados. Recuperación integral validada desde un archivo descargado, en otra carpeta.
+
 ## v1.0.21 · Jerarquía, árbol y entrega limpia
 
 - 115 pruebas de API/cálculo/migración aprobadas en bases temporales. Separación de Cuentas, DPE hermanos, Managers y Técnicos; denegación de escrituras ejecutivas; actualización de alcance sin reiniciar sesión.

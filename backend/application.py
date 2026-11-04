@@ -26,7 +26,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from backend.hierarchy import migrate_executive_roles
 
-VERSION = '1.0.21'
+VERSION = '1.0.22'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent
@@ -2274,6 +2274,10 @@ def export_excel(month: str, user_id: str | None = None, group_id: str | None = 
 
 from backend.time_recovery import install_recovery
 append_monthly_capture, append_native_backup = install_recovery(app, globals())
+
+
+from backend.system_admin import install_system_admin
+install_system_admin(app, globals())
 
 
 app.mount('/static', StaticFiles(directory=ROOT / 'frontend' / 'static'), name='static')

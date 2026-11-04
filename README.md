@@ -1,6 +1,8 @@
-# Operational Pulse · v1.0.21
+# Operational Pulse · v1.0.22
 
-Control de OT y Guardias con calendario, Timer, documentación, aprobaciones, historial, analítica, Claim/ADP y respaldos personales.
+Control de OT y Guardias con calendario, Timer, documentación, aprobaciones, historial, analítica, Claim/ADP y respaldos.
+
+La v1.0.22 revisa alineación y estados vacíos, agrega sidebar por secciones y contraíble, vistas de analítica guardadas, configuración SMTP sin envío, respaldo integral cifrado de Admin y acceso web al Timer desde el escritorio. [Guía de configuración y recuperación](docs/SYSTEM_CONFIGURATION.md) · [Revisión y recomendaciones](docs/INTERFACE_REVIEW_v1.0.22.md).
 
 ## Demo desde cero
 

@@ -1,3 +1,7 @@
+## Respaldo integral de Admin (.pulseorg) · v1.0.22
+
+En **Configuración → Descargar respaldo completo** se genera una copia cifrada con contraseña, incluyendo organización, usuarios, horas y configuración. Se recupera con Pulse detenido en una instalación nueva mediante `restaurar_respaldo.command`. No recupera sesiones; los Timers activos se cierran al corte únicamente en la copia. [Procedimiento e información de seguridad](SYSTEM_CONFIGURATION.md).
+
 # Exportación y respaldo
 
 ## Excel de aprobados (.xlsx)

@@ -20,19 +20,15 @@ try:
    ctx.clear_cookies();assert ctx.request.post(base+'/api/login',data={'identity':identity,'password':'Password2026!'}).ok
    page.goto(base);page.locator('.sidebar [data-page='+view+']').click();page.wait_for_function('()=>!busy');page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
    page.locator('[data-action=analytics-months]').first.click();page.locator('[data-action=comparison-toggle][data-id="2026-02"]').click();page.locator('#modal [type=submit]').click();page.wait_for_function('()=>!busy')
-   expect(page.locator('.decision-card')).to_have_count(9 if view=='analytics' else 5)
+   expect(page.locator('.decision-card')).to_have_count(9 if view=='analytics' else 6)
    expect(page.locator('#main table')).to_have_count(0)
    if view=='analytics':
     expect(page.locator('.bi-kpis .bi-kpi')).to_have_count(4)
     assert page.locator('.bi-kpi>strong').first.evaluate("e=>getComputedStyle(e).color==='rgb(40, 118, 200)'")
     assert page.evaluate("()=>{const r=structuredClone(analyticsReport);r.timeliness.average_delay_hours=48;r.comparison=[{month:'2026-01',minutes:{ot_minutes:240,PLANNED:60,GUARD:0,EMERGENCY:0}},{month:'2026-02',minutes:{ot_minutes:240,PLANNED:120,GUARD:0,EMERGENCY:0}}];const html=managerCommandDashboard(r);return html.includes('+25 pp')&&html.includes('48 h')}")
     page.locator('#main').evaluate('e=>e.scrollTop=0');page.screenshot(path='/tmp/pulse115-bi.png')
-   # The monthly panel contains two equally sized complementary charts.
-   if view=='analytics':
-    expect(page.locator('.chart-tile[data-chart-kind=trend]')).to_have_count(1);expect(page.locator('.chart-tile[data-chart-kind=monthlybars]')).to_have_count(1)
-   else:
-    expect(page.locator('.decision-dual-pane')).to_have_count(2)
-    assert page.locator('.decision-dual-pane').evaluate_all('xs=>Math.abs(xs[0].getBoundingClientRect().width-xs[1].getBoundingClientRect().width)<2')
+   # Every role can now customize the two monthly charts independently.
+   expect(page.locator('.chart-tile[data-chart-kind=trend]')).to_have_count(1);expect(page.locator('.chart-tile[data-chart-kind=monthlybars]')).to_have_count(1)
    assert page.evaluate("""()=>{const r={days:[{date:'2026-01-02',minutes:{GUARD:30,PLANNED:0,HISTORICAL:15,EMERGENCY:45,total_minutes:90}},{date:'2026-01-01',minutes:{GUARD:120,PLANNED:60,HISTORICAL:0,EMERGENCY:0,total_minutes:180}}]};const rows=accumulationSeries(r),d=extraVisualData('area',r);return JSON.stringify(rows[1].accumulated)===JSON.stringify({GUARD:150,PLANNED:60,HISTORICAL:15,EMERGENCY:45})&&rows[1].total===270&&JSON.stringify(d.rows[1].slice(1))===JSON.stringify(['2.5','1','0.25','0.75','4.5'])&&!extraDecisionChart('area',r).includes('NaN')}""")
    assert page.evaluate("""()=>{const r={users:[{name:'Cero',minutes:{ot_minutes:0}},{name:'Beto',minutes:{ot_minutes:60}},{name:'Ana',minutes:{ot_minutes:120}}],summary:{ot_minutes:180}};const d=extraVisualData('pareto',r),h=extraDecisionChart('pareto',r);return JSON.stringify(d.rows)===JSON.stringify([['Ana','2','66.7%'],['Beto','1','33.3%'],['Cero','0','0.0%']])&&!h.includes('polyline')&&h.includes('Ana')}""")
    for kind in (['trend','monthlybars','groups','mix','waterfall','heatmap','area','pareto','scatter'] if view=='analytics' else ['trend','monthlybars','mix','waterfall','area','heatmap']):
@@ -111,7 +107,7 @@ try:
   page.goto(base);page.locator('.sidebar [data-page=analytics]').click();page.wait_for_function('()=>!busy');page.locator('#month').fill('2026-01');page.locator('#month').dispatch_event('change');page.wait_for_function('()=>!busy')
   page.locator('[data-action=decision-detail][data-id=groups]').click();expect(page.locator('#modal')).to_contain_text('Lectura del periodo');page.locator('#modal .dialog-footer [data-action=close]').click()
   assert not errors,errors
-  b.close();print('PASS: eight team and five personal visual chart types with separate search for Manager and Technician, delegated Lead expansion, correct period, mobile modal containment and zero JS errors')
+  b.close();print('PASS: nine team and six personal visual chart types with separate search for Manager and Technician, delegated Lead expansion, correct period, mobile modal containment and zero JS errors')
 finally:
  if proc:proc.terminate();proc.wait(timeout=10)
  fixture.tearDown()

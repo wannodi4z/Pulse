@@ -1,3 +1,13 @@
+## v1.0.22
+
+- Revisión transversal de acciones a la izquierda, estados vacíos centrados y mensajes de alta coherentes con DP/DPE.
+- Sidebar agrupado por rol y contraíble, con preferencia local y accesibilidad.
+- Analítica personal y de equipo: diseños rápidos y cinco vistas guardadas por usuario/alcance; orden, tamaño, visibilidad, modales y leyendas conservados.
+- Configuración SMTP de Admin cifrada y preparada para uso futuro; sin conexión ni envío de correos.
+- Respaldo integral `.pulseorg` cifrado con contraseña y recuperación offline sin sobrescribir bases existentes; no restaura sesiones y cierra Timers sólo en la copia.
+- Acceso de escritorio `.webloc` / `.url` al control del Timer, con autenticación y sin captura automática al abrir enlaces.
+- Entrega limpia, cálculos y permisos preservados.
+
 ## v1.0.21
 
 - Roles DP y DPE con historial y analítica de sólo consulta; alcance por Cuenta o Managers asignados, validado en servidor.

@@ -11,3 +11,7 @@ playwright-report/
 *.key
 
 /backups/
+# Downloaded organization/personal backups and time exports are private data.
+*.pulseorg
+*.pulse
+Operational_Pulse_*.xlsx

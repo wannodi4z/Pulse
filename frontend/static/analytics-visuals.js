@@ -56,11 +56,8 @@ function decisionVisualButton(kind,report){
  const labels={trend:'LÍNEAS · EVOLUCIÓN',monthlybars:'BARRAS APILADAS · TIPOS DE HORA',groups:'BARRAS · DISTRIBUCIÓN',mix:'ANILLO · COMPOSICIÓN',waterfall:'CASCADA · VARIACIÓN',heatmap:'MAPA DE CALOR · FRANJAS',area:'ÁREA APILADA · ACUMULACIÓN',pareto:'RANKING · HORAS Y PARTICIPACIÓN',scatter:'DISPERSIÓN · DISTRIBUCIÓN'};
  return `<button class="decision-card-open" type="button" data-action="decision-detail" data-id="${kind}" aria-label="Abrir detalle: ${visualTitles[kind]}"><span class="decision-card-type">${labels[kind]}</span><h3>${visualTitles[kind]}</h3>${decisionChart(kind,report)}<span class="decision-card-cta">Ver resumen y tabla ${icon('forward')}</span></button>`;
 }
-function decisionVisualDeck(report){
- if(report.mode==='TEAM')return configurableAnalyticsDeck(report);
- const kinds=report.mode==='PERSONAL'?['trend','mix','waterfall','area','heatmap']:['trend','groups','mix','waterfall','heatmap','area','pareto','scatter'];
- return `<section class="decision-section"><header class="section-heading"><div><h2>Tu operación, en gráficas</h2></div></header><div class="decision-grid">${kinds.map(kind=>`<article class="panel decision-card ${kind==='trend'?'decision-dual':''}">${kind==='trend'?`<div class="decision-dual-pane">${decisionVisualButton('trend',report)}</div><div class="decision-dual-pane">${decisionVisualButton('monthlybars',report)}</div>`:decisionVisualButton(kind,report)}</article>`).join('')}</div></section>`;
-}
+function decisionVisualDeck(report){return configurableAnalyticsDeck(report);}
+
 function monthlyTypeBars(report){
  const items=report.comparison,max=Math.max(60,...items.map(i=>i.minutes.total_minutes)),step=530/Math.max(1,items.length);
  const axes=[0,.5,1].map(v=>`<path d="M60 ${235-v*180}H600" stroke="#e0e9f2"/><text x="52" y="${239-v*180}" text-anchor="end" font-size="10" fill="#687f95">${hours(max*v)}</text>`).join('');
