@@ -1,3 +1,5 @@
+Corrección de sidebar v1.0.22: 24 combinaciones de rol, resolución y escala verifican iconos centrados, textos ocultos, ausencia de scrollbars visibles, acceso al último elemento por teclado, persistencia, expansión y etiquetas móviles. Sin errores JavaScript.
+
 ## v1.0.22 · Revisión de interfaz, configuración y recuperación
 
 - 121 pruebas de API/cálculo/migración aprobadas en bases temporales. Las pruebas específicas de respaldo verifican cifrado, contraseña incorrecta, archivo alterado, rechazo de sobrescritura, jerarquía, OT/Guardias aprobadas, reglas, contraseña SMTP cifrada y cierre de Timer sólo en la copia.

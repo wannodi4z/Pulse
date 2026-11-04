@@ -108,3 +108,24 @@ form[aria-busy=true] button[type=submit]{cursor:progress}
 .system-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}.system-settings-card{padding:24px;min-width:0}.system-settings-card h2{font-size:20px;margin:8px 0 14px}.system-settings-card>p:not(.eyebrow){font-size:13px;color:#617c95;line-height:1.7}.system-backup-counts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}.system-backup-counts>span{background:#f2f7fc;border:1px solid #dfebf4;padding:12px;border-radius:7px;font-size:11px;color:#62809a}.system-backup-counts b{display:block;font-size:24px;color:#28699e}.system-settings-card details{margin-top:20px;border-top:1px solid #dfebf4;padding-top:14px;font-size:12px;color:#5b7893}.system-settings-card summary{cursor:pointer;font-weight:650}.system-settings-card li{margin:8px 0}.settings-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-bottom:16px}.settings-fields .field{min-width:0}.settings-fields [name=password]{width:100%}.settings-secret-note{font-size:11px;color:#347b79}.system-settings-card form>button{margin-top:16px}.system-settings-card .callout{font-size:12px}@media(max-width:1000px){.system-settings-grid{grid-template-columns:1fr}}@media(max-width:650px){.system-settings-card{padding:17px}.settings-fields{grid-template-columns:1fr}}
 .timer-launch-options{display:flex;flex-direction:column;gap:12px;margin:18px 0}.timer-launch-options>article{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid #dce8f3;background:#f6faff;padding:14px;border-radius:8px}.timer-launch-options small{display:block;color:#6d859c;font-size:11px;margin-top:6px}@media(max-width:650px){.timer-launch-options>article{flex-direction:column;align-items:flex-start}}
 .system-settings-card>.primary{margin-top:12px}.settings-fields .field:has([name=password]){grid-column:1/-1}
+/* Compact navigation must override the legacy text selector, not merely narrow it. */
+.shell .sidebar,.shell .sidebar nav{scrollbar-width:none;-ms-overflow-style:none;overflow-x:hidden}
+.shell .sidebar::-webkit-scrollbar,.shell .sidebar nav::-webkit-scrollbar{display:none;width:0;height:0}
+@media(min-width:701px){
+ .shell.is-sidebar-collapsed .sidebar{align-items:stretch}
+ .shell.is-sidebar-collapsed .sidebar .nav-item>.nav-text{display:none!important}
+ .shell.is-sidebar-collapsed .sidebar .nav-group>.nav-label{display:none!important}
+ .shell.is-sidebar-collapsed .sidebar>.brand{width:100%;justify-content:center;margin:0 0 18px;padding:0 0 18px}
+ .shell.is-sidebar-collapsed .sidebar>.brand img{width:34px;height:34px;flex:none}
+ .shell.is-sidebar-collapsed .sidebar nav{gap:0;overflow-y:auto;flex:0 1 auto}
+ .shell.is-sidebar-collapsed .sidebar .nav-group{gap:5px;padding:0 0 10px}
+ .shell.is-sidebar-collapsed .sidebar .nav-group+.nav-group{border-top:1px solid #dce6ef;padding-top:10px}
+ .shell.is-sidebar-collapsed .sidebar .nav-item{width:44px;height:44px;min-height:44px;margin:0 auto;padding:0;gap:0;flex:none;border-radius:10px;transform:none}
+ .shell.is-sidebar-collapsed .sidebar .nav-item>.nav-icon{width:20px;min-width:20px;height:20px;flex:none;margin:0}
+ .shell.is-sidebar-collapsed .sidebar .nav-item:hover{transform:none;background:#eaf2fc}
+ .shell.is-sidebar-collapsed .sidebar-toggle{width:44px;height:36px;min-height:36px;margin:0 auto;padding:0;background:transparent;border-color:transparent}
+ .shell.is-sidebar-collapsed .sidebar-toggle:hover{background:#eaf2fc;border-color:#dce6ef}
+ .shell.is-sidebar-collapsed .sidebar .sidebar-utility{width:100%;margin-top:10px;padding:8px 0 0;border-top:1px solid #dce6ef}
+ .shell.is-sidebar-collapsed .sidebar .sidebar-utility>button{width:44px;height:36px;min-height:36px;margin:0 auto;padding:0;gap:0;display:flex;align-items:center;justify-content:center}
+}
+@media(max-width:700px){.shell .sidebar nav{overflow-x:auto;overflow-y:hidden}}
