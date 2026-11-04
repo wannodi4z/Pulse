@@ -115,7 +115,7 @@ form[aria-busy=true] button[type=submit]{cursor:progress}
  .shell.is-sidebar-collapsed .sidebar{align-items:stretch}
  .shell.is-sidebar-collapsed .sidebar .nav-item>.nav-text{display:none!important}
  .shell.is-sidebar-collapsed .sidebar .nav-group>.nav-label{display:none!important}
- .shell.is-sidebar-collapsed .sidebar>.brand{width:100%;justify-content:center;margin:0 0 18px;padding:0 0 18px}
+ .shell.is-sidebar-collapsed .sidebar>.brand{width:100%;max-width:none;align-self:stretch;justify-content:center;gap:0;margin:0 0 18px;padding:0 0 18px}
  .shell.is-sidebar-collapsed .sidebar>.brand img{width:34px;height:34px;flex:none}
  .shell.is-sidebar-collapsed .sidebar nav{gap:0;overflow-y:auto;flex:0 1 auto}
  .shell.is-sidebar-collapsed .sidebar .nav-group{gap:5px;padding:0 0 10px}
@@ -129,3 +129,5 @@ form[aria-busy=true] button[type=submit]{cursor:progress}
  .shell.is-sidebar-collapsed .sidebar .sidebar-utility>button{width:44px;height:36px;min-height:36px;margin:0 auto;padding:0;gap:0;display:flex;align-items:center;justify-content:center}
 }
 @media(max-width:700px){.shell .sidebar nav{overflow-x:auto;overflow-y:hidden}}
+
+.sidebar-toggle>span:first-child{display:flex;align-items:center;justify-content:center}.sidebar-toggle .ui-icon{width:18px;height:18px;flex:none}

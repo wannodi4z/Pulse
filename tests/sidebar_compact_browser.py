@@ -21,6 +21,7 @@ try:
     expect(page.locator('.sidebar .nav-text').first).not_to_be_visible()
     assert page.locator('.sidebar').evaluate("e=>{const s=getComputedStyle(e.querySelector('nav'));return s.scrollbarWidth==='none'&&getComputedStyle(e.querySelector('nav'),'::-webkit-scrollbar').display==='none'}")
     assert page.locator('.sidebar nav').evaluate('e=>e.scrollWidth<=e.clientWidth+1')
+    assert page.locator('.sidebar').evaluate("e=>{const r=e.getBoundingClientRect(),logo=e.querySelector('.brand img').getBoundingClientRect(),toggle=e.querySelector('.sidebar-toggle').getBoundingClientRect();return Math.abs((r.x+r.width/2)-(logo.x+logo.width/2))<2&&Math.abs((r.x+r.width/2)-(toggle.x+toggle.width/2))<2}")
     assert page.locator('.sidebar .nav-item').evaluate_all("es=>es.every(e=>{const a=e.getBoundingClientRect(),b=e.querySelector('.nav-icon').getBoundingClientRect(),s=e.closest('.sidebar').getBoundingClientRect();return Math.abs((a.left+a.width/2)-(b.left+b.width/2))<2&&Math.abs((s.left+s.width/2)-(b.left+b.width/2))<2&&a.left>=s.left&&a.right<=s.right})")
     last=page.locator('.sidebar .nav-item').last;page.locator('.sidebar .nav-item').first.focus();last.focus();expect(last).to_be_in_viewport();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1');checks+=1
    page.set_viewport_size({'width':1440,'height':900});page.evaluate("document.body.style.zoom='0.9'");page.locator('.sidebar nav').evaluate('e=>e.scrollTop=0')

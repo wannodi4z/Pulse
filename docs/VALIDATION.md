@@ -1,4 +1,4 @@
-Corrección de sidebar v1.0.22: 24 combinaciones de rol, resolución y escala verifican iconos centrados, textos ocultos, ausencia de scrollbars visibles, acceso al último elemento por teclado, persistencia, expansión y etiquetas móviles. Sin errores JavaScript.
+Corrección de sidebar v1.0.22: 24 combinaciones de rol, resolución y escala verifican logo, iconos y control de expansión centrados en el mismo eje, textos ocultos, ausencia de scrollbars visibles, acceso al último elemento por teclado, persistencia, expansión y etiquetas móviles. Sin errores JavaScript.
 
 ## v1.0.22 · Revisión de interfaz, configuración y recuperación
 

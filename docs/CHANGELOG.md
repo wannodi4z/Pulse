@@ -1,6 +1,6 @@
 ## v1.0.22
 
-Corrección de la misma entrega: sidebar compacto con iconos centrados, etiquetas realmente ocultas y separadores discretos. Sin scrollbar visible al pasar el cursor; el desplazamiento y acceso por teclado se conservan.
+Corrección de la misma entrega: sidebar compacto con iconos centrados, etiquetas realmente ocultas y separadores discretos. Sin scrollbar visible al pasar el cursor; el desplazamiento y acceso por teclado se conservan. Logo alineado con los iconos y control de expansión con símbolo de panel consistente.
 
 - Revisión transversal de acciones a la izquierda, estados vacíos centrados y mensajes de alta coherentes con DP/DPE.
 - Sidebar agrupado por rol y contraíble, con preferencia local y accesibilidad.
