@@ -15,3 +15,5 @@
 /configurar_banorte.command export-ignore
 /iniciar_pruebas.command export-ignore
 /docs/DATOS_DEMO.md export-ignore
+
+/demo/ export-ignore

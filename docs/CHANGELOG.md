@@ -1,3 +1,10 @@
+# v1.1.1
+
+- Tablero con cuatro gráficas iniciales y catálogo de 20 análisis según alcance; filtros en modal y tamaños alineados.
+- Historial orientado a búsqueda sin comparación de meses, con mes o todo el historial.
+- Traslados organizacionales reubicado en Administración.
+- Demo Banorte de prueba, seis accesos especificados y soporte para plantilla privada del organigrama completo; sin horas y sin reemplazar datos existentes.
+
 # v1.1.0
 
 - Traslados de Manager y Lead propuestos por Admin, con elección del destino de Grupos y Lead. Autorizaciones de origen/destino de DP y DPE; aplicación final atómica por Admin.

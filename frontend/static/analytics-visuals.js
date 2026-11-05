@@ -19,6 +19,7 @@ function applyComparisonPreset(key){
 }
 const visualTitles={trend:'Tendencia mensual',monthlybars:'Horas mensuales por tipo',mix:'Composición de horas aprobadas',groups:'OT y Stand By por Grupo',waterfall:'Qué explica el cambio en OT'};
 function decisionVisualData(kind,r){
+ if(chartCatalog[kind]?.extra)return catalogVisualData(kind,r);
  if(kind==='monthlybars')return {columns:['Mes','SB neto h','OT programada h','OT histórica h','OT emergente h','Total h'],rows:r.comparison.map(i=>[monthLabel(i.month),...accumulationTypes.map(t=>hours(i.minutes[t])),hours(i.minutes.total_minutes)]),summary:'Cada barra representa un mes. Sus colores separan Stand By neto, OT programada, histórica y emergente; la altura es el total aprobado. Permite identificar qué concepto crece o disminuye entre los meses seleccionados. Los periodos en curso son parciales.'};
  if(['heatmap','area','pareto','scatter'].includes(kind))return extraVisualData(kind,r);
  if(kind==='mix'){const total=r.summary.total_minutes;return {columns:['Concepto','Horas aprobadas','Participación'],rows:analyticsTypes.map(t=>[analyticsNames[t],hours(r.summary[t]),total?(r.summary[t]/total*100).toFixed(1)+'%':'Sin base']),summary:total?`El periodo acumula ${hours(total)} h aprobadas: ${hours(r.summary.ot_minutes)} h de OT y ${hours(r.summary.GUARD)} h de Stand By neto. La Guardia descuenta OT coincidente.`:'No hay horas aprobadas para calcular una composición.'};}
@@ -29,6 +30,7 @@ function decisionVisualData(kind,r){
 }
 function decisionSvg(title,body){return `<svg class="decision-svg" viewBox="0 0 640 300" role="img" aria-label="${esc(title)}">${body}</svg>`;}
 function decisionChart(kind,r){
+ if(chartCatalog[kind]?.extra)return catalogChart(kind,r);
  if(kind==='monthlybars')return monthlyTypeBars(r);
  if(['heatmap','area','pareto','scatter'].includes(kind))return extraDecisionChart(kind,r);
  const axis=(max)=>[0,.5,1].map(v=>`<path d="M55 ${235-v*190}H610" stroke="#e2eaf3"/><text x="47" y="${239-v*190}" text-anchor="end" fill="#71859a" font-size="11">${hours(max*v)}</text>`).join('');
@@ -54,7 +56,7 @@ function decisionChart(kind,r){
 }
 function decisionVisualButton(kind,report){
  const labels={trend:'LÍNEAS · EVOLUCIÓN',monthlybars:'BARRAS APILADAS · TIPOS DE HORA',groups:'BARRAS · DISTRIBUCIÓN',mix:'ANILLO · COMPOSICIÓN',waterfall:'CASCADA · VARIACIÓN',heatmap:'MAPA DE CALOR · FRANJAS',area:'ÁREA APILADA · ACUMULACIÓN',pareto:'RANKING · HORAS Y PARTICIPACIÓN',scatter:'DISPERSIÓN · DISTRIBUCIÓN'};
- return `<button class="decision-card-open" type="button" data-action="decision-detail" data-id="${kind}" aria-label="Abrir detalle: ${visualTitles[kind]}"><span class="decision-card-type">${labels[kind]}</span><h3>${visualTitles[kind]}</h3>${decisionChart(kind,report)}<span class="decision-card-cta">Ver resumen y tabla ${icon('forward')}</span></button>`;
+ return `<button class="decision-card-open" type="button" data-action="decision-detail" data-id="${kind}" aria-label="Abrir detalle: ${visualTitles[kind]}"><span class="decision-card-type">${labels[kind]||chartCatalog[kind]?.type||"ANÁLISIS"}</span><h3>${visualTitles[kind]}</h3>${decisionChart(kind,report)}<span class="decision-card-cta">Ver resumen y tabla ${icon('forward')}</span></button>`;
 }
 function decisionVisualDeck(report){return configurableAnalyticsDeck(report);}
 
@@ -65,8 +67,9 @@ function monthlyTypeBars(report){
  return decisionSvg(visualTitles.monthlybars,axes+bars+'<text x="60" y="25" font-size="12" fill="#476a89">Horas aprobadas por mes</text>')+analyticsLegend();
 }
 function chartSeriesOptions(kind){
+ if(kind==='planningtrend')return ['PLANNED','HISTORICAL','EMERGENCY'].map(id=>({id,label:accumulationLabels[id],color:id.toLowerCase()}));
  if(kind==='trend')return [{id:'OT',label:'Toda la OT',color:'ot'},{id:'GUARD',label:'Stand By neto',color:'guard'}];
- return ['area','monthlybars','mix'].includes(kind)?accumulationTypes.map(id=>({id,label:accumulationLabels[id],color:id.toLowerCase()})):[];
+ return (['area','monthlybars','mix'].includes(kind)||chartCatalog[kind]?.series)?accumulationTypes.map(id=>({id,label:accumulationLabels[id],color:id.toLowerCase()})):[];
 }
 function projectChartSeries(report,series){
  if(series==='ALL')return report;

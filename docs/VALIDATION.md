@@ -1,3 +1,11 @@
+## v1.1.1
+
+- 129 pruebas de API/cálculo/recuperación/jerarquía aprobadas; 6 comprobaciones adicionales de demo e instalación limpia (3 nuevas y 3 de arranque existentes).
+- Chromium: cuatro gráficas iniciales; 20/18/11 opciones según rol; cada análisis con gráfica, resumen, tabla y filtrado de series cuando corresponde. Cancelación/aplicación de filtros, búsqueda de catálogo y persistencia de selección.
+- Redimensionamiento sobre tamaños de cuadrícula, adaptación interna, ausencia de superposición, alcance del árbol ejecutivo y contención móvil. Historial sin controles de comparación.
+- 92 combinaciones de rol/página/resolución aprobadas, sin desbordamientos ni errores JavaScript.
+- Plantilla completa privada: 346 personas, 10 Grupos, los seis accesos indicados, jerarquía y claves foráneas válidas, analítica por alcance y cero horas. Reiniciar no restablece contraseñas ni duplica personas; una organización existente no se modifica.
+
 ## v1.1.0
 
 - 127 pruebas de API, permisos, cálculos, migración, recuperación y exportación aprobadas; dos escenarios adicionales de traslado aprobados en la suite específica (6 casos en total).

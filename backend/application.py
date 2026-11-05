@@ -26,7 +26,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from backend.hierarchy import migrate_executive_roles
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent
@@ -2288,6 +2288,11 @@ from backend.activity_links import install_activity_links
 install_activity_links(app, globals())
 from backend.record_exports import install_record_exports
 install_record_exports(app, globals())
+
+
+if os.environ.get('PULSE_DEMO_BANORTE')=='1':
+    from backend.demo_banorte import seed_banorte_demo
+    seed_banorte_demo(globals())
 
 
 app.mount('/static', StaticFiles(directory=ROOT / 'frontend' / 'static'), name='static')

@@ -1,19 +1,16 @@
-# Operational Pulse · v1.1.0
+# Operational Pulse · v1.1.1
 
 Control de OT y Guardias con calendario, Timer, documentación, aprobaciones, historial, analítica, Claim/ADP y respaldos.
 
-La v1.1.0 incorpora traslados organizacionales con autorización de DP y DPE de ambos lados, enlaces por actividad aprobada, exportaciones separadas de analítica e historial y un tablero con tamaño libre de gráficas. Conserva el diseño, los cálculos y los flujos de captura. [Guía de la versión](docs/RELEASE_v1.1.0.md).
+La v1.1.1 simplifica Analítica e Historial: cuatro gráficas iniciales, catálogo de hasta 20 análisis por rol, filtros en un modal y tamaños alineados a una cuadrícula. Traslados organizacionales queda en Administración. [Guía de la versión](docs/RELEASE_v1.1.1.md).
 
-## Demo desde cero
+## Demo Banorte · México
 
-Esta entrega está **limpia**: sin Cuentas, DP, DPE, Managers, Leads, Técnicos, Grupos ni horas precargadas. Sólo incluye los accesos iniciales:
+`start.command` habilita la demo de prueba sólo si aún no hay una organización. El ZIP de demo incluye la plantilla del organigrama de 346 personas; el repositorio público contiene únicamente los seis accesos de prueba especificados, sin la plantilla privada adjunta. No hay OT, Guardias ni delegaciones precargadas.
 
-| Usuario | Contraseña inicial |
-|---|---|
-| admin1 | admin12026 |
-| admin2 | admin22026 |
+[Accesos y estructura de prueba](docs/DEMO_BANORTE.md). Los Admin iniciales siguen siendo `admin1 / admin12026` y `admin2 / admin22026`.
 
-Extrae el ZIP en una carpeta nueva para comenzar la demo completa. No copies una base anterior si buscas empezar sin datos. Si conservas una base existente, Pulse la migra sin borrarla ni sustituir sus registros.
+Una base existente **no se mezcla, no se borra ni se reinicializa**. Para comenzar esta demo, extrae el ZIP en una carpeta nueva. Para arrancar sin la demo usa `PULSE_DEMO_BANORTE=0 ./start.command`, o uvicorn sin esa variable.
 
 ## Arranque local en Mac / VS Code
 
@@ -21,7 +18,7 @@ Extrae el ZIP en una carpeta nueva para comenzar la demo completa. No copies una
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m uvicorn server:app --host 127.0.0.1 --port 5510
+PULSE_DEMO_BANORTE=1 python -m uvicorn server:app --host 127.0.0.1 --port 5510
 ```
 
 Abre http://127.0.0.1:5510. También puedes usar `start.command` después de instalar el entorno. Control+C detiene el servidor.

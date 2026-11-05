@@ -15,3 +15,6 @@ playwright-report/
 *.pulseorg
 *.pulse
 Operational_Pulse_*.xlsx
+
+# Local organization templates are supplied privately with demo packages.
+/demo/

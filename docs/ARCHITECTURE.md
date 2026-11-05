@@ -1,3 +1,9 @@
+## v1.1.1
+
+`frontend/static/analytics-catalog.js` define veinte análisis y su disponibilidad por alcance. Obtiene todos los valores del reporte ya autorizado, sin consultas fuera de su alcance ni nuevos cálculos de OT/SB. Los filtros se preparan como borrador y se aplican al enviar el modal. Historial utiliza sólo mes o todo el historial; el API de comparación permanece para Analítica.
+
+`backend/demo_banorte.py` inicializa la rama de prueba únicamente con bandera explícita y sin organización existente. Una plantilla JSON local opcional contiene el organigrama completo; se excluye del repositorio público. Roles y dependencias se validan antes de insertar, dentro de una sola transacción con claves foráneas activas. Cada contraseña utiliza su propia sal. No genera horas ni delegaciones.
+
 ## v1.1.0 · Módulos adicionales
 
 - `backend/organization_transfers.py`: propuestas, huella de estructura y autorizaciones ejecutivas; aplicación en transacción inmediata. Historial y delegaciones conservan su trazabilidad. No amplía permisos de aprobación de horas.
