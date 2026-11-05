@@ -1,8 +1,8 @@
-# Operational Pulse · v1.1.2
+# Operational Pulse · v1.1.3
 
 Control de OT y Guardias con calendario, Timer, documentación, aprobaciones, historial, analítica, Claim/ADP y respaldos.
 
-La v1.1.2 incorpora un explorador organizacional con búsqueda por nombre o Employee ID, paginación por nivel y vista de árbol contraída. Evita desplegar todos los DPE y equipos de una Cuenta a la vez. También incorpora franjas diarias de OT configurables y captura histórica con ventana original y tramos reales en un solo modal. [Guía de la versión](docs/RELEASE_v1.1.2.md).
+La v1.1.3 corrige la escritura en los buscadores de Explorador y Árbol: conserva el campo, cursor, selección y composición de acentos mientras actualiza únicamente los resultados. Incluye todas las mejoras de la v1.1.2. [Guía de la versión](docs/RELEASE_v1.1.3.md).
 
 ## Demo Banorte · México
 

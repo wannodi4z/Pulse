@@ -21,6 +21,16 @@ try:
   browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);ctx=browser.new_context(viewport={'width':1440,'height':1000});page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
   assert ctx.request.post(base+'/api/login',data={'identity':'admin1','password':'admin12026'}).ok
   page.goto(base);page.locator('.sidebar').wait_for();page.wait_for_function('()=>!busy');page.evaluate('(id)=>perform("organization-open",id)',a);expect(page.locator('.organization-explorer')).to_be_visible()
+  # The original input must survive each keystroke, editing and text composition.
+  for mode in ('explorer','tree'):
+   page.locator('[data-action=org-explorer-mode][data-id='+mode+']').click();field=page.locator('[data-org-explorer-search]');field.focus();page.evaluate('window.__typingField=document.querySelector("[data-org-explorer-search]")')
+   field.press_sequentially('Francisco',delay=45);expect(field).to_have_value('Francisco');assert field.evaluate('e=>e===window.__typingField')
+   field.press('Home');field.press('ArrowRight');page.keyboard.insert_text('X');expect(field).to_have_value('FXrancisco')
+   field.fill('José Díaz');field.evaluate('e=>e.setSelectionRange(5,9)');page.keyboard.insert_text('Perez');expect(field).to_have_value('José Perez');assert field.evaluate('e=>e===window.__typingField')
+   field.fill('Jo');field.evaluate("e=>{e.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));e.value='José';e.dispatchEvent(new InputEvent('input',{bubbles:true,data:'sé',isComposing:true}));e.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'sé'}));}");expect(field).to_have_value('José');assert field.evaluate('e=>e===window.__typingField')
+   if mode=='explorer':page.wait_for_timeout(5500);expect(field).to_have_value('José');assert field.evaluate('e=>e===window.__typingField')
+   field.fill('')
+  page.locator('[data-action=org-explorer-mode][data-id=explorer]').click()
   expect(page.locator('.org-directory-person')).to_have_count(8);expect(page.locator('.org-directory-title>span')).to_have_text('50');assert page.locator('.hierarchy-dpe').count()==0
   page.locator('[data-action=org-explorer-page][data-id="directory:1"]').click();expect(page.locator('.org-directory-person')).to_have_count(8);expect(page.locator('.org-explorer-directory .org-explorer-pagination>span')).to_contain_text('9–16 de 50')
   search=page.locator('[data-org-explorer-search]');search.fill(dpe['employee_id']);expect(page.locator('.org-directory-person')).to_have_count(1);page.locator('.org-directory-person').click();expect(page.locator('.org-manager-row')).to_have_count(6);expect(page.locator('.org-explorer-detail>header p')).to_contain_text('21 Managers')
@@ -38,7 +48,7 @@ try:
   page.locator('[data-org-explorer-search]').fill('T001');page.locator('.org-directory-person').click();page.locator('#modal [data-action=person-edit][data-id="'+m['id']+'"]').click();expect(page.locator('#modal [name=employee_id]')).to_have_value('M001');page.locator('#modal .dialog-header [data-action=close]').click()
   for width in (1024,390):
    page.set_viewport_size({'width':width,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1');page.locator('[data-action=org-explorer-mode][data-id=tree]').click();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1');page.locator('[data-action=org-explorer-mode][data-id=explorer]').click()
-  assert not errors,errors;browser.close();print('PASS: 50 DPE in pages of 8, 21 Managers in pages of 6; cross-level Employee ID search; optional tree with paged branches, Lead and Group/Technician nodes; existing edit actions; mobile; no JS errors')
+  assert not errors,errors;browser.close();print('PASS: sequential typing, middle edits, selection replacement, accented composition and polling preserve input/caret in Explorer and Tree; 50 DPE in pages of 8, 21 Managers in pages of 6; cross-level Employee ID search; optional tree with paged branches, Lead and Group/Technician nodes; existing edit actions; mobile; no JS errors')
 finally:
  if proc:proc.terminate();proc.wait(timeout=10)
  f.tearDown()

@@ -26,7 +26,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from backend.hierarchy import migrate_executive_roles
 
-VERSION = '1.1.2'
+VERSION = '1.1.3'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent

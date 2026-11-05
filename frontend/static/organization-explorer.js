@@ -51,10 +51,20 @@ function organizationExplorerAction(action,id){
  }
  view.directoryPage=0;view.managerPage=0;if(view.dpe){const dpes=state.people.filter(p=>p.role==='DPE'&&p.parent_id===view.dp).sort((a,b)=>full(a).localeCompare(full(b),'es'));view.directoryPage=Math.max(0,Math.floor(dpes.findIndex(p=>p.id===view.dpe)/8));}repaintOrganizationExplorer();
 }
-document.addEventListener('input',event=>{
- if(!event.target.matches('[data-org-explorer-search]'))return;const account=state.accounts.find(a=>a.id===adminAccountId);if(!account)return;const view=organizationExplorerState(account),position=event.target.selectionStart;view.query=event.target.value;view.directoryPage=0;repaintOrganizationExplorer();const field=$('[data-org-explorer-search]');field?.focus({preventScroll:true});if(field?.type!=='search')field?.setSelectionRange(position,position);
-});
-
+// Update only results while typing. Replacing the focused input resets the caret
+// and interrupts accented-character/IME composition in some browsers.
+function paintOrganizationSearch(){
+ const root=$('.organization-explorer'),account=state.accounts.find(a=>a.id===adminAccountId);if(!root||!account)return;
+ let managers=adminManagers(account);if(adminAttention==='missing')managers=managers.filter(m=>adminLive(m)&&!adminLead(m));if(adminAttention==='activation')managers=managers.filter(m=>m.status==='PENDING_ACTIVATION'||adminLead(m)?.status==='PENDING_ACTIVATION');
+ const template=document.createElement('template');template.innerHTML=executiveOrganization(account,managers);const fresh=template.content.firstElementChild;
+ const selectors=root.classList.contains('org-tree-view')?['.org-tree-content','.org-tree-tools>p']:['.org-directory-title','.org-directory-list','.org-explorer-directory>.org-explorer-pagination'];
+ for(const selector of selectors){const old=root.querySelector(selector),next=fresh.querySelector(selector);if(old&&next)old.replaceWith(next);}
+}
+function updateOrganizationSearch(field,paint=true){
+ const account=state.accounts.find(a=>a.id===adminAccountId);if(!account)return;const view=organizationExplorerState(account);view.query=field.value;view.directoryPage=0;if(view.treePages)view.treePages.search=0;if(paint)paintOrganizationSearch();
+}
+document.addEventListener('input',event=>{if(event.target.matches('[data-org-explorer-search]'))updateOrganizationSearch(event.target,!event.isComposing);});
+document.addEventListener('compositionend',event=>{if(event.target.matches('[data-org-explorer-search]'))updateOrganizationSearch(event.target);});
 function organizationViewSwitch(view){return `<div class="org-view-switch" role="group" aria-label="Vista de la organización">${btn('Explorador','org-explorer-mode','explorer',view.mode==='tree'?'secondary small':'primary small',`aria-pressed="${view.mode!=='tree'}"`)}${btn(icon('organization')+' Árbol','org-explorer-mode','tree',view.mode==='tree'?'primary small':'secondary small',`aria-pressed="${view.mode==='tree'}"`)}</div>`;}
 function organizationTreeView(account,managers,view){
  const people=state.people,leaders=people.filter(p=>['DP','DPE'].includes(p.role)&&p.account_id===account.id),dps=leaders.filter(p=>p.role==='DP'),dpes=leaders.filter(p=>p.role==='DPE'),open=view.treeOpen||new Set(),pages=view.treePages||{},q=normalizeGroupSearch(view.query||'');

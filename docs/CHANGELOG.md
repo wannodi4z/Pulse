@@ -1,3 +1,8 @@
+# v1.1.3
+
+- Corrección de letras desordenadas al escribir en el buscador organizacional: no recrea el campo ni mueve el cursor.
+- Conserva selección, edición intermedia y composición de acentos/IME en Explorador y Árbol.
+
 # v1.1.2
 
 - Franjas diarias de OT configurables por Manager, sugerencia 21:00–08:00, pausa automática y reanudación explícita por tramo.

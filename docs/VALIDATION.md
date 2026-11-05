@@ -1,3 +1,9 @@
+## v1.1.3
+
+- Chromium en Explorador y Árbol: escritura secuencial de Francisco, inserción en medio del texto, reemplazo de selección y composición de José sin sustituir el nodo de entrada.
+- Una actualización de fondo durante la escritura conserva foco, contenido y posición. Sin errores JavaScript.
+- Se repiten las verificaciones con 50 DPE y 21 Managers: búsqueda por Employee ID, paginación, árbol, acciones existentes y contención móvil aprobadas.
+
 ## v1.1.2
 
 - Suite completa: 135 pruebas de API/cálculos/recuperación/jerarquía aprobadas. Verificación adicional de corte tras interrupción eleva los escenarios nuevos de franjas/históricas a cuatro; todos aprobados.
