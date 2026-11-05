@@ -21,7 +21,7 @@ El paquete de demo añade `demo/banorte_organization.json`, generado del Excel s
 
 Por instrucción del usuario, los roles se asignan según el nivel del archivo, no según palabras del cargo. Excepto los seis identificadores anteriores, los Employee ID son inventados para prueba: DPE0002…, MGR0002…, TEC0001…. Contraseña de prueba: `manager12026` para DP/DPE/Managers y `tecnico12026` para Técnicos. No son identificadores corporativos reales.
 
-La pertenencia a Banorte México, los Grupos y el reparto de funciones son una configuración de demo, no una validación del organigrama corporativo. No se cargan horas ni reglas. La plantilla contiene nombres y dependencias, sin el Excel original, y se entrega sólo en el ZIP privado de demo; no se publica en el repositorio de código.
+La pertenencia a Banorte México, los Grupos y el reparto de funciones son una configuración de demo, no una validación del organigrama corporativo. No se cargan horas ni reglas de Guardia. Los Managers de la demo tienen activa la franja diaria de OT 21:00–08:00, que pueden configurar. La plantilla contiene nombres y dependencias, sin el Excel original, y se entrega sólo en el ZIP privado de demo; no se publica en el repositorio de código.
 
 ## Arranque y conservación
 

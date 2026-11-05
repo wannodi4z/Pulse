@@ -1,3 +1,9 @@
+## v1.1.2
+
+`backend/ot_schedule.py` conserva políticas por Manager e instantáneas por OT. Valida ventanas diarias en la zona del snapshot y limita cada tramo al cierre de la ventana en la que comenzó. La reconciliación y el respaldo integral usan el mismo límite. `frontend/static/ot-schedule.js` presenta disponibilidad y vista previa; el servidor conserva la autoridad. Las históricas guardan ventana original y segmentos reales; los cálculos usan los segmentos existentes del motor, sin contar pausas ni la ventana programada completa.
+
+`frontend/static/organization-explorer.js` presenta la estructura ya autorizada de Admin sin cambiar sus endpoints. Mantiene el estado de navegación por Cuenta, pagina el directorio y los Managers por separado, y permite alternar con un árbol contraído de ramas paginadas. La búsqueda opera sobre la Cuenta completa en el estado recibido; los controles de edición y ciclo de vida siguen usando los flujos existentes.
+
 ## v1.1.1
 
 `frontend/static/analytics-catalog.js` define veinte análisis y su disponibilidad por alcance. Obtiene todos los valores del reporte ya autorizado, sin consultas fuera de su alcance ni nuevos cálculos de OT/SB. Los filtros se preparan como borrador y se aplican al enviar el modal. Historial utiliza sólo mes o todo el historial; el API de comparación permanece para Analítica.

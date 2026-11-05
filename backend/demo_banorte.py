@@ -43,6 +43,7 @@ def seed_banorte_demo(n):
    c.execute('INSERT INTO users(id,role,username,employee_id,first,last,email,account_id,group_id,is_lead,manager_id,parent_id,status,password_hash,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     (ids[employee],'USER' if role=='LEAD' else role,employee,employee,p['first'],p['last'],'',account if role in ('DP','DPE','MANAGER') else None,None,role=='LEAD',parent if role=='LEAD' else None,parent if role in ('DPE','MANAGER') else None,'ACTIVE',n['password_hash'](password),n['now']()))
   for manager in [p for p in people if p['role']=='MANAGER']:
+   c.execute('INSERT INTO ot_policies VALUES(?,?,?,?,?)',(ids[manager['employee_id']],1,'21:00','08:00',n['now']()))
    technicians=[p for p in people if p['role']=='USER' and p.get('parent_employee_id')==manager['employee_id']]
    if not technicians:continue
    group=n['uid']();yao=manager['employee_id']=='MGR0001';platform,service=('MF','ZOS') if yao else ('OTHER','GENERAL')

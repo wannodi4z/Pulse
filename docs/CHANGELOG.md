@@ -1,3 +1,12 @@
+# v1.1.2
+
+- Franjas diarias de OT configurables por Manager, sugerencia 21:00–08:00, pausa automática y reanudación explícita por tramo.
+- Histórica en un solo formulario: ventana original y trabajo real con múltiples tramos, cálculo de horas y aprobación.
+- Explorador de Cuentas por niveles, con hasta ocho DP/DPE y seis Managers por página.
+- Búsqueda por nombre/Employee ID en toda la Cuenta y detalle bajo demanda de cada equipo.
+- Vista de árbol opcional, ramas contraídas y paginadas, Lead separado de cargos oficiales.
+- Acciones de administración y asignaciones pendientes conservadas; adaptación a móvil.
+
 # v1.1.1
 
 - Tablero con cuatro gráficas iniciales y catálogo de 20 análisis según alcance; filtros en modal y tamaños alineados.

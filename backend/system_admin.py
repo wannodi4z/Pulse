@@ -61,16 +61,17 @@ def open_backup(payload,password):
     except (zipfile.BadZipFile,KeyError,UnicodeError,json.JSONDecodeError) as error:raise ValueError('El respaldo está dañado.') from error
 
 
-def prepare_snapshot(path,stamp):
+def prepare_snapshot(path,stamp,cutoff=None):
     """Freeze only the copy: never carry sessions or accumulating timers through a disaster."""
     with sqlite3.connect(path) as db:
         db.row_factory=sqlite3.Row
         for table in ('sessions','session_activity','login_attempts','recovery_code_vault'):db.execute('DELETE FROM '+table)
         db.execute("UPDATE recoveries SET status='PENDING',code_hash=NULL,expires_at=NULL WHERE status='ISSUED'")
-        active=list(db.execute('SELECT t.*,o.capture_type,o.scheduled_end FROM timers t JOIN overtime o ON o.id=t.overtime_id WHERE t.end_at IS NULL'))
+        active=list(db.execute('SELECT t.*,o.capture_type,o.scheduled_start,o.scheduled_end FROM timers t JOIN overtime o ON o.id=t.overtime_id WHERE t.end_at IS NULL'))
         for timer in active:
             end=stamp
             if timer['capture_type']=='PLANNED' and timer['scheduled_end'] and datetime.fromisoformat(timer['scheduled_end'])<datetime.fromisoformat(end):end=timer['scheduled_end']
+            if cutoff and timer['capture_type']=='PLANNED':end=min(datetime.fromisoformat(end),datetime.fromisoformat(cutoff(db,{'id':timer['overtime_id'],'scheduled_start':timer['scheduled_start'],'scheduled_end':timer['scheduled_end']},timer['start_at']))).isoformat()
             if datetime.fromisoformat(end)<datetime.fromisoformat(timer['start_at']):raise ValueError('Se detectó un Timer con fecha de inicio posterior al corte de respaldo.')
             db.execute('UPDATE timers SET end_at=? WHERE id=?',(end,timer['id']))
             status='DOCUMENTATION' if timer['capture_type']=='EMERGENCY' else 'SUBMITTED'
@@ -135,7 +136,7 @@ def install_system_admin(app,namespace):
             snapshot=Path(folder)/'organization.sqlite3'
             with sqlite3.connect(namespace['DB']) as source,sqlite3.connect(snapshot) as target:source.backup(target)
             stamp=datetime.now(timezone.utc).isoformat()
-            try:closed=prepare_snapshot(snapshot,stamp)
+            try:closed=prepare_snapshot(snapshot,stamp,namespace.get('ot_timer_limit'))
             except ValueError as error:fail(str(error),409)
             if snapshot.stat().st_size>MAX_DATABASE:fail('La base supera el tamaño permitido para el respaldo descargable.',413)
             key=namespace['RECOVERY_KEY'].read_bytes() if namespace['RECOVERY_KEY'].is_file() else None

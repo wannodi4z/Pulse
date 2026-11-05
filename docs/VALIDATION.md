@@ -1,3 +1,17 @@
+## v1.1.2
+
+- Suite completa: 135 pruebas de API/cálculos/recuperación/jerarquía aprobadas. Verificación adicional de corte tras interrupción eleva los escenarios nuevos de franjas/históricas a cuatro; todos aprobados.
+- Límites exactos 21:00/08:00, bloqueo diurno, reanudación explícita, pausa temprana, snapshot tras cambio del Manager y copia al participar en el Grupo. 14 horas ejecutadas en tres noches, no el periodo completo; Guardia neta 58 de 72 horas.
+- Histórica: ventana original de 35 horas y dos tramos que suman 2.5 horas; conserva la ventana y contabiliza sólo 150 minutos. Orden/traslapes validados.
+- Chromium: política del Manager, vista previa de tres noches, detección histórica en un solo modal, dos tramos, envío y detalle, y contención móvil. Sin errores JavaScript.
+- Verificación de respaldo personal: conserva ventana original y dos tramos reales. Recuperación mantiene la exigencia de aprobación.
+- Once pruebas específicas de franjas, respaldo integral y OT compartida aprobadas tras la integración.
+- Chromium con 50 DPE y 21 Managers: límites de ocho y seis elementos por página, contadores y navegación independientes.
+- Búsqueda de Técnico por Employee ID localiza su Manager y Lead sin recorrer el árbol. Edición del Manager accesible desde el detalle.
+- Vista de árbol contraída, expansión de DP/DPE/Manager/Grupo, rama de 50 DPE paginada, Lead y Técnico en sus niveles correctos.
+- Contención de escritorio, tablet y móvil, sin errores JavaScript. 92 comprobaciones generales de rol/página/resolución aprobadas.
+- Cuatro pruebas de jerarquía ejecutiva y preservación del alcance aprobadas. No se cambian cálculos ni reglas de captura.
+
 ## v1.1.1
 
 - 129 pruebas de API/cálculo/recuperación/jerarquía aprobadas; 6 comprobaciones adicionales de demo e instalación limpia (3 nuevas y 3 de arranque existentes).

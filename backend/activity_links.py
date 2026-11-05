@@ -17,5 +17,9 @@ def install_activity_links(app,n):
     reference=own['reference'];start=own['scheduled_start'];end=own['scheduled_end'];approved=own['status']=='APPROVED'
    active=c.execute('SELECT * FROM timers WHERE user_id=? AND end_at IS NULL',(actor['id'],)).fetchone()
    same=bool(active and own and active['overtime_id']==own['id']);eligible=approved and (not own or own['status']=='APPROVED' and own['execution'] in ('SCHEDULED','PAUSED')) and not active
-   current=n['parse_at'](n['now']());ready=eligible and n['parse_at'](start)<=current<n['parse_at'](end)
-   return {'id':identity,'reference':reference,'start_at':start,'end_at':end,'approved':approved,'eligible':bool(eligible),'can_start':bool(ready),'overtime_id':own['id'] if own else None,'window_id':w['id'] if window else None,'active_same':same,'active_other':bool(active and not same),'execution':own['execution'] if own else 'SCHEDULED'}
+   schedule=n['ot_schedule_availability'](c,dict(own)) if own else None
+   if not own and window:
+    link=c.execute('SELECT source_id FROM ot_group_activities WHERE window_id=?',(identity,)).fetchone()
+    schedule=n['ot_schedule_availability'](c,n['get'](c,'overtime',link['source_id'])) if link else None
+   current=n['parse_at'](n['now']());ready=eligible and n['parse_at'](start)<=current<n['parse_at'](end) and (schedule is None or schedule['window_open'])
+   return {**(schedule or {}),'id':identity,'reference':reference,'start_at':start,'end_at':end,'approved':approved,'eligible':bool(eligible),'can_start':bool(ready),'overtime_id':own['id'] if own else None,'window_id':w['id'] if window else None,'active_same':same,'active_other':bool(active and not same),'execution':own['execution'] if own else 'SCHEDULED'}

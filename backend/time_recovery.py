@@ -48,6 +48,12 @@ def install_recovery(app, namespace):
                 value=str(item.get(key) or '').strip()
                 if len(value)>10000:s.fail('Un campo de documentación supera el tamaño permitido.')
                 result[key]=value
+            original=item.get('original_window')
+            if original is not None:
+                if not isinstance(original,dict):s.fail('Ventana original inválida en el respaldo.')
+                a=moment(original.get('start_at'));b=moment(original.get('end_at'))
+                if b<=a or b-a>timedelta(days=31):s.fail('Ventana original inválida en el respaldo.')
+                result['original_window']={'start_at':a.isoformat(),'end_at':b.isoformat()}
         else:
             # Normalize fixed coverage into a snapshot; never reinterpret net hours as gross rule coverage.
             by_day={}
@@ -167,7 +173,9 @@ def install_recovery(app, namespace):
                 parts=s.effective_ot_segments(c,record) if kind=='OT' else guard_parts(record)
                 if not any(moment(p['start_at'])<upper and moment(p['end_at'])>lower for p in parts):continue
                 item={'employee_id':actor['employee_id'],'kind':kind,'source_id':record['id'],'segments':parts,'origin':'Pulse '+s.VERSION+' · '+month}
-                if kind=='OT':item.update({k:record[k] for k in ('reference','description','justification','impact','in_lieu')})
+                if kind=='OT':
+                    item.update({k:record[k] for k in ('reference','description','justification','impact','in_lieu')})
+                    if record['scheduled_start'] and record['scheduled_end']:item['original_window']={'start_at':record['scheduled_start'],'end_at':record['scheduled_end']}
                 else:item['name']=json.loads(record['rule_snapshot'])['name']
                 value=json.dumps(item,ensure_ascii=False)
                 if len(value)>90000:s.fail('Un registro supera el tamaño de respaldo Excel; conserva también la base de datos.')
@@ -248,6 +256,7 @@ def install_recovery(app, namespace):
                     status='DOCUMENTATION' if row['needs_documentation'] else 'SUBMITTED';documents+=status=='DOCUMENTATION'
                     c.execute('INSERT INTO overtime(id,user_id,capture_type,start_at,end_at,reference,description,justification,impact,in_lieu,status,execution,revision,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(rid,actor['id'],'HISTORICAL',item['segments'][0]['start_at'],item['segments'][-1]['end_at'],item['reference'],item['description'],item['justification'],item['impact'],item['in_lieu'],status,'COMPLETED',0,stamp,stamp))
                     c.execute('INSERT INTO ot_time_corrections VALUES(?,?,?,?)',(rid,json.dumps(item['segments']),'Recuperación desde respaldo Excel; tramos originales del archivo.',stamp))
+                    if item.get('original_window'):c.execute('UPDATE overtime SET scheduled_start=?,scheduled_end=? WHERE id=?',(item['original_window']['start_at'],item['original_window']['end_at'],rid))
                 else:
                     snapshot={'name':item['name'],'segments':[],'recovered_intervals':item['segments'],'recovery_fixed':True,'effective_from':item['start_date']}
                     c.execute('INSERT INTO guards VALUES(?,?,?,?,?,?,?,?)',(rid,actor['id'],item['start_date'],item['end_date'],json.dumps(snapshot),'SUBMITTED',None,stamp))

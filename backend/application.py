@@ -26,7 +26,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from backend.hierarchy import migrate_executive_roles
 
-VERSION = '1.1.1'
+VERSION = '1.1.2'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent
@@ -446,21 +446,21 @@ def activate(data: dict = Body(...)):
 
 
 def pause_due_timers(c, stamp):
-    query = "SELECT t.id,t.overtime_id,o.scheduled_end FROM timers t JOIN overtime o ON o.id=t.overtime_id WHERE t.end_at IS NULL AND o.capture_type='PLANNED' AND o.scheduled_end<=?"
-    for t in c.execute(query,(stamp,)).fetchall():
-        c.execute('UPDATE timers SET end_at=? WHERE id=?',(t['scheduled_end'],t['id']))
-        c.execute("UPDATE overtime SET end_at=?,execution='PAUSED',updated_at=? WHERE id=?",(t['scheduled_end'],stamp,t['overtime_id']))
-        audit(c,None,'PAUSE_PLANNED_WINDOW',t['overtime_id'],{'timer_id':t['id'],'authorized_end':t['scheduled_end']})
+    if 'ot_timer_limit' not in globals():return
+    for t in c.execute("SELECT t.* FROM timers t JOIN overtime o ON o.id=t.overtime_id WHERE t.end_at IS NULL AND o.capture_type='PLANNED'").fetchall():
+        o=get(c,'overtime',t['overtime_id']);limit=ot_timer_limit(c,o,t['start_at'])
+        if parse_at(stamp)<parse_at(limit):continue
+        c.execute('UPDATE timers SET end_at=? WHERE id=?',(limit,t['id']))
+        c.execute("UPDATE overtime SET end_at=?,execution='PAUSED',updated_at=? WHERE id=?",(limit,stamp,t['overtime_id']))
+        audit(c,None,'PAUSE_PLANNED_WINDOW',t['overtime_id'],{'timer_id':t['id'],'authorized_end':limit})
 
 
 def reconcile_planned_timers():
-    stamp = now()
-    query = "SELECT 1 FROM timers t JOIN overtime o ON o.id=t.overtime_id WHERE t.end_at IS NULL AND o.capture_type='PLANNED' AND o.scheduled_end<=?"
+    stamp=now()
     with connection() as c:
-        if not c.execute(query,(stamp,)).fetchone():
-            return
-    with connection(True) as c:
-        pause_due_timers(c,stamp)
+        active=[dict(t) for t in c.execute("SELECT t.* FROM timers t JOIN overtime o ON o.id=t.overtime_id WHERE t.end_at IS NULL AND o.capture_type='PLANNED'")]
+        if not any(parse_at(stamp)>=parse_at(ot_timer_limit(c,get(c,'overtime',t['overtime_id']),t['start_at'])) for t in active):return
+    with connection(True) as c:pause_due_timers(c,stamp)
 
 
 def cancel_pending_extensions(c, actor, overtime_id, reason):
@@ -506,13 +506,15 @@ def state(user=Depends(current_user)):
                   'manager_transfers':[dict(r,user_name=(get(c,'users',r['user_id'])['first']+' '+get(c,'users',r['user_id'])['last']),employee_id=get(c,'users',r['user_id'])['employee_id'],source_name=get(c,'users',r['source_manager_id'])['first']+' '+get(c,'users',r['source_manager_id'])['last'],target_name=get(c,'users',r['target_manager_id'])['first']+' '+get(c,'users',r['target_manager_id'])['last']) for r in rows(c,'manager_transfers') if user['role']=='MANAGER' and user['id'] in (r['source_manager_id'],r['target_manager_id'])],
                   'recoveries': [r for r in rows(c, 'recoveries') if recovery_handler_allowed(c, user, get(c, 'users', r['user_id']))],
                   'audit': [a for a in rows(c, 'audit') if user['role'] == 'ADMIN' or a['actor_id'] in visible or a['entity_id'] in visible_entities][-300:]}
+        result['ot_policy']=ot_policy(c,user['id'] if user['role']=='MANAGER' else owner_manager(c,user) if user['role']=='USER' else None)
         result['group_activities']=[]
         if user['role']=='USER' and not user['is_lead'] and user['group_id']:
             for link in rows(c,'ot_group_activities'):
                 w=get(c,'windows',link['window_id'])
                 if w['group_id']!=user['group_id'] or parse_at(w['scheduled_end'])<=datetime.now(timezone.utc) or w['status'] not in ('SUBMITTED','APPROVED','REJECTED'):continue
                 author=get(c,'users',w['created_by'])
-                result['group_activities'].append({**w,'source_id':link['source_id'],'author_name':author['first']+' '+author['last']})
+                source=get(c,'overtime',link['source_id'])
+                result['group_activities'].append({**w,**ot_schedule_availability(c,source),'source_id':link['source_id'],'author_name':author['first']+' '+author['last']})
         people_by_id={p['id']:p for p in people}
         for request in result['transfer_requests']:
             target=people_by_id.get(request['user_id'],{});author=people_by_id.get(request['requested_by'],{})
@@ -522,8 +524,12 @@ def state(user=Depends(current_user)):
         origins={r['record_id']:json.loads(r['snapshot']) for r in rows(c,'record_origins')}
         for record in result['overtime']+result['guards']:record['origin_info']=origins.get(record['id'])
         for o in result['overtime']:
+            if o['capture_type']=='PLANNED':
+                o.update(ot_schedule_availability(c,o))
+                active=next((t for t in result['timers'] if t['overtime_id']==o['id']),None)
+                if active:o['timer_limit']=ot_timer_limit(c,o,active['start_at'])
             o['actual_segments']=effective_ot_segments(c,o) if o['execution']=='COMPLETED' else []
-            o['time_corrected']=bool(c.execute('SELECT 1 FROM ot_time_corrections WHERE overtime_id=?',(o['id'],)).fetchone())
+            o['time_corrected']=bool(c.execute("SELECT 1 FROM ot_time_corrections WHERE overtime_id=? AND reason!='Registro inicial de trabajo histórico'",(o['id'],)).fetchone())
             o['worked_seconds']=sum((parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds() for t in o['actual_segments']) if o['execution']=='COMPLETED' else sum(max(0,(parse_at(t['end_at'])-parse_at(t['start_at'])).total_seconds()) for t in result['timer_segments'] if t['overtime_id']==o['id'] and t['end_at'])
         recovered={r['record_id']:json.loads(r['metadata']) for r in rows(c,'time_recovery_items')}
         for record in result['overtime']+result['guards']:record['recovery_info']=recovered.get(record['id'])
@@ -668,7 +674,7 @@ def offboard_person(identity: str, data: dict=Body(...), actor=Depends(current_u
         validate_manager_leads(c,list(transfers.values()))
         for t in impact['timers']:
             o = get(c,'overtime',t['overtime_id'])
-            closed_at=o['scheduled_end'] if o['capture_type']=='PLANNED' and parse_at(stamp)>parse_at(o['scheduled_end']) else stamp
+            closed_at=min(parse_at(stamp),parse_at(ot_timer_limit(c,o,t['start_at']))).isoformat() if o['capture_type']=='PLANNED' else stamp
             c.execute('UPDATE timers SET end_at=? WHERE id=?',(closed_at,t['id']))
             status = 'DOCUMENTATION' if o['capture_type']=='EMERGENCY' else 'SUBMITTED'
             c.execute("UPDATE overtime SET end_at=?,execution='COMPLETED',status=?,approved_by=NULL,updated_at=? WHERE id=?",(closed_at,status,stamp,o['id']))
@@ -1433,6 +1439,10 @@ def add_guard(data: dict = Body(...), actor=Depends(current_user)):
     return {'id': identity}
 
 
+from backend.ot_schedule import install_ot_schedule
+install_ot_schedule(app, globals())
+
+
 def sync_group_ot(c,source,decision=None,approver=None):
     owner=get(c,'users',source['user_id'])
     if source['capture_type']!='PLANNED' or source['execution'] not in ('SCHEDULED','RUNNING') or not owner['group_id'] or owner['is_lead']:return
@@ -1441,6 +1451,7 @@ def sync_group_ot(c,source,decision=None,approver=None):
     status=decision or source['status']
     if status=='APPROVED' and not (approver or source['approved_by']):status='SUBMITTED'
     snapshot={key:source[key] for key in ('reference','description','justification','impact','in_lieu','scheduled_start','scheduled_end')}
+    snapshot['daily_schedule']=ot_schedule_snapshot(c,source['id'])
     if link:
         c.execute('UPDATE windows SET scheduled_start=?,scheduled_end=?,reference=?,description=?,status=? WHERE id=?',(source['scheduled_start'],source['scheduled_end'],source['reference'],source['description'],status,link['window_id']))
         c.execute('UPDATE ot_group_activities SET authorized_by=?,snapshot=? WHERE source_id=?',(approver or source['approved_by'] if status=='APPROVED' else None,json.dumps(snapshot),source['id']))
@@ -1471,6 +1482,26 @@ def classify_ot_period(start, end):
     fail('El periodo está en curso. Inicia el Timer de OT de emergencia para registrar tiempo real, o captura la OT histórica cuando termine.')
 
 
+def historical_work_parts(data,a,b):
+    historical_parts=None
+    actual_a,actual_b=a,b
+    if any(k in data for k in ('actual_start','actual_end','actual_segments')):
+        actual_a,actual_b=interval(data,'actual_start','actual_end')
+        if parse_at(actual_b)>parse_at(now()):fail('El trabajo histórico debe haber terminado.')
+        historical_parts=data.get('actual_segments')
+        if historical_parts is None:historical_parts=[{'start_at':actual_a,'end_at':actual_b}]
+        if not isinstance(historical_parts,list) or not historical_parts or len(historical_parts)>128:fail('Revisa los tramos trabajados.')
+        prepared=[];last=None
+        for part in historical_parts:
+            if not isinstance(part,dict):fail('Revisa los tramos trabajados.')
+            sa,sb=interval(part,'start_at','end_at')
+            if parse_at(sa)<parse_at(actual_a) or parse_at(sb)>parse_at(actual_b) or last and parse_at(sa)<last:fail('Los tramos deben estar ordenados, sin traslapes y dentro del periodo trabajado.')
+            last=parse_at(sb);prepared.append({'start_at':sa,'end_at':sb})
+        if parse_at(prepared[0]['start_at'])!=parse_at(actual_a) or parse_at(prepared[-1]['end_at'])!=parse_at(actual_b):fail('El periodo trabajado debe coincidir con los extremos de los tramos.')
+        historical_parts=prepared
+    return actual_a,actual_b,historical_parts
+
+
 def insert_ot(c, actor, data, window=None):
     identity = uid()
     capture = data.get('capture_type', 'PLANNED')
@@ -1482,7 +1513,8 @@ def insert_ot(c, actor, data, window=None):
         ref, description = window['reference'], window['description']
     elif capture != 'EMERGENCY':
         a, b = interval(data, 'scheduled_start', 'scheduled_end')
-        capture = classify_ot_period(a, b)
+        schedule=ot_request_schedule(c,actor,data,a,b) if parse_at(b)>parse_at(now()) else None
+        capture = 'PLANNED' if schedule else classify_ot_period(a, b)
         ref, description = valid_reference(data), text(data, 'description')
     else:
         a = b = None
@@ -1490,10 +1522,14 @@ def insert_ot(c, actor, data, window=None):
     if capture == 'HISTORICAL' and parse_at(b) > datetime.now(timezone.utc):
         fail('La OT histórica debe haber finalizado.')
     actual_a, actual_b = (a, b) if capture == 'HISTORICAL' else (None, None)
+    historical_parts=None
+    if capture=='HISTORICAL':actual_a,actual_b,historical_parts=historical_work_parts(data,a,b)
     execution = 'COMPLETED' if capture == 'HISTORICAL' else 'SCHEDULED' if capture == 'PLANNED' else 'RUNNING'
     status = 'APPROVED' if window else 'DOCUMENTATION' if capture == 'EMERGENCY' else 'SUBMITTED'
     c.execute('INSERT INTO overtime VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
               (identity, actor['id'], window['id'] if window else None, capture, a, b, actual_a, actual_b, ref, description, text(data, 'justification', False), text(data, 'impact', False), text(data, 'in_lieu', False), status, execution, 0, None, now(), now()))
+    if historical_parts:c.execute('INSERT INTO ot_time_corrections VALUES(?,?,?,?)',(identity,json.dumps(historical_parts),'Registro inicial de trabajo histórico',now()))
+    if capture=='PLANNED':ot_store_schedule(c,identity,data.get('daily_schedule') if window else schedule)
     capture_origin(c,identity,actor)
     return identity
 
@@ -1549,7 +1585,7 @@ def revise_actual_ot_time(c,actor,o,data):
         for segment in supplied:
             if not isinstance(segment,dict):fail('Revisa los tramos de trabajo.')
             sa,sb=interval(segment,'start_at','end_at');corrected.append({'start_at':sa,'end_at':sb})
-    elif o['capture_type']=='PLANNED' and len(previous)>1:
+    elif len(previous)>1:
         corrected=[dict(s) for s in previous];corrected[0]['start_at']=a;corrected[-1]['end_at']=b
     else:corrected=[{'start_at':a,'end_at':b}]
     if parse_at(corrected[0]['start_at'])!=parse_at(a) or parse_at(corrected[-1]['end_at'])!=parse_at(b):fail('El inicio y fin deben coincidir con los extremos de los tramos.')
@@ -1583,8 +1619,12 @@ def edit_ot(identity: str, data: dict = Body(...), actor=Depends(current_user)):
         ref = valid_reference(data)
         if o['execution'] == 'SCHEDULED':
             a, b = interval(data, 'scheduled_start', 'scheduled_end')
-            capture = classify_ot_period(a, b)
-            c.execute('UPDATE overtime SET scheduled_start=?,scheduled_end=?,capture_type=?,execution=?,start_at=?,end_at=? WHERE id=?', (a, b, capture, 'COMPLETED' if capture=='HISTORICAL' else 'SCHEDULED', a if capture=='HISTORICAL' else None, b if capture=='HISTORICAL' else None, identity))
+            schedule=ot_request_schedule(c,actor,data,a,b) if parse_at(b)>parse_at(now()) else None
+            capture='PLANNED' if schedule else classify_ot_period(a,b)
+            ot_store_schedule(c,identity,schedule)
+            actual_a,actual_b,parts=historical_work_parts(data,a,b) if capture=='HISTORICAL' else (None,None,None)
+            if parts:c.execute('INSERT OR REPLACE INTO ot_time_corrections VALUES(?,?,?,?)',(identity,json.dumps(parts),'Registro inicial de trabajo histórico',now()))
+            c.execute('UPDATE overtime SET scheduled_start=?,scheduled_end=?,capture_type=?,execution=?,start_at=?,end_at=? WHERE id=?', (a, b, capture, 'COMPLETED' if capture=='HISTORICAL' else 'SCHEDULED', actual_a, actual_b, identity))
         if o['execution']=='COMPLETED':revise_actual_ot_time(c,actor,o,data)
         c.execute("UPDATE overtime SET reference=?,description=?,justification=?,impact=?,in_lieu=?,status='SUBMITTED',approved_by=NULL,revision=revision+1,updated_at=? WHERE id=?", (ref, text(data, 'description'), text(data, 'justification'), text(data, 'impact'), text(data, 'in_lieu'), now(), identity))
         updated=get(c,'overtime',identity)
@@ -1609,6 +1649,7 @@ def start_timer(data: dict = Body(...), actor=Depends(current_user)):
                 fail('El Timer estará disponible desde '+o['scheduled_start']+'.')
             if parse_at(o['scheduled_end']) <= parse_at(now()):
                 fail('La ventana autorizada terminó. Solicita una extensión antes de iniciar o reanudar.')
+            if not ot_schedule_availability(c,o)['window_open']:fail('El Timer sólo puede iniciarse dentro del horario diario autorizado. Revisa la próxima ventana.')
         else:
             otid = insert_ot(c, actor, {'capture_type': 'EMERGENCY'})
         identity, stamp = uid(), now()
@@ -1634,8 +1675,9 @@ def stop_timer(identity: str, actor=Depends(current_user)):
             fail('El Timer ya está detenido.')
         stamp = now()
         o = get(c, 'overtime', t['overtime_id'])
-        if o['capture_type']=='PLANNED' and parse_at(stamp)>parse_at(o['scheduled_end']):
-            stamp=o['scheduled_end']
+        if o['capture_type']=='PLANNED':
+            limit=ot_timer_limit(c,o,t['start_at'])
+            if parse_at(stamp)>parse_at(limit):stamp=limit
         c.execute('UPDATE timers SET end_at=? WHERE id=?', (stamp, identity))
         status = 'DOCUMENTATION' if o['capture_type'] == 'EMERGENCY' else 'SUBMITTED'
         c.execute("UPDATE overtime SET end_at=?,execution='COMPLETED',status=?,approved_by=NULL,updated_at=? WHERE id=?", (stamp, status, stamp, o['id']))
