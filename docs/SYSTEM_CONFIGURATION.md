@@ -54,13 +54,14 @@ Manager, DP, DPE y usuarios con gestión delegada personalizan su tablero de equ
 
 Las vistas guardan orden, tamaño y visibilidad. No alteran periodos, filtros, horas ni permisos. Son locales al usuario y al navegador; no se sincronizan entre dispositivos. Se conservan ampliación, leyendas interactivas y datos emergentes. Restaurar diseño recupera la distribución predeterminada y mantiene las vistas guardadas.
 
-## Acceso al Timer desde el escritorio
+## Enlace y acceso al Timer por actividad
 
-En **Mi tiempo → Acceso al Timer**, descarga `.webloc` para macOS o `.url` para Windows y muévelo al escritorio. Al abrirlo, se accede a `/?view=timer` en la misma dirección de Pulse.
+En el detalle de una **OT programada aprobada** o actividad aprobada del Grupo, elige **Enlace y acceso al Timer**. Puedes copiar su enlace `/?activity=IDENTIFICADOR` o descargar `.webloc` para macOS / `.url` para Windows.
 
-- Con un Timer activo, se abre su control.
-- Sin Timer activo, se ofrecen las OT aprobadas dentro de su ventana y las actividades del Grupo disponibles, o el inicio de una emergente.
-- Con sesión vencida, primero se inicia sesión y después se abre el control.
-- Abrir el enlace no crea horas automáticamente. Se confirma la actividad siguiendo el flujo existente.
+- El enlace identifica una actividad; no contiene contraseñas ni concede acceso.
+- Con sesión vencida, primero se inicia sesión y luego se abre esa actividad.
+- Se comprueban pertenencia, aprobación y horario en el servidor. Cada integrante ejecuta su propio Timer.
+- Abrir el enlace no inicia tiempo. **Iniciar mi Timer** confirma el inicio dentro de la ventana autorizada. Si el mismo Timer ya está activo, se muestra su control.
+- Antes del horario, puede actualizarse la disponibilidad. Otra actividad activa impide iniciar una segunda.
 
-El archivo contiene únicamente la dirección de Pulse, sin credenciales. El servidor debe estar disponible: un acceso web no inicia por sí solo el servidor local. No es una aplicación nativa ni una instalación PWA.
+Pulse debe estar disponible en esa dirección. El acceso no arranca el servidor local. Abrir desde un móvil requiere una dirección de servidor accesible; `127.0.0.1` apunta al dispositivo que abre el enlace. La experiencia móvil dedicada y SSO quedan para una integración futura.

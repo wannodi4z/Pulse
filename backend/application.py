@@ -26,7 +26,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from backend.hierarchy import migrate_executive_roles
 
-VERSION = '1.0.22'
+VERSION = '1.1.0'
 ROOT = Path(__file__).resolve().parent
 if ROOT.name == 'backend':
     ROOT = ROOT.parent
@@ -231,7 +231,8 @@ def current_user(request: Request):
         if row is None:
             fail('Inicia sesión para continuar.', 401)
         user=dict(row)
-        if user['role'] in ('DP','DPE') and request.method not in ('GET','HEAD') and request.url.path not in ('/api/session/activity','/api/logout','/api/profile','/api/password'):
+        transfer_decision=request.method=='POST' and re.fullmatch(r'/api/organization-transfers/[0-9a-f]{32}/decision',request.url.path)
+        if user['role'] in ('DP','DPE') and not transfer_decision and request.method not in ('GET','HEAD') and request.url.path not in ('/api/session/activity','/api/logout','/api/profile','/api/password'):
             fail('DP y DPE tienen acceso de consulta; no pueden modificar ni autorizar registros.',403)
         return user
 
@@ -941,6 +942,8 @@ def save_person(data: dict = Body(...), identity: str = '', actor=Depends(curren
                 if c.execute("SELECT 1 FROM users WHERE manager_id=? AND is_lead=1 AND status!='DISABLED' AND id<>?",(lead_manager,identity)).fetchone():fail('Este Manager ya tiene un Lead.')
                 gid=None
             else:get(c,'groups',gid)
+        if old and role=='MANAGER' and (aid!=old['account_id'] or old.get('parent_id') and parent_id!=old['parent_id']):fail('Usa Traslados organizacionales para cambiar de Cuenta o DPE.')
+        if old and old['is_lead'] and old.get('manager_id') and old['status']!='DISABLED' and (lead_manager if lead else get(c,'groups',gid)['manager_id'])!=old['manager_id']:fail('Usa Traslados organizacionales para cambiar al Lead de responsable.')
         group_ids = list(dict.fromkeys(data.get('group_ids', [g['id'] for g in c.execute('SELECT id FROM groups WHERE manager_id=?',(identity,))] if old else []))) if role == 'MANAGER' else []
         for g_id in group_ids:
             g = get(c, 'groups', g_id)
@@ -2179,9 +2182,6 @@ def analytics_workbook(report):
     names = dict(zip(ANALYTICS_TYPES, ['OT de emergencia', 'OT programada', 'OT histórica', 'Guardia neta']))
     for row in report['rows']:
         detail.append([row['date'], safe(row['employee_id']), safe(row['name']), safe(row['group_name']), names[row['capture_type']], row['start'], row['end'], row['hours'], safe(row['reference'])])
-    records=wb.create_sheet('Registros');records.append(['Employee ID','Técnico','Grupo','Tipo','Referencia','Descripción','Inicio','Fin','Estado'])
-    for r in report['records']:
-        records.append([safe(r['employee_id']),safe(r['name']),safe(r['group_name']),r['capture_type'],safe(r['reference']),safe(r['description']),r['from_at'],r['to_at'],r['display_status']])
     summary.append(['Búsqueda',safe(report['filters']['q'])]);summary.append(['Periodos',', '.join(report['months'])]);summary.append(['Registros encontrados',report['record_count']])
     if len(report['comparison'])>1:
         comparison=wb.create_sheet('Comparativa');comparison.append(['Mes',*labels])
@@ -2278,6 +2278,16 @@ append_monthly_capture, append_native_backup = install_recovery(app, globals())
 
 from backend.system_admin import install_system_admin
 install_system_admin(app, globals())
+
+
+from backend.organization_transfers import install_organization_transfers
+install_organization_transfers(app, globals())
+
+
+from backend.activity_links import install_activity_links
+install_activity_links(app, globals())
+from backend.record_exports import install_record_exports
+install_record_exports(app, globals())
 
 
 app.mount('/static', StaticFiles(directory=ROOT / 'frontend' / 'static'), name='static')

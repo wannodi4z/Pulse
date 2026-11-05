@@ -29,8 +29,8 @@ class DirectLeadTests(unittest.TestCase):
     def test_move_to_another_manager_keeps_ot_and_revokes_authority(self):
         m2,mc2,_=self.f.person('MANAGER','M002',account=self.a)
         own=self.f.ot(self.lc);self.f.post('/api/delegations',{'lead_id':self.lid},self.mc)
-        result=self.f.client.put('/api/people/'+self.lid,json={**self.data,'manager_id':m2['id'],'transfer_reason':'Nuevo responsable'})
-        self.assertEqual(result.status_code,200,result.text);self.assertEqual(self.lc.get('/api/state').status_code,401)
+        result=self.f.organizational_move(self.lid,m2['id'])
+        self.assertEqual(result.status_code,200,result.text);self.assertEqual(self.lc.get('/api/state').status_code,200)
         self.f.login(self.lc,'SL0001','lead120261');state=self.lc.get('/api/state').json();self.assertFalse(state['can_approve']);self.assertIsNone(state['user']['group_id']);self.assertEqual(state['user']['manager_id'],m2['id'])
         self.assertEqual(state['overtime'][0]['origin_info']['manager_id'],self.m['id'])
         self.assertFalse(any(o['id']==own for o in self.mc.get('/api/state').json()['overtime']));self.f.approve(mc2,'ot',own)

@@ -1,3 +1,12 @@
+# v1.1.0
+
+- Traslados de Manager y Lead propuestos por Admin, con elección del destino de Grupos y Lead. Autorizaciones de origen/destino de DP y DPE; aplicación final atómica por Admin.
+- Verificación de cambios de estructura, bloqueo por Timers activos y traslados técnicos pendientes; conservación de horas e identidades y retiro de delegaciones anteriores.
+- Enlace compartible y accesos macOS/Windows por actividad planificada aprobada. Autenticación, alcance y ventana autorizada comprobados antes del inicio explícito del Timer personal.
+- Historial exporta Registros y Filtros. Analítica exporta métricas y detalle aprobado, con los mismos filtros de cada pantalla.
+- Redimensionamiento continuo de ancho y alto, ajuste interno de gráficas y distribución sin superposición; persisten movimiento, visibilidad, vistas guardadas, ampliación y leyendas.
+- Campos de texto completos en modales y acciones de confirmación en el pie; eliminación del acceso genérico al Timer de Mi tiempo.
+
 ## v1.0.22
 
 Corrección de la misma entrega: sidebar compacto con iconos centrados, etiquetas realmente ocultas y separadores discretos. Sin scrollbar visible al pasar el cursor; el desplazamiento y acceso por teclado se conservan. Logo alineado con los iconos y control de expansión con símbolo de panel consistente.

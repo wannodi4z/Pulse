@@ -1,8 +1,8 @@
-# Operational Pulse · v1.0.22
+# Operational Pulse · v1.1.0
 
 Control de OT y Guardias con calendario, Timer, documentación, aprobaciones, historial, analítica, Claim/ADP y respaldos.
 
-La v1.0.22 revisa alineación y estados vacíos, agrega sidebar por secciones y contraíble, vistas de analítica guardadas, configuración SMTP sin envío, respaldo integral cifrado de Admin y acceso web al Timer desde el escritorio. [Guía de configuración y recuperación](docs/SYSTEM_CONFIGURATION.md) · [Revisión y recomendaciones](docs/INTERFACE_REVIEW_v1.0.22.md).
+La v1.1.0 incorpora traslados organizacionales con autorización de DP y DPE de ambos lados, enlaces por actividad aprobada, exportaciones separadas de analítica e historial y un tablero con tamaño libre de gráficas. Conserva el diseño, los cálculos y los flujos de captura. [Guía de la versión](docs/RELEASE_v1.1.0.md).
 
 ## Demo desde cero
 
@@ -36,7 +36,7 @@ Admin configura **Cuenta → DP → DPE → Manager → Grupos → Técnicos**. 
 - **Lead:** Técnico con las facultades que delegue su Manager.
 - **Técnico:** actividad y tiempo propios.
 
-DP y DPE no capturan OT/SB, no editan ni autorizan horas. El árbol organizacional es otra forma de buscar: selecciona un nivel para ver sus horas y se sincronizan los filtros habituales. Comparación de meses, gráficas personalizables, ampliación, leyendas y exportación se conservan. [Guía de roles, altas, árbol y actualización](docs/EXECUTIVE_ROLES.md).
+DP y DPE no capturan OT/SB, no editan ni autorizan horas. Sí revisan las propuestas de traslado organizacional que les corresponden. El árbol organizacional es otra forma de buscar: selecciona un nivel para ver sus horas y se sincronizan los filtros habituales. Comparación de meses, gráficas personalizables, ampliación, leyendas y exportación se conservan. [Guía de roles, altas, árbol y actualización](docs/EXECUTIVE_ROLES.md).
 
 ## Actualizaciones y respaldo
 

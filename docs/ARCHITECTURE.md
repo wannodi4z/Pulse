@@ -1,3 +1,13 @@
+## v1.1.0 · Módulos adicionales
+
+- `backend/organization_transfers.py`: propuestas, huella de estructura y autorizaciones ejecutivas; aplicación en transacción inmediata. Historial y delegaciones conservan su trazabilidad. No amplía permisos de aprobación de horas.
+- `backend/activity_links.py`: consulta autenticada de una actividad y disponibilidad del Timer; el GET no registra tiempo. Inicio e inscripción usan los endpoints operativos existentes.
+- `backend/record_exports.py`: exportación de búsqueda separada del libro de analítica, utilizando el mismo reporte autorizado.
+- `frontend/static/organization-transfers.js`: preparación visual de propuestas y decisiones por rol.
+- `frontend/static/analytics-layout.js`: distribución en píxeles, ratio de ancho y altura continua; migración compatible de preferencias anteriores y adaptación del SVG mediante ResizeObserver.
+
+La única escritura ejecutiva adicional permitida por `current_user` es POST a la decisión de traslado; la ruta verifica que el usuario sea uno de sus revisores. Las escrituras restantes siguen restringidas.
+
 ## Configuración y respaldo integral · v1.0.22
 
 `backend/system_admin.py` instala rutas exclusivas de Admin, persiste SMTP en `system_settings` y cifra la contraseña con la clave local existente. No incorpora envío de correo. El respaldo usa SQLite backup sobre una copia temporal, quita sesiones y material de recuperación, cierra Timers activos sólo en la copia y cifra el paquete ZIP con Fernet/Scrypt. `scripts/restore_organization.py` valida y restaura offline a archivos nuevos, con permisos restringidos y rechazo de sobrescrituras. No usa extracción ZIP a rutas suministradas por el archivo.

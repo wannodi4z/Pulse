@@ -1,3 +1,14 @@
+## v1.1.0
+
+- 127 pruebas de API, permisos, cálculos, migración, recuperación y exportación aprobadas; dos escenarios adicionales de traslado aprobados en la suite específica (6 casos en total).
+- Traslado completo con cuatro revisores, bloqueo sin autorizaciones, rechazo, bloqueo por Timer activo, obsolescencia por cambio del equipo, continuidad de sesiones e historial y prohibición de modificación directa.
+- Grupos y Lead permanecen con otro Manager de origen; traslado sólo de Lead con DP/DPE compartidos y una decisión por responsable.
+- Chromium: arrastrar propuesta, cuatro autorizaciones por interfaz, campos de decisión de ancho completo, aplicación disponible sólo al terminar las decisiones.
+- Redimensionamiento continuo probado con +41 px de ancho y +37 px de alto; persistencia, ausencia de superposición y contención móvil. Prueba completa de layouts: movimiento, cancelación, teclado, tamaño interno de SVG, aislamiento por usuario, leyendas y ampliación.
+- 92 combinaciones de rol/página/resolución sin desbordamiento horizontal ni errores JavaScript.
+- Enlace de actividad: continuación tras login, archivos macOS/Windows sin credenciales, inicio explícito en ventana autorizada, reutilización del Timer activo y rechazo de acceso a Manager. Abrir un enlace no crea tiempo.
+- Historial y analítica usan libros distintos conservando filtros y autorización.
+
 Corrección de sidebar v1.0.22: 24 combinaciones de rol, resolución y escala verifican logo, iconos y control de expansión centrados en el mismo eje, textos ocultos, ausencia de scrollbars visibles, acceso al último elemento por teclado, persistencia, expansión y etiquetas móviles. Sin errores JavaScript.
 
 ## v1.0.22 · Revisión de interfaz, configuración y recuperación

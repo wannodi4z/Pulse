@@ -85,6 +85,24 @@ class PulseTests(unittest.TestCase):
     def ot(self, client, start='2026-01-05T23:00:00-06:00', end='2026-01-06T01:00:00-06:00', **extra):
         return self.post('/api/overtime', {'capture_type': 'HISTORICAL', 'scheduled_start': start, 'scheduled_end': end, 'reference': 'CHG123456', 'description': 'Trabajo aprobado', 'justification': 'Cambio requerido', 'impact': 'Servicio', 'in_lieu': 'Cobertura', **extra}, client)['id']
 
+    def organizational_move(self,subject_id,target_id,groups=None):
+        admin=TestClient(self.server.app);self.login(admin,'admin1','admin12026')
+        with self.server.connection() as db:
+            subject=self.server.get(db,'users',subject_id);mid=subject_id if subject['role']=='MANAGER' else subject['manager_id'];manager=self.server.get(db,'users',mid)
+            parent=db.execute("SELECT id FROM users WHERE role='DPE' AND account_id=? AND status='ACTIVE'",(manager['account_id'],)).fetchone()
+            group_ids=[g['id'] for g in self.server.rows(db,'groups') if g['manager_id']==subject_id]
+        if not manager.get('parent_id'):
+            self.assertIsNotNone(parent)
+            result=admin.put('/api/people/'+mid,json={**manager,'parent_id':parent[0]});self.assertEqual(result.status_code,200,result.text)
+        plan={'subject_id':subject_id,'target_id':target_id,'groups':groups if groups is not None else {g:'FOLLOW' for g in group_ids},'lead_target':'FOLLOW'}
+        preview=self.post('/api/organization-transfers/preview',plan,admin)
+        request=self.post('/api/organization-transfers',{**plan,'fingerprint':preview['fingerprint'],'reason':'Movimiento revisado por ambos responsables'},admin)['id']
+        for reviewer in preview['reviewers']:
+            with self.server.connection() as db:username=self.server.get(db,'users',reviewer['id'])['username']
+            client=TestClient(self.server.app);self.login(client,username)
+            self.post('/api/organization-transfers/'+request+'/decision',{'decision':'APPROVED','reason':'Equipo y destino revisados'},client)
+        result=admin.post('/api/organization-transfers/'+request+'/apply',json={'confirm':True});self.assertEqual(result.status_code,200,result.text);return result
+
     def approve(self, manager, kind, identity):
         return self.post(f'/api/approvals/{kind}/{identity}', {'decision': 'APPROVED'}, manager)
 
@@ -433,7 +451,7 @@ class PulseTests(unittest.TestCase):
         self.assertEqual(mc.delete('/api/delegations/'+d).status_code,200)
         self.assertEqual(lc.get('/api/analytics?month=2026-01').status_code,403)
         exported=mc.get('/api/analytics.xlsx?month=2026-01');self.assertEqual(exported.status_code,200)
-        wb=load_workbook(io.BytesIO(exported.content));self.assertEqual(wb.sheetnames,['Resumen','Por grupo','Por técnico','Detalle','Registros','Por hora'])
+        wb=load_workbook(io.BytesIO(exported.content));self.assertEqual(wb.sheetnames,['Resumen','Por grupo','Por técnico','Detalle','Por hora'])
         self.assertEqual(sum(row[-1] for row in list(wb['Por grupo'].values)[1:]),11)
         personal=c1.get('/api/my-analytics.xlsx?month=2026-01');self.assertEqual(personal.status_code,200)
         wb=load_workbook(io.BytesIO(personal.content));values=list(wb['Por técnico'].values)[1:]

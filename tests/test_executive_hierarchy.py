@@ -41,7 +41,7 @@ class ExecutiveTests(unittest.TestCase):
   self.f.post('/api/activate',{'identity':'DPE-SIBLING','code':created['activation_code'],'password':'Password2026!'})
   group=self.f.group(self.a,'SIBLING-GROUP');manager,mc,data=self.f.person('MANAGER','SIBLING-MGR',account=self.a,groups=[group])
   self.f.post('/api/session/activity',{},self.f.client)
-  self.assertEqual(self.f.client.put('/api/people/'+manager['id'],json={**data,'parent_id':created['id']}).status_code,200)
+  self.assertEqual(self.f.organizational_move(manager['id'],created['id']).status_code,200)
   user,uc,_=self.f.person('USER','SIBLING-TECH',group=group)
   record=self.f.ot(uc,'2026-01-06T10:00:00-06:00','2026-01-06T13:00:00-06:00');self.f.approve(mc,'ot',record)
   dp=self.dc.get('/api/analytics?month=2026-01').json();dpe=self.ec.get('/api/analytics?month=2026-01').json()
@@ -52,7 +52,7 @@ class ExecutiveTests(unittest.TestCase):
   self.assertEqual(self.ec.get('/api/analytics/overtime/'+record+'/participants').status_code,404)
   self.assertNotIn(user['id'],{p['id'] for p in self.ec.get('/api/state').json()['people']})
   self.assertIn(user['id'],{p['id'] for p in self.dc.get('/api/state').json()['people']})
-  self.assertEqual(self.f.client.put('/api/people/'+manager['id'],json={**data,'parent_id':self.dpe['id']}).status_code,200)
+  self.assertEqual(self.f.organizational_move(manager['id'],self.dpe['id']).status_code,200)
   self.assertEqual(self.ec.get('/api/analytics?month=2026-01').json()['summary']['ot_minutes'],300)
 
  def test_parent_validation(self):

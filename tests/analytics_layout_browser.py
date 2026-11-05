@@ -58,9 +58,10 @@ try:
   assert tile('trend').locator('svg.decision-svg').evaluate('e=>Math.abs(e.viewBox.baseVal.width-e.getBoundingClientRect().width)<2')
   assert tile('trend').locator('svg.decision-svg text').first.evaluate('e=>{const m=e.getScreenCTM();return Math.abs(m.a-m.d)<.01}')
   page.mouse.up()
-  expect(tile('trend')).to_have_attribute('data-width','12');expect(tile('trend')).to_have_attribute('data-height','600')
+  free=tile('trend').bounding_box();assert abs(free['height']-578)<2
   handle.focus();page.keyboard.press('ArrowLeft');page.keyboard.press('ArrowUp')
-  expect(tile('trend')).to_have_attribute('data-width','8');expect(tile('trend')).to_have_attribute('data-height','480')
+  keyed=tile('trend').bounding_box();assert abs(keyed['height']-(free['height']-10))<2 and keyed['width']<free['width']
+  page.locator('[data-chart-width=trend]').select_option('8');page.locator('[data-chart-height=trend]').select_option('480')
   tile('trend').evaluate("e=>e.scrollIntoView({block:'start'})");box=handle.bounding_box();page.mouse.move(box['x']+15,box['y']+12);page.mouse.down();page.mouse.move(box['x']-180,box['y']-100,steps=5);page.keyboard.press('Escape');page.mouse.up()
   expect(tile('trend')).to_have_attribute('data-width','8');expect(tile('trend')).to_have_attribute('data-height','480')
   for width,height in [(1440,1000),(1024,700),(390,844)]:
